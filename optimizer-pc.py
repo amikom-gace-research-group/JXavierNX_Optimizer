@@ -90,6 +90,19 @@ def choose_action(state_index):
     else:
         return np.unravel_index(np.argmax(Q_table[state_index, :]), action_shape)  # Exploit best actions
 
+def get_result():
+    headers = {
+        'Authorization': sys.argv[2],  # Use 'APIKey' if your service requires this
+        'Content-Type': 'application/json'  # Set content type to JSON
+    }
+    try:
+        response = requests.get(f"{sys.argv[1]}/api/output", headers=headers)
+        if response.status_code == 200:
+            return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching result: {e}")
+    return False
+
 # Efficient config execution
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
@@ -111,6 +124,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
                     return metrics
                 else:
+                    print("Waiting JXavier....")
                     time.sleep(5)
         else:
             print(f"Error executing config: {response.status_code}")
