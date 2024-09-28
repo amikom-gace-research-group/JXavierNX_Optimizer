@@ -6,7 +6,6 @@ import os
 import csv
 import requests
 from statistics import median
-from json import dumps as json_dump
 
 print("PID", os.getpid())
 
@@ -29,7 +28,7 @@ gamma = 0.9
 epsilon = 0.6
 epsilon_min = 0.01
 epsilon_decay = 0.995
-num_episodes = 20
+num_episodes = 100
 reward_threshold = 0.01
 max_saturated_count = 5
 
@@ -39,12 +38,6 @@ ACTIONS = [0, 1, 2, 3, 4, 5, 6]  # No change, Small/Medium/Large Increase/Decrea
 # Action mapping for each configuration
 ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
 action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
-
-# Precompute total state and action spaces
-num_states = len(CPU_CORES_RANGE) * len(CPU_FREQ_RANGE) * len(GPU_FREQ_RANGE) * len(MEMORY_FREQ_RANGE) * len(CL_RANGE)
-num_actions = len(ACTIONS) ** len(ACTION_MAPPING)
-Q_table = np.zeros((num_states, num_actions), dtype=np.float16)
-
 
 # Step sizes for adjustment
 STEP_SIZES = {
@@ -58,13 +51,18 @@ STEP_SIZES = {
 # Prohibited configs
 prohibited_configs = set()
 
+# Initialize an empty Q-table as a dictionary
+Q_table = {}
+
 # Efficient state to index mapping
 def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
-    return (np.searchsorted(CPU_CORES_RANGE, cpu_cores) * len(CPU_FREQ_RANGE) * len(GPU_FREQ_RANGE) * len(MEMORY_FREQ_RANGE) * len(CL_RANGE) +
-            np.searchsorted(CPU_FREQ_RANGE, cpu_freq) * len(GPU_FREQ_RANGE) * len(MEMORY_FREQ_RANGE) * len(CL_RANGE) +
-            np.searchsorted(GPU_FREQ_RANGE, gpu_freq) * len(MEMORY_FREQ_RANGE) * len(CL_RANGE) +
-            np.searchsorted(MEMORY_FREQ_RANGE, memory_freq) * len(CL_RANGE) +
-            np.searchsorted(CL_RANGE, cl))
+    return (
+        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
+        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
+        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
+        np.searchsorted(MEMORY_FREQ_RANGE, memory_freq),
+        np.searchsorted(CL_RANGE, cl)
+    )
 
 # Adjust configuration values based on action
 def adjust_value(value, action, steps, min_val, max_val):
@@ -86,9 +84,26 @@ def adjust_value(value, action, steps, min_val, max_val):
 # Epsilon-greedy action selection with state-based exploration
 def choose_action(state_index):
     if random.uniform(0, 1) < epsilon:
-        return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore with specific actions
+        return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore
     else:
-        return np.unravel_index(np.argmax(Q_table[state_index, :]), action_shape)  # Exploit best actions
+        state_key = tuple(state_index)
+        if state_key not in Q_table:
+            return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore if unseen state
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit
+
+# Retrieve Q-value for a state-action pair
+def get_q_value(state_index, action_index):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    return Q_table[state_key][np.ravel_multi_index(action_index, action_shape)]
+
+# Update Q-value for a state-action pair
+def update_q_value(state_index, action_index, new_value):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
 def get_result():
     headers = {
@@ -118,19 +133,32 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     try:
         response = requests.post(url, json=data, headers=headers)
         if response.status_code == 201:
+            av_dev = 0
             while True:
                 metrics = get_result()
                 if metrics and len(metrics) == 1:
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
                     return metrics
                 else:
+                    av_dev += 1
                     print("Waiting JXavier....")
+                    if av_dev == 50:
+                        return "No Device"
                     time.sleep(5)
         else:
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
     return None
+
+def close_freq_prohibited(state_index):
+    for prohibited in prohibited_configs:
+        for i in range(1, 4):
+            if abs(state_index[i] - prohibited[i]) < 50:
+                return True
+            else:
+                break
+    return False
 
 # Efficient reward calculation
 def calculate_reward(measured_metrics):
@@ -146,7 +174,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['reward', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'q-learning_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -158,10 +186,14 @@ max_reward = -float('inf')
 best_config = None
 
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = CPU_CORES_RANGE[-1], CPU_FREQ_RANGE[-1], GPU_FREQ_RANGE[-1], MEMORY_FREQ_RANGE[-1], CL_RANGE[0]
+state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
 for episode in range(num_episodes):
-    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    t1 = time.time()
     actions = choose_action(state_index)
+
+    print("Config before action :", cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    print("Action :",actions)
 
     # Adjust values for each action
     cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
@@ -170,30 +202,60 @@ for episode in range(num_episodes):
     memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
     cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-    if not measured_metrics:
+    print("Config after action :", cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+
+    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    close_prohibited = close_freq_prohibited(state_index)
+    if state_index in prohibited_configs or close_prohibited:
+        print("PROHIBITED CONFIG!")
+        epsilon = 0.5
         continue
 
+    t2 = time.time()
+    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    elapsed_exec = round(time.time() - t2, 3)
+    if not measured_metrics:
+        print("EXECUTION PROBLEM!")
+        epsilon = 0.5
+        continue
+    if measured_metrics == "No Device":
+        print("No Device")
+        break
+
     reward = calculate_reward(measured_metrics)
-    configs = {"reward": reward, "cpu_cores": cpu_cores, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
+
+    # Prohibited state handling
+    if reward == -1:
+        print("PROHIBITED CONFIG")
+        epsilon = 0.5
+        prohibited_configs.add(state_index)
+        continue
+
+    action_index = tuple(actions)
+    old_q_value = get_q_value(state_index, action_index)
+    new_q_value = old_q_value + alpha * (reward + gamma * reward - old_q_value)  # Update Q-value
+
+    update_q_value(state_index, action_index, new_q_value)
+
+    elapsed = round((time.time()-elapsed_exec) - t1, 3)
+
+    configs = {"reward": reward, "xaviernx_time_elapsed": elapsed_exec, "q-learning_time_elapsed": elapsed, "cpu_cores": cpu_cores, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"output_jxavier_{sys.argv[4]}.csv")
 
-    # Q-table update
     if reward > max_reward:
         max_reward = reward
-        best_config = configs
-    
-    # Prohibited state handling
-    if reward == -1:
-        prohibited_configs.add(state_index)
-        continue
-    
-    next_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-    Q_table[state_index, np.ravel_multi_index(actions, action_shape)] += alpha * (reward + gamma * np.max(Q_table[next_state_index, :]) - Q_table[state_index, np.ravel_multi_index(actions, action_shape)])
-    
-    epsilon = max(epsilon_min, epsilon * epsilon_decay)
-    
+        best_config = dict_record
+    if reward > last_reward - reward_threshold:
+        max_saturated_count -= 1
+        if max_saturated_count == 0:
+            print("Q-Learning is saturated")
+            break
+    last_reward = reward
+
+    if epsilon > epsilon_min:
+        epsilon *= epsilon_decay
+
     print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
 
-print(f"Best configuration found: {best_config}")
+print(f"Best Config: {best_config}")
