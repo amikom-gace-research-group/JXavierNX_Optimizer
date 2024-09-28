@@ -154,7 +154,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 def close_freq_prohibited(state_index):
     for prohibited in prohibited_configs:
         for i in range(1, 4):
-            if abs(state_index[i] - prohibited[i]) < 50:
+            if abs(state_index[i] - prohibited[i]) < 10:
                 return True
             else:
                 break
