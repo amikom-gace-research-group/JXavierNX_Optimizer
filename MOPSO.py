@@ -1,5 +1,4 @@
 import numpy as np
-import random
 import requests
 import csv
 import time
@@ -19,6 +18,8 @@ THROUGHPUT_TARGET = 30
 
 importance_power = 1
 importance_throughput = 1
+
+time_got = []
 
 # Function to get the result from the external system
 def get_result():
@@ -74,7 +75,7 @@ def calculate_fitness(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return 1e6  # Penalty for exceeding power budget or not meeting throughput target
+        return -1 # Penalty for exceeding power budget or not meeting throughput target
     
     return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
             importance_power * (POWER_BUDGET / power))
@@ -85,7 +86,7 @@ class Particle:
         self.position = np.random.uniform(0, 1, problem_size)
         self.velocity = np.zeros(problem_size)
         self.best_position = np.copy(self.position)
-        self.best_fitness = float('inf')
+        self.best_fitness = -1
 
     def update_velocity(self, global_best_position, w=0.5, c1=1.5, c2=1.5):
         r1 = np.random.uniform(0, 1, len(self.velocity))
@@ -121,14 +122,14 @@ class MOPSO:
         self.saturation_threshold = saturation_threshold  # Threshold for saturation detection
         self.swarm = [Particle(problem_size) for _ in range(swarm_size)]
         self.global_best_position = np.zeros(problem_size)
-        self.global_best_fitness = float('inf')
+        self.global_best_fitness = -1
+        self.best_config = None
         self.no_improvement_count = 0  # Count of iterations without improvement
 
     def optimize(self):
         results = []  # To store the results of each configuration
         for iteration in range(self.max_iter):
-            best_fitness_this_iter = float('inf')
-
+            best_fitness_this_iter = -1
             for particle in self.swarm:
                 # Execute the configuration and calculate fitness
                 config = [
@@ -138,19 +139,22 @@ class MOPSO:
                     int(particle.position[3] * (MEMORY_FREQ_RANGE[1] - MEMORY_FREQ_RANGE[0]) + MEMORY_FREQ_RANGE[0]),
                     int(particle.position[4] * (CL_RANGE[1] - CL_RANGE[0]) + CL_RANGE[0])
                 ]
-
+                t2 = time.time()
                 metrics = execute_config(*config)
+                elapsed_exec = round(time.time() - t2, 3)
+                time_got.append(elapsed_exec)
                 if not metrics or metrics == "No Device":
                     continue
                 if metrics == "No Device":
                     break
 
                 fitness = calculate_fitness(metrics)
-                if fitness < particle.best_fitness:
+                if fitness > particle.best_fitness:
                     particle.best_fitness = fitness
                     particle.best_position = np.copy(particle.position)
 
-                if fitness < self.global_best_fitness:
+                if fitness > self.global_best_fitness:
+                    self.best_config = config
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
                     self.no_improvement_count = 0  # Reset count on improvement
@@ -160,6 +164,7 @@ class MOPSO:
                 # Save results to CSV
                 result_entry = {
                     'reward': fitness,
+                    'xavier_time_elapsed': elapsed_exec,
                     'cpu_cores': config[0],
                     'cpu_freq': config[1],
                     'gpu_freq': config[2],
@@ -171,7 +176,7 @@ class MOPSO:
                 results.append(result_entry)
 
                 # Track the best fitness for this iteration
-                best_fitness_this_iter = min(best_fitness_this_iter, fitness)
+                best_fitness_this_iter = max(best_fitness_this_iter, fitness)
 
             # Update velocity and position for each particle
             for particle in self.swarm:
@@ -184,21 +189,21 @@ class MOPSO:
             if self.no_improvement_count >= self.saturation_threshold:
                 print("Saturation detected. Restarting some particles.")
                 for particle in self.swarm:
-                    if particle.best_fitness > best_fitness_this_iter:
+                    if particle.best_fitness < best_fitness_this_iter:
                         # Randomly reset some particles to diversify
                         particle.position = np.random.uniform(0, 1, self.problem_size)
             if metrics == "No Device":
                 break
 
         save_csv(results, f"mopso_jxavier_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
-        return self.global_best_position, self.global_best_fitness
+        return self.best_config, self.global_best_fitness
 
 
 # Run the MOPSO algorithm
 bounds = [(0, 1) for _ in range(5)]  # Normalized bounds for PSO [0, 1] for all dimensions
-
+t1 = time.time()
 mopso = MOPSO(swarm_size=5, problem_size=5, bounds=bounds, max_iter=4)
-best_position, best_fitness = mopso.optimize()
-
-print(f"Best configuration found: {best_position}")
+best_config, best_fitness = mopso.optimize()
+elapsed = round((time.time() - sum(time_got)) - t1, 3)
+print(f"Best configuration found: {best_config} in {elapsed}")
 print(f"Objective value: {best_fitness}")
