@@ -41,6 +41,9 @@ ACTIONS = [0, 1, 2, 3, 4, 5, 6]  # No change, small/medium/large increase/decrea
 ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
 action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
 
+last_rewards = []  # To store recent rewards for saturation check
+MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
+
 # Step sizes for adjustment
 STEP_SIZES = {
     'cpu_cores': (1, 3, 5),
@@ -98,11 +101,11 @@ def update_q_value(state_index, action_index, new_value):
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": cpu_cores,
-        "cpu_freq": cpu_freq,
-        "gpu_freq": gpu_freq,
-        "mem_freq": memory_freq,
-        "cl": cl
+        "cpu_cores": int(cpu_cores),
+        "cpu_freq": int(cpu_freq),
+        "gpu_freq": int(gpu_freq),
+        "mem_freq": int(memory_freq),
+        "cl": int(cl)
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
@@ -252,6 +255,12 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         print("PROHIBITED CONFIG")
         prohibited_configs.add(state_index)
         return 1e6
+    
+    last_rewards.append(reward)
+    # Check if optimization is saturated
+    if len(last_rewards) > MAX_SATURATION_CALLS and all(r == last_rewards[-1] for r in last_rewards[-MAX_SATURATION_CALLS:]):
+        print("Optimization is saturated. Stopping further iterations.")
+        raise RuntimeError("Optimization saturated.")  # Raising an exception to stop optimization
     
     return -reward  # Minimize negative reward
 
