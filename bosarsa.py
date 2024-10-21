@@ -23,7 +23,7 @@ importance_power = 1
 importance_throughput = 1
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 5  # First use BO for global exploration
+n_calls = 10  # First use BO for global exploration
 
 # SARSA Hyperparameters
 alpha = 0.1
@@ -31,7 +31,7 @@ gamma = 0.9
 epsilon = 0.6
 epsilon_min = 0.01
 epsilon_decay = 0.995
-num_episodes = 15
+num_episodes = 10
 reward_threshold = 0.01
 
 # Define the action space for SARSA
@@ -278,7 +278,7 @@ def local_search_sarsa(best_params):
         if (state_index in prohibited_configs):
             print("PROHIBITED CONFIG!")
             continue
-        
+
         action = choose_action(state_index)
         new_cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
         new_cpu_freq = adjust_value(cpu_freq, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
