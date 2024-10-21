@@ -163,7 +163,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         "power_budget": POWER_BUDGET,
     }
     result = {**configs, **measured_metrics[0]}
-    save_csv([result], f"bo_jxavier_{sys.argv[4]}.csv")
+    save_csv([result], f"bosarsa_jxavier_{sys.argv[4]}.csv")
     
     reward = calculate_reward(measured_metrics)
     print(f"Configuration reward: {reward}")
