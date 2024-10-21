@@ -158,7 +158,7 @@ class MOPSO:
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
                     self.no_improvement_count = 0  # Reset count on improvement
-                if abs(fitness - self.global_best_fitness) == 0.01:
+                if abs(fitness - self.global_best_fitness) <= 0.01:
                     self.no_improvement_count += 1  # Increment count if no improvement
 
                 # Save results to CSV
