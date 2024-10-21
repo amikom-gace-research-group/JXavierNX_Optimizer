@@ -204,6 +204,6 @@ bounds = [(0, 1) for _ in range(5)]  # Normalized bounds for PSO [0, 1] for all 
 t1 = time.time()
 mopso = MOPSO(swarm_size=5, problem_size=5, bounds=bounds, max_iter=4)
 best_config, best_fitness = mopso.optimize()
-elapsed = round((time.time() - sum(time_got)) - t1, 3)
-print(f"Best configuration found: {best_config} in {elapsed}")
+elapsed = round(((time.time() - sum(time_got)) - t1) * 1000, 3)
+print(f"Best configuration found: {best_config} in {elapsed} ms")
 print(f"Objective value: {best_fitness}")
