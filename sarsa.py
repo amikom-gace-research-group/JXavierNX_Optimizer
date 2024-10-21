@@ -5,7 +5,6 @@ import time
 import os
 import csv
 import requests
-from collections import Counter
 
 print("PID", os.getpid())
 
@@ -229,7 +228,6 @@ for episode in range(num_episodes):
         continue
 
     t1 = time.time()
-
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
     elapsed_exec = round(time.time() - t1, 3)
 

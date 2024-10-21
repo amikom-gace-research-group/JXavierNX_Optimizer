@@ -6,38 +6,57 @@ import os
 import csv
 import requests
 from skopt import gp_minimize
-from skopt.space import Integer, Real
+from skopt.space import Integer
 from skopt.utils import use_named_args
 
-print("PID", os.getpid())
-
 # Define configuration ranges
-CPU_CORES_RANGE = range(1, 6)  # Number of CPU cores (1 to 6)
-CPU_FREQ_RANGE = range(1190, 1909)  # CPU frequency in MHz (1190 to 1908)
-GPU_FREQ_RANGE = range(510, 1111)  # GPU frequency in MHz (510 to 1110)
-MEMORY_FREQ_RANGE = range(1500, 1867)  # Memory frequency in MHz (1500 to 1866)
-CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
+CPU_CORES_RANGE = range(1, 6)
+CPU_FREQ_RANGE = range(1190, 1909)
+GPU_FREQ_RANGE = range(510, 1111)
+MEMORY_FREQ_RANGE = range(1500, 1867)
+CL_RANGE = range(1, 4)
 
 # Constants and thresholds
 POWER_BUDGET = 5000
 THROUGHPUT_TARGET = 30
-
 importance_power = 1
 importance_throughput = 1
 
-# Hyperparameters for Bayesian Optimization and SARSA
-n_calls = 20  # Number of iterations for Bayesian Optimization
-alpha = 0.1  # Learning rate for SARSA
-gamma = 0.9  # Discount factor for SARSA
-epsilon = 0.1  # Epsilon-greedy parameter for exploration
+# Hyperparameters for Bayesian Optimization
+n_calls = 5  # First use BO for global exploration
 
-time_got = []
-last_rewards = []  # To store recent rewards for saturation check
-MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
+# SARSA Hyperparameters
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.6
+epsilon_min = 0.01
+epsilon_decay = 0.995
+num_episodes = 15
+reward_threshold = 0.01
 
-# SARSA Q-Table Initialization
-q_table = {}  # Initialize Q-table as a dictionary
-actions = list(range(len(CPU_CORES_RANGE) * len(CPU_FREQ_RANGE) * len(GPU_FREQ_RANGE) * len(MEMORY_FREQ_RANGE) * len(CL_RANGE)))
+# Define the action space for SARSA
+ACTIONS = [0, 1, 2, 3, 4, 5, 6]  # No change, small/medium/large increase/decrease
+
+# Action mapping
+ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
+action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
+
+# Step sizes for adjustment
+STEP_SIZES = {
+    'cpu_cores': (1, 3, 5),
+    'cpu_freq': (1, 10, 50),
+    'gpu_freq': (1, 10, 50),
+    'memory_freq': (1, 10, 50),
+    'cl': (1, 2, 0)
+}
+
+# SARSA Q-table initialization
+Q_table = {}
+prohibited_configs = set()
+
+last_reward = 0
+max_reward = float('inf')
+best_config = None
 
 # Define the parameter space for Bayesian Optimization
 space = [
@@ -48,7 +67,6 @@ space = [
     Integer(min(CL_RANGE), max(CL_RANGE), name='cl')
 ]
 
-# Function to get the result from the external system
 def get_result():
     headers = {
         'Authorization': sys.argv[2],  # Use 'APIKey' if your service requires this
@@ -61,6 +79,20 @@ def get_result():
     except requests.RequestException as e:
         print(f"Error fetching result: {e}")
     return False
+
+# Retrieve Q-value for a state-action pair
+def get_q_value(state_index, action_index):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    return Q_table[state_key][np.ravel_multi_index(action_index, action_shape)]
+
+# Update Q-value for a state-action pair
+def update_q_value(state_index, action_index, new_value):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -96,102 +128,234 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
-# Reward function based on power and throughput metrics
+# Adjust value based on action
+def adjust_value(value, action, steps, min_val, max_val):
+    small_step, medium_step, large_step = steps
+    if action == 1:
+        return min(value + small_step, max_val)
+    elif action == 2:
+        return max(value - small_step, min_val)
+    elif action == 3:
+        return min(value + medium_step, max_val)
+    elif action == 4:
+        return max(value - medium_step, min_val)
+    elif action == 5:
+        return min(value + large_step, max_val)
+    elif action == 6:
+        return max(value - large_step, min_val)
+    return value  # No change
+
+# SARSA Epsilon-greedy action selection
+def choose_action(state_index):
+    if random.uniform(0, 1) < epsilon:
+        return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore
+    else:
+        state_key = tuple(state_index)
+        if state_key not in Q_table:
+            return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore if unseen state
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit
+
+# Execute the configuration on the system
+def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
+    url = f"{sys.argv[1]}/api/cfg"
+    data = {
+        "cpu_cores": cpu_cores,
+        "cpu_freq": cpu_freq,
+        "gpu_freq": gpu_freq,
+        "mem_freq": memory_freq,
+        "cl": cl
+    }
+    headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
+    
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 201:
+            av_dev = 0
+            while True:
+                metrics = get_result()
+                if metrics:
+                    metrics = [metrics[-1]]
+                    requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
+                    return metrics
+                else:
+                    av_dev += 1
+                    print("Waiting for device...")
+                    if av_dev == 30:
+                        return "No Device"
+                    time.sleep(10)
+        else:
+            print(f"Error executing config: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Error executing config: {e}")
+    return None
+
+# Reward function
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return 1e6  # High penalty for exceeding power or low throughput
-    
+        return 1e6  # Large penalty
+
     return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
             importance_power * (POWER_BUDGET / power))
 
-# CSV saving function
+# CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'bosarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 
-# SARSA Update function
-def sarsa_update(state, action, reward, next_state, next_action):
-    q_table.setdefault(state, [0] * len(actions))  # Initialize state if not present
-    q_table.setdefault(next_state, [0] * len(actions))  # Initialize next_state if not present
-    
-    # SARSA update rule
-    q_table[state][action] = q_table[state][action] + alpha * (
-        reward + gamma * q_table[next_state][next_action] - q_table[state][action]
-    )
-
-# Epsilon-greedy action selection
-def epsilon_greedy(state):
-    if random.uniform(0, 1) < epsilon:
-        return random.choice(actions)  # Exploration
-    q_table.setdefault(state, [0] * len(actions))  # Initialize state if not present
-    return np.argmax(q_table[state])  # Exploitation
-
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
+    print(f"BO testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     
     t1 = time.time()
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
-
     elapsed = round(time.time() - t1, 3)
-    time_got.append(elapsed)
-    
+
     if not measured_metrics or measured_metrics == "No Device":
         print("No device detected. Raising an exception to stop optimization.")
-        raise RuntimeError("No device detected. Stopping optimization.")
+        raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
+    
+    if not measured_metrics:
+        return 1e6  # Large penalty if no valid result
 
-    # Current state and action (SARSA state: (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl))
-    state = (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
-    action = epsilon_greedy(state)
-
+    reward = calculate_reward(measured_metrics)
+    print(f"BO Configuration reward: {reward}")
+    
     configs = {
-        "infer_time": elapsed,
+        "reward": reward,
+        "xaviernx_time_elapsed": elapsed,
+        "bosarsa_time_elapsed": 0,
         "cpu_cores": int(cpu_cores) + 1,
         "cpu_freq": int(cpu_freq),
         "gpu_freq": int(gpu_freq),
         "mem_freq": int(mem_freq),
-        "cl": int(cl),
-        "throughput_target": THROUGHPUT_TARGET,
-        "power_budget": POWER_BUDGET,
+        "cl": int(cl)
     }
     result = {**configs, **measured_metrics[0]}
     save_csv([result], f"bosarsa_jxavier_{sys.argv[4]}.csv")
-    
-    reward = calculate_reward(measured_metrics)
-    print(f"Configuration reward: {reward}")
-    
+
+    state_index = [
+        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
+        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
+        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
+        np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
+        np.searchsorted(CL_RANGE, cl)
+    ]
     if reward == 1e6:
-        return reward  # Return penalty for invalid config
+        print("PROHIBITED CONFIG")
+        prohibited_configs.add(state_index)
+        return 1e6
+    
+    return -reward  # Minimize negative reward
 
-    last_rewards.append(reward)
-
-    # Check if optimization is saturated
-    if len(last_rewards) > MAX_SATURATION_CALLS and all(r == last_rewards[-1] for r in last_rewards[-MAX_SATURATION_CALLS:]):
-        print("Optimization is saturated. Stopping further iterations.")
-        raise RuntimeError("Optimization saturated.")
-
-    # Next state and action (SARSA update)
-    next_state = state  # Here next_state could be updated with the next configuration
-    next_action = epsilon_greedy(next_state)
-    sarsa_update(state, action, reward, next_state, next_action)
-
-    return -reward  # Minimize negative reward (maximize reward)
-  
-# Bayesian optimization call
-try:
-    t_main = time.time()
-    res = gp_minimize(objective, space, n_calls=n_calls)
-    bosarsa_elapsed = round(((time.time() - sum(time_got)) - t_main) * 1000, 3)
-    elapsed_total = round(time.time() - t_main, 3)
+# Step 1: Global search with Bayesian Optimization
+def global_search_bo():
+    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42)
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
-    print(f"Best configuration found: {best_params} in {bosarsa_elapsed} ms for BOSARSA and total time is took {elapsed_total}")
-except RuntimeError as e:
-    print(str(e))
+    print(f"Best configuration from BO: {best_params}")
+    return best_params
+
+# Step 2: Local exploration and exploitation with SARSA
+def local_search_sarsa(best_params):
+    cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = best_params.values()
+    state_index = [
+        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
+        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
+        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
+        np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
+        np.searchsorted(CL_RANGE, cl)
+    ]
+
+    for episode in range(num_episodes):
+         # Check for prohibited configurations
+        if (state_index in prohibited_configs):
+            print("PROHIBITED CONFIG!")
+            continue
+        
+        action = choose_action(state_index)
+        new_cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+        new_cpu_freq = adjust_value(cpu_freq, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+        new_gpu_freq = adjust_value(gpu_freq, action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+        new_mem_freq = adjust_value(mem_freq, action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+        new_cl = adjust_value(cl, action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+        
+        t1 = time.time()
+        # Execute the new configuration
+        measured_metrics = execute_config(new_cpu_cores, new_cpu_freq, new_gpu_freq, new_mem_freq, new_cl)
+        elapsed_exec = round(time.time() - t1, 3)
+
+        if not measured_metrics:
+            print("EXECUTION PROBLEM!")
+            continue
+        if measured_metrics == "No Device":
+            print("No Device/Inference Runtime")
+            break
+
+        # SARSA updates
+        new_state_index = [
+            np.searchsorted(CPU_CORES_RANGE, new_cpu_cores),
+            np.searchsorted(CPU_FREQ_RANGE, new_cpu_freq),
+            np.searchsorted(GPU_FREQ_RANGE, new_gpu_freq),
+            np.searchsorted(MEMORY_FREQ_RANGE, new_mem_freq),
+            np.searchsorted(CL_RANGE, new_cl)
+        ]
+        reward = calculate_reward(measured_metrics)
+        print(f"SARSA episode {episode + 1}: reward = {reward}")
+        if reward == 1e6:
+            print("PROHIBITED CONFIG")
+            prohibited_configs.add(new_state_index)
+            continue
+        
+        # Q-value update
+        old_q_value = get_q_value(state_index, action)
+        next_action = choose_action(new_state_index)  # SARSA uses next action
+        next_q_value = get_q_value(new_state_index, next_action)
+        updated_q_value = old_q_value + alpha * (reward + gamma * next_q_value - old_q_value)
+        update_q_value(state_index, action, updated_q_value)
+
+        state_index = new_state_index
+        elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
+
+        configs = {
+            "reward": reward,
+            "xaviernx_time_elapsed": elapsed_exec,
+            "bosarsa_time_elapsed": elapsed,
+            "cpu_cores": new_cpu_cores + 1,
+            "cpu_freq": new_cpu_freq,
+            "gpu_freq": new_gpu_freq,
+            "memory_freq": new_mem_freq,
+            "cl": new_cl
+        }
+        dict_record = [{**configs, **measured_metrics[0]}]
+        save_csv(dict_record, f"bosarsa_jxavier_{sys.argv[4]}.csv")
+
+        # Track max reward and configurations
+        if reward > max_reward:
+            max_reward = reward
+            best_config = dict_record
+
+        if reward > last_reward - reward_threshold:
+            max_saturated_count -= 1
+            epsilon = 0.5
+            if max_saturated_count == 0:
+                print("SARSA is saturated")
+                break
+        
+        last_reward = reward
+
+        # Epsilon decay for exploration
+        if epsilon > epsilon_min:
+            epsilon *= epsilon_decay
+    return best_config
+
+# Main Optimization Process
+best_params_bo = global_search_bo()  # Step 1: Global Search with BO
+best_config = local_search_sarsa(best_params_bo)    # Step 2: Local refinement with SARSA
+print(f"Best Config: {best_config}")
