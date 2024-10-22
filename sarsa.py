@@ -24,7 +24,7 @@ importance_throughput = 1
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
-epsilon = 0.6
+epsilon = 0.5
 epsilon_min = 0.01
 epsilon_decay = 0.995
 num_episodes = 20
@@ -281,7 +281,7 @@ for episode in range(num_episodes):
 
     if reward > last_reward - reward_threshold:
         max_saturated_count -= 1
-        epsilon = 0.6
+        epsilon = 0.3
         if max_saturated_count == 0:
             print("SARSA is saturated")
             break
