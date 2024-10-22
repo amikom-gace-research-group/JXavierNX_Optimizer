@@ -284,7 +284,7 @@ def local_search_sarsa(best_params):
 
     for episode in range(num_episodes):
          # Check for prohibited configurations
-        if (state_index in prohibited_configs):
+        if (tuple(state_index) in prohibited_configs):
             print("PROHIBITED CONFIG!")
             continue
 
