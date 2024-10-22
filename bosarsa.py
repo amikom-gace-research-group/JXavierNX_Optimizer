@@ -253,7 +253,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     ]
     if reward == 1e6:
         print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
+        prohibited_configs.add(tuple(state_index))
         return 1e6
     
     last_rewards.append(reward)
@@ -319,7 +319,7 @@ def local_search_sarsa(best_params):
         print(f"SARSA episode {episode + 1}: reward = {reward}")
         if reward == 1e6:
             print("PROHIBITED CONFIG")
-            prohibited_configs.add(new_state_index)
+            prohibited_configs.add(tuple(new_state_index))
             continue
         
         # Q-value update
