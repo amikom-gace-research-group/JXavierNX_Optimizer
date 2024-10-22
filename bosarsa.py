@@ -278,11 +278,11 @@ def local_search_sarsa(best_params):
     max_saturated_count = 5
     cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = best_params.values()
     state_index = [
-        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
-        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
-        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
-        np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
-        np.searchsorted(CL_RANGE, cl)
+        np.searchsorted(CPU_CORES_RANGE, int(cpu_cores)),
+        np.searchsorted(CPU_FREQ_RANGE, int(cpu_freq)),
+        np.searchsorted(GPU_FREQ_RANGE, int(gpu_freq)),
+        np.searchsorted(MEMORY_FREQ_RANGE, int(mem_freq)),
+        np.searchsorted(CL_RANGE, int(cl))
     ]
 
     for episode in range(num_episodes):
@@ -290,11 +290,11 @@ def local_search_sarsa(best_params):
         if (tuple(state_index) in prohibited_configs):
             print("PROHIBITED CONFIG!, CHANGE STATE")
             action = choose_action(state_index)
-            cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-            cpu_freq = adjust_value(cpu_cores, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-            gpu_freq = adjust_value(gpu_freq, action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-            mem_freq = adjust_value(mem_freq, action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-            cl = adjust_value(cl, action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+            cpu_cores = adjust_value(int(cpu_cores), action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+            cpu_freq = adjust_value(int(cpu_cores), action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+            gpu_freq = adjust_value(int(gpu_freq), action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+            mem_freq = adjust_value(int(mem_freq), action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+            cl = adjust_value(int(cl), action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
             state_index = [
                 np.searchsorted(CPU_CORES_RANGE, cpu_cores),
                 np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
@@ -305,6 +305,7 @@ def local_search_sarsa(best_params):
             continue
 
         t1 = time.time()
+        print(f"SARSA testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
         # Execute the new configuration
         measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
         elapsed_exec = round(time.time() - t1, 3)
@@ -317,11 +318,11 @@ def local_search_sarsa(best_params):
             break
         
         action = choose_action(state_index)
-        cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-        cpu_freq = adjust_value(cpu_cores, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-        gpu_freq = adjust_value(gpu_freq, action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-        mem_freq = adjust_value(mem_freq, action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-        cl = adjust_value(cl, action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+        cpu_cores = adjust_value(int(cpu_cores), action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+        cpu_freq = adjust_value(int(cpu_cores), action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+        gpu_freq = adjust_value(int(gpu_freq), action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+        mem_freq = adjust_value(int(mem_freq), action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+        cl = adjust_value(int(cl), action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
         # SARSA updates
         new_state_index = [
