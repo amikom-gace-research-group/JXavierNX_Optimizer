@@ -101,11 +101,11 @@ def update_q_value(state_index, action_index, new_value):
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": int(cpu_cores),
-        "cpu_freq": int(cpu_freq),
-        "gpu_freq": int(gpu_freq),
-        "mem_freq": int(memory_freq),
-        "cl": int(cl)
+        "cpu_cores": str(cpu_cores),
+        "cpu_freq": str(cpu_freq),
+        "gpu_freq": str(gpu_freq),
+        "mem_freq": str(memory_freq),
+        "cl": str(cl)
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
