@@ -162,11 +162,11 @@ def choose_action(state_index):
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": cpu_cores,
-        "cpu_freq": cpu_freq,
-        "gpu_freq": gpu_freq,
-        "mem_freq": memory_freq,
-        "cl": cl
+        "cpu_cores": str(cpu_cores),
+        "cpu_freq": str(cpu_freq),
+        "gpu_freq": str(gpu_freq),
+        "mem_freq": str(memory_freq),
+        "cl": str(cl)
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
