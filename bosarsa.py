@@ -274,6 +274,7 @@ def local_search_sarsa(best_params):
     last_reward = 0
     max_reward = float('inf')
     best_config = None
+    max_saturated_count = 5
     cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = best_params.values()
     state_index = [
         np.searchsorted(CPU_CORES_RANGE, cpu_cores),
