@@ -27,6 +27,7 @@ importance_throughput = 1
 
 # Hyperparameters for Bayesian Optimization
 n_calls = 20  # Number of iterations for Bayesian Optimization
+n_initial_points = 3
 
 time_got = []
 
@@ -157,7 +158,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 # Main Optimization Loop
 try:
     t2 = time.time()
-    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42)
+    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=n_initial_points)
     # Run Bayesian Optimization
     elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
     elapsed_total = round(time.time() - t2, 3)
