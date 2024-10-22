@@ -271,6 +271,7 @@ def global_search_bo():
 
 # Step 2: Local exploration and exploitation with SARSA
 def local_search_sarsa(best_params):
+    global epsilon, epsilon_min, epsilon_decay
     last_reward = 0
     max_reward = 0
     best_config = None
@@ -365,7 +366,8 @@ def local_search_sarsa(best_params):
             epsilon *= epsilon_decay
     return best_config
 
-# Main Optimization Process
-best_params_bo = global_search_bo()  # Step 1: Global Search with BO
-best_config = local_search_sarsa(best_params_bo)    # Step 2: Local refinement with SARSA
-print(f"Best Config: {best_config}")
+if __name__ == "__main__":
+    # Main Optimization Process
+    best_params_bo = global_search_bo()  # Step 1: Global Search with BO
+    best_config = local_search_sarsa(best_params_bo)    # Step 2: Local refinement with SARSA
+    print(f"Best Config: {best_config}")
