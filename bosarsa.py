@@ -272,7 +272,7 @@ def global_search_bo():
 # Step 2: Local exploration and exploitation with SARSA
 def local_search_sarsa(best_params):
     last_reward = 0
-    max_reward = float('inf')
+    max_reward = 0
     best_config = None
     max_saturated_count = 5
     cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = best_params.values()
