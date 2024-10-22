@@ -57,10 +57,6 @@ STEP_SIZES = {
 Q_table = {}
 prohibited_configs = set()
 
-last_reward = 0
-max_reward = float('inf')
-best_config = None
-
 # Define the parameter space for Bayesian Optimization
 space = [
     Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'),
@@ -275,6 +271,9 @@ def global_search_bo():
 
 # Step 2: Local exploration and exploitation with SARSA
 def local_search_sarsa(best_params):
+    last_reward = 0
+    max_reward = float('inf')
+    best_config = None
     cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = best_params.values()
     state_index = [
         np.searchsorted(CPU_CORES_RANGE, cpu_cores),
