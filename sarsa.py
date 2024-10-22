@@ -281,7 +281,7 @@ for episode in range(num_episodes):
 
     if reward > last_reward - reward_threshold:
         max_saturated_count -= 1
-        epsilon = 0.5
+        epsilon = 0.6
         if max_saturated_count == 0:
             print("SARSA is saturated")
             break
