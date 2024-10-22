@@ -302,6 +302,7 @@ def local_search_sarsa(best_params):
                 np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
                 np.searchsorted(CL_RANGE, cl)
             ]
+            continue
 
         t1 = time.time()
         # Execute the new configuration
