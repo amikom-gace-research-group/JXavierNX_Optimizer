@@ -289,16 +289,9 @@ def local_search_sarsa(best_params):
             print("PROHIBITED CONFIG!")
             continue
 
-        action = choose_action(state_index)
-        new_cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-        new_cpu_freq = adjust_value(cpu_freq, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-        new_gpu_freq = adjust_value(gpu_freq, action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-        new_mem_freq = adjust_value(mem_freq, action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-        new_cl = adjust_value(cl, action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
-        
         t1 = time.time()
         # Execute the new configuration
-        measured_metrics = execute_config(new_cpu_cores, new_cpu_freq, new_gpu_freq, new_mem_freq, new_cl)
+        measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
         elapsed_exec = round(time.time() - t1, 3)
 
         if not measured_metrics:
@@ -307,14 +300,21 @@ def local_search_sarsa(best_params):
         if measured_metrics == "No Device":
             print("No Device/Inference Runtime")
             break
+        
+        action = choose_action(state_index)
+        cpu_cores = adjust_value(cpu_cores, action[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+        cpu_freq = adjust_value(cpu_cores, action[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+        gpu_freq = adjust_value(gpu_freq, action[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+        mem_freq = adjust_value(mem_freq, action[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+        cl = adjust_value(cl, action[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
         # SARSA updates
         new_state_index = [
-            np.searchsorted(CPU_CORES_RANGE, new_cpu_cores),
-            np.searchsorted(CPU_FREQ_RANGE, new_cpu_freq),
-            np.searchsorted(GPU_FREQ_RANGE, new_gpu_freq),
-            np.searchsorted(MEMORY_FREQ_RANGE, new_mem_freq),
-            np.searchsorted(CL_RANGE, new_cl)
+            np.searchsorted(CPU_CORES_RANGE, cpu_cores),
+            np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
+            np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
+            np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
+            np.searchsorted(CL_RANGE, cl)
         ]
         reward = calculate_reward(measured_metrics)
         print(f"SARSA episode {episode + 1}: reward = {reward}")
@@ -322,7 +322,6 @@ def local_search_sarsa(best_params):
             print("PROHIBITED CONFIG")
             prohibited_configs.add(tuple(new_state_index))
             continue
-        
         # Q-value update
         old_q_value = get_q_value(state_index, action)
         next_action = choose_action(new_state_index)  # SARSA uses next action
@@ -337,11 +336,11 @@ def local_search_sarsa(best_params):
             "reward": reward,
             "xaviernx_time_elapsed": elapsed_exec,
             "bosarsa_time_elapsed": elapsed,
-            "cpu_cores": new_cpu_cores + 1,
-            "cpu_freq": new_cpu_freq,
-            "gpu_freq": new_gpu_freq,
-            "mem_freq": new_mem_freq,
-            "cl": new_cl
+            "cpu_cores": cpu_cores + 1,
+            "cpu_freq": cpu_freq,
+            "gpu_freq": gpu_freq,
+            "mem_freq": mem_freq,
+            "cl": cl
         }
         dict_record = [{**configs, **measured_metrics[0]}]
         save_csv(dict_record, f"bosarsa_jxavier_{sys.argv[4]}.csv")
