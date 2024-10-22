@@ -216,7 +216,16 @@ def save_csv(dict_list, filename):
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     print(f"BO testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
-    
+    state_index = [
+        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
+        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
+        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
+        np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
+        np.searchsorted(CL_RANGE, cl)
+    ]
+    if (tuple(state_index) in prohibited_configs):
+        print("PROHIBITED CONFIG!")
+        return 1e6  # Large penalty if no valid result
     t1 = time.time()
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
     elapsed = round(time.time() - t1, 3)
@@ -244,13 +253,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     result = {**configs, **measured_metrics[0]}
     save_csv([result], f"bosarsa_jxavier_{sys.argv[4]}.csv")
 
-    state_index = [
-        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
-        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
-        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
-        np.searchsorted(MEMORY_FREQ_RANGE, mem_freq),
-        np.searchsorted(CL_RANGE, cl)
-    ]
     if reward == 1e6:
         print("PROHIBITED CONFIG")
         prohibited_configs.add(tuple(state_index))
