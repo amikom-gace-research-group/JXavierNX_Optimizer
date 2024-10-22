@@ -23,12 +23,12 @@ importance_power = 1
 importance_throughput = 1
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 10  # First use BO for global exploration
+n_calls = 5  # First use BO for global exploration
 
 # SARSA Hyperparameters
 alpha = 0.1
 gamma = 0.9
-epsilon = 0.6
+epsilon = 0.3
 epsilon_min = 0.01
 epsilon_decay = 0.995
 num_episodes = 10
@@ -268,7 +268,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
 # Step 1: Global search with Bayesian Optimization
 def global_search_bo():
-    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42)
+    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=3)
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration from BO: {best_params}")
     return best_params
@@ -341,7 +341,7 @@ def local_search_sarsa(best_params):
             "cpu_cores": new_cpu_cores + 1,
             "cpu_freq": new_cpu_freq,
             "gpu_freq": new_gpu_freq,
-            "memory_freq": new_mem_freq,
+            "mem_freq": new_mem_freq,
             "cl": new_cl
         }
         dict_record = [{**configs, **measured_metrics[0]}]
