@@ -347,11 +347,11 @@ def local_search_sarsa(best_params):
         save_csv(dict_record, f"bosarsa_jxavier_{sys.argv[4]}.csv")
 
         # Track max reward and configurations
-        if reward > max_reward:
+        if (reward > max_reward if reward != 1e6 else False):
             max_reward = reward
             best_config = dict_record
 
-        if reward > last_reward - reward_threshold:
+        if abs(reward - last_reward) <= reward_threshold:
             max_saturated_count -= 1
             epsilon = 0.5
             if max_saturated_count == 0:
