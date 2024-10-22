@@ -31,7 +31,7 @@ gamma = 0.9
 epsilon = 0.3
 epsilon_min = 0.01
 epsilon_decay = 0.995
-num_episodes = 10
+num_episodes = 15
 reward_threshold = 0.01
 
 # Define the action space for SARSA
