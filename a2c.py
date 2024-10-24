@@ -29,8 +29,7 @@ epsilon = 0.6
 epsilon_min = 0.01
 epsilon_decay = 0.995
 reward_threshold = 0.01
-num_episodes = 4
-num_steps_per_episode = 10  # Number of steps before policy update (inner loop)
+num_episodes = 20
 
 # Action constants
 ACTIONS = [0, 1, 2, 3, 4, 5, 6]
@@ -184,71 +183,87 @@ max_reward = -float('inf')
 best_config = None
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 last_reward = 0
+max_saturated_count = 5
 
 t_main = time.time()
 for episode in range(num_episodes):
-    tep = time.time()
-    rewards = []
+    t1 = time.time()
+    # Check for prohibited configurations
+    if state_index in prohibited_configs:
+        print("PROHIBITED CONFIG!")
+        break
+
+    t2 = time.time()
+    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    elapsed_exec = round(time.time() - t2, 3)
+    if not measured_metrics:
+        break
+    if measured_metrics == "No Device":
+        break
+
+    actions = choose_action(state_index)
     
-    # Nested inner loop for multiple time steps
-    for step in range(num_steps_per_episode):
-        t1 = time.time()
-        # Check for prohibited configurations
-        if state_index in prohibited_configs:
-            print("PROHIBITED CONFIG!")
-            break
+    # Adjust system configuration based on actions
+    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-        t2 = time.time()
-        measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        elapsed_exec = round(time.time() - t2, 3)
-        if not measured_metrics:
-            break
-        if measured_metrics == "No Device":
-            break
+    next_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
-        actions = choose_action(state_index)
-        
-        # Adjust system configuration based on actions
-        cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-        cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-        gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-        memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-        cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+    # Calculate reward and update policy and value tables within inner loop
+    reward = calculate_reward(measured_metrics)
 
-        next_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-
-        # Calculate reward and update policy and value tables within inner loop
-        reward = calculate_reward(measured_metrics)
-        rewards.append(reward)
-
-        # Advantage = TD error (reward + future value estimate - current value)
-        next_value = value_table.get(tuple(next_state_index), 0)
-        current_value = value_table.get(tuple(state_index), 0)
-        advantage = reward + gamma * next_value - current_value
-        
-        update_policy(state_index, actions, advantage)
-        update_value(state_index, reward, next_value)
-
-        elapsed = round((time.time() - elapsed_exec - t1)*1000, 3)
-
-        configs = {
-            "reward": reward,
-            "xaviernx_time_elapsed": elapsed_exec,
-            "a2c_time_elapsed": elapsed,
-            "cpu_cores": cpu_cores + 1,
-            "cpu_freq": cpu_freq,
-            "gpu_freq": gpu_freq,
-            "memory_freq": memory_freq,
-            "cl": cl
-        }
-        dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"a2c_jxavier_{sys.argv[4]}.csv")
-
-        # Update current state
+    # Prohibited state handling
+    if reward == -1:
+        print("PROHIBITED CONFIG")
+        prohibited_configs.add(state_index)
         state_index = next_state_index
+        continue
+
+    # Advantage = TD error (reward + future value estimate - current value)
+    next_value = value_table.get(tuple(next_state_index), 0)
+    current_value = value_table.get(tuple(state_index), 0)
+    advantage = reward + gamma * next_value - current_value
+    
+    update_policy(state_index, actions, advantage)
+    update_value(state_index, reward, next_value)
+
+    elapsed = round((time.time() - elapsed_exec - t1)*1000, 3)
+
+    configs = {
+        "reward": reward,
+        "xaviernx_time_elapsed": elapsed_exec,
+        "a2c_time_elapsed": elapsed,
+        "cpu_cores": cpu_cores + 1,
+        "cpu_freq": cpu_freq,
+        "gpu_freq": gpu_freq,
+        "memory_freq": memory_freq,
+        "cl": cl
+    }
+    dict_record = [{**configs, **measured_metrics[0]}]
+    save_csv(dict_record, f"a2c_jxavier_{sys.argv[4]}.csv")
+
+    # Update current state
+    state_index = next_state_index
+
+    # Track max reward and configurations
+    if reward > max_reward:
+        max_reward = reward
+        best_config = dict_record
+
+    if reward > last_reward - reward_threshold:
+        max_saturated_count -= 1
+        epsilon = 0.3
+        if max_saturated_count == 0:
+            print("A2C is saturated")
+            break
+    
+    last_reward = reward
     
     # End of episode, adjust epsilon (for exploration)
     epsilon = max(epsilon_min, epsilon * epsilon_decay)
-    print(f"Episode {episode+1} completed with rewards: {rewards} in {round(time.time() - tep, 3)}")
+    print(f"Episode {episode+1} completed with rewards: {reward} in {round(time.time() - tep, 3)}")
 
 print(f"Best configuration after {num_episodes} episodes: {best_config} in {round(time.time() - t_main, 3)}")
