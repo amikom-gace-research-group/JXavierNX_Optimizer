@@ -177,6 +177,17 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
+def adjust_configs(states, actions):
+    # Adjust system configuration based on actions
+    cpu_cores = adjust_value(states[0], actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+    cpu_freq = adjust_value(states[1], actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+    gpu_freq = adjust_value(states[2], actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+    memory_freq = adjust_value(states[3], actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+    cl = adjust_value(states[4], actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+
+    return state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl), (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+
+
 # Main A2C loop
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = 3, 1550, 810, 1700, 2  # Starting values
 max_reward = -float('inf')
@@ -190,8 +201,9 @@ for episode in range(num_episodes):
     t1 = time.time()
     # Check for prohibited configurations
     if state_index in prohibited_configs:
-        print("PROHIBITED CONFIG!")
-        break
+        print("PROHIBITED CONFIG!, CHANGE CONFIG")
+        _, states = adjust_configs(states, actions)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = states
 
     t2 = time.time()
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -202,16 +214,11 @@ for episode in range(num_episodes):
         break
 
     actions = choose_action(state_index)
-    
+    states = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
     # Adjust system configuration based on actions
-    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-    next_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-
+    next_state_index, states = adjust_configs(states, actions)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = states
     # Calculate reward and update policy and value tables within inner loop
     reward = calculate_reward(measured_metrics)
 
