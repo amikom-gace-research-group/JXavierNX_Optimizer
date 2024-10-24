@@ -271,6 +271,6 @@ for episode in range(num_episodes):
     
     # End of episode, adjust epsilon (for exploration)
     epsilon = max(epsilon_min, epsilon * epsilon_decay)
-    print(f"Episode {episode+1} completed with rewards: {reward} in {round(time.time() - tep, 3)}")
+    print(f"Episode {episode+1} completed with rewards: {reward} in {round(time.time() - t1, 3)}")
 
 print(f"Best configuration after {num_episodes} episodes: {best_config} in {round(time.time() - t_main, 3)}")
