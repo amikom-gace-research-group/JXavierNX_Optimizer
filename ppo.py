@@ -1,13 +1,12 @@
 import numpy as np
-import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import requests
-import time
-import sys
 import os
 import csv
+import sys
+import time
+import requests
 
 # Constants and thresholds
 POWER_BUDGET = 5000
@@ -15,7 +14,7 @@ THROUGHPUT_TARGET = 30
 importance_power = 1
 importance_throughput = 1
 
-# Configuration ranges
+# Define configuration ranges
 CPU_CORES_RANGE = range(1, 6)
 CPU_FREQ_RANGE = range(1190, 1909)
 GPU_FREQ_RANGE = range(510, 1111)
@@ -32,16 +31,21 @@ STEP_SIZES = {
 }
 
 # Hyperparameters
-gamma = 0.99
-lr = 0.001
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.5
+epsilon_min = 0.01
+epsilon_decay = 0.995
 num_episodes = 5
+reward_threshold = 0.01
+max_saturated_count = 5
 
 prohibited_configs = set()
 
-# Actor Network
-class ActorNetwork(nn.Module):
+# Policy Network
+class PolicyNetwork(nn.Module):
     def __init__(self, input_size, output_size):
-        super(ActorNetwork, self).__init__()
+        super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, output_size)
@@ -51,18 +55,21 @@ class ActorNetwork(nn.Module):
         x = torch.relu(self.fc2(x))
         return torch.softmax(self.fc3(x), dim=-1)
 
-# Critic Network
-class CriticNetwork(nn.Module):
-    def __init__(self, input_size):
-        super(CriticNetwork, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, 1)
+# PPO Loss Function
+def ppo_loss(old_log_probs, new_log_probs, advantages, epsilon=0.2):
+    ratio = torch.exp(new_log_probs - old_log_probs)
+    clip = torch.clamp(ratio, 1 - epsilon, 1 + epsilon)
+    return -torch.min(ratio * advantages, clip * advantages).mean()
 
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+# Calculate Advantages using Generalized Advantage Estimation (GAE)
+def calculate_advantages(rewards, values, gamma=0.99, lamda=0.95):
+    advantages = []
+    gae = 0
+    for i in reversed(range(len(rewards))):
+        delta = rewards[i] + gamma * values[i+1] - values[i]
+        gae = delta + gamma * lamda * gae
+        advantages.insert(0, gae)
+    return advantages
 
 # Adjust configuration values based on action
 def adjust_value(value, action, steps, min_val, max_val):
@@ -131,7 +138,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'ppo_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -148,8 +155,8 @@ def calculate_reward(measured_metrics):
     return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
             importance_power * (POWER_BUDGET / power))
 
-# Main A2C algorithm
-def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimizer):
+# Main PPO Loop
+def ppo_algorithm(policy_network, optimizer):
     t1 = time.time()
     max_reward = -float('inf')
     best_config = None
@@ -164,18 +171,19 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     cl = 2
 
     for episode in range(num_episodes):
-        states, actions, rewards = [], [], []
+        # Collect data for each episode
+        states, actions, rewards, log_probs = [], [], [], []
+        state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
-        for step in range(4):  # Define the number of steps per episode
-            state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
+        for step in range(100):  # Define the number of steps per episode
             state_tensor = torch.tensor(state, dtype=torch.float32)
-            
-            # Actor chooses action
-            action_probs = actor_network(state_tensor)
+            action_probs = policy_network(state_tensor)
             action_distribution = torch.distributions.Categorical(action_probs)
             action = action_distribution.sample()
 
+            log_prob = action_distribution.log_prob(action)
             actions.append(action.item())
+            log_probs.append(log_prob)
 
             # Adjust configurations based on actions
             cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
@@ -183,10 +191,6 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
             memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
             cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
-
-            if state in prohibited_configs:
-                print("PROHIBITED CONFIG!")
-                continue
 
             # Execute configuration and get metrics
             t1 = time.time()
@@ -223,57 +227,42 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 continue
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
-            states.append(state)
-
+            
             if reward > max_reward:
                 max_reward = reward
                 best_config = state
 
-        # Calculate advantages and update networks
-        returns, advantages = [], []
-        value_tensor = critic_network(torch.tensor(states, dtype=torch.float32)).detach().numpy()
+        # Compute the advantages
+        values = [0] * len(rewards)  # Replace with value estimates if you have a value network
+        advantages = calculate_advantages(rewards, values)
 
-        for t in range(len(rewards)):
-            Gt = sum([gamma ** i * rewards[t + i] for i in range(len(rewards) - t)])  # Return
-            advantage = Gt - value_tensor[t]  # Advantage
-            returns.append(Gt)
-            advantages.append(advantage)
-
-        returns = torch.tensor(returns, dtype=torch.float32)
-        advantages = torch.tensor(advantages, dtype=torch.float32)
-
-        # Update the actor network
-        actor_optimizer.zero_grad()
-        for log_prob, adv in zip(actions, advantages):
-            log_prob_tensor = torch.log(action_probs[log_prob])
-            loss = -(log_prob_tensor * adv)  # Policy gradient loss
+        # Update the policy network using PPO loss
+        optimizer.zero_grad()
+        for log_prob, adv in zip(log_probs, advantages):
+            new_log_probs = policy_network(torch.tensor(state, dtype=torch.float32))
+            loss = ppo_loss(log_prob, new_log_probs, adv)
             loss.backward()
-        actor_optimizer.step()
+        optimizer.step()
 
-        # Update the critic network
-        critic_optimizer.zero_grad()
-        values = critic_network(torch.tensor(states, dtype=torch.float32)).squeeze()
-        critic_loss = nn.MSELoss()(values, returns)
-        critic_loss.backward()
-        critic_optimizer.step()
+        # Epsilon decay for exploration (optional)
+        if epsilon > epsilon_min:
+            epsilon *= epsilon_decay
 
         print(f"Episode: {episode}, Max Reward: {max_reward}")
 
     end_t1 = round(((time.time() - t1) - sum(time_got))*1000, 3)
     end = end_t1 / len(time_got)
     for config in configs:
-        dict_record = [{'a2c_time_elapsed': end, **config}]
-        save_csv(dict_record, f"a2c_jxavier_{sys.argv[4]}.csv")
+        dict_record = [{'ppo_time_elapsed': end, **config}]
+        save_csv(dict_record, f"ppo_jxavier_{sys.argv[4]}.csv")
     print(f"Best Config: {best_config} in {sum(time_got)+end_t1} sec")
 
-# Initialize the actor and critic networks
+# Initialize the policy network and optimizer
 input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 output_size = 7  # Number of actions (e.g., no change, small/medium/large increase/decrease)
 
-actor_network = ActorNetwork(input_size, output_size)
-critic_network = CriticNetwork(input_size)
-actor_optimizer = optim.Adam(actor_network.parameters(), lr=lr)
-critic_optimizer = optim.Adam(critic_network.parameters(), lr=lr)
+policy_network = PolicyNetwork(input_size, output_size)
+optimizer = optim.Adam(policy_network.parameters(), lr=0.001)
 
-# Run the A2C algorithm
-a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimizer)
+# Run the PPO algorithm
+ppo_algorithm(policy_network, optimizer)

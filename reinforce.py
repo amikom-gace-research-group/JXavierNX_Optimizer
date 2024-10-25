@@ -1,29 +1,12 @@
 import numpy as np
-import random
-import sys
-import time
-import os
+import torch
+import torch.nn as nn
+import torch.optim as optim
 import requests
+import time
+import sys
 import csv
-
-print("PID", os.getpid())
-
-# Define configuration ranges
-CPU_CORES_RANGE = range(1, 6)
-CPU_FREQ_RANGE = range(1190, 1909)
-GPU_FREQ_RANGE = range(510, 1111)
-MEMORY_FREQ_RANGE = range(1500, 1867)
-CL_RANGE = range(1, 4)
-
-# Hyperparameters
-alpha = 0.1
-gamma = 0.9
-epsilon = 0.6
-epsilon_min = 0.01
-epsilon_decay = 0.995
-reward_threshold = 0.01
-num_episodes = 4
-max_saturated_count = 5
+import os
 
 # Constants and thresholds
 POWER_BUDGET = 5000
@@ -31,11 +14,14 @@ THROUGHPUT_TARGET = 30
 importance_power = 1
 importance_throughput = 1
 
-# Action constants
-ACTIONS = [0, 1, 2, 3, 4, 5, 6]  # No change, Small/Medium/Large Increase/Decrease
-ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
-action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
+# Configuration ranges
+CPU_CORES_RANGE = range(1, 6)
+CPU_FREQ_RANGE = range(1190, 1909)
+GPU_FREQ_RANGE = range(510, 1111)
+MEMORY_FREQ_RANGE = range(1500, 1867)
+CL_RANGE = range(1, 4)
 
+# Step sizes for adjustment
 STEP_SIZES = {
     'cpu_cores': (1, 3, 5),
     'cpu_freq': (1, 10, 50),
@@ -44,19 +30,27 @@ STEP_SIZES = {
     'cl': (1, 2, 0)
 }
 
-policy_table = {}
+# Hyperparameters
+gamma = 0.99
+lr = 0.001
+num_episodes = 5
 
 prohibited_configs = set()
 
-def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
-    return (
-        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
-        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
-        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
-        np.searchsorted(MEMORY_FREQ_RANGE, memory_freq),
-        np.searchsorted(CL_RANGE, cl)
-    )
+# Actor Network
+class ActorNetwork(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(ActorNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, output_size)
 
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return torch.softmax(self.fc3(x), dim=-1)
+
+# Adjust configuration values based on action
 def adjust_value(value, action, steps, min_val, max_val):
     small_step, medium_step, large_step = steps
     if action == 1:
@@ -73,40 +67,6 @@ def adjust_value(value, action, steps, min_val, max_val):
         return max(value - large_step, min_val)
     return value
 
-# Correct softmax action selection
-def choose_action(state_index):
-    state_key = tuple(state_index)
-    if state_key not in policy_table:
-        policy_table[state_key] = np.random.rand(np.prod(action_shape))
-    
-    if random.uniform(0, 1) < epsilon:
-        return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]
-    else:
-        action_probabilities = policy_table[state_key]
-        # Select separate actions for each parameter using softmax
-        action_indices = []
-        for i in range(len(ACTION_MAPPING)):
-            start = i * len(ACTIONS)
-            end = start + len(ACTIONS)
-            prob_dist = softmax(action_probabilities[start:end])
-            action_indices.append(np.random.choice(ACTIONS, p=prob_dist))
-        return action_indices
-
-def softmax(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
-
-def update_policy(state_index, action_index, reward, cumulative_return):
-    state_key = tuple(state_index)
-    if state_key not in policy_table:
-        policy_table[state_key] = np.random.rand(np.prod(action_shape))
-    
-    action_probabilities = softmax(policy_table[state_key])
-    chosen_action_prob = action_probabilities[np.ravel_multi_index(action_index, action_shape)]
-    
-    # Update policy with REINFORCE rule
-    policy_table[state_key][np.ravel_multi_index(action_index, action_shape)] += alpha * (cumulative_return - reward) * (1 - chosen_action_prob)
-
 def get_result():
     headers = {
         'Authorization': sys.argv[2],  # Use 'APIKey' if your service requires this
@@ -120,6 +80,7 @@ def get_result():
         print(f"Error fetching result: {e}")
     return False
 
+# Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
@@ -153,6 +114,15 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
+def save_csv(dict_list, filename):
+    with open(filename, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        if os.path.getsize(filename) == 0:
+            writer.writeheader()
+        for d in dict_list:
+            writer.writerow(d)
+
+# Efficient reward calculation
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
@@ -163,102 +133,119 @@ def calculate_reward(measured_metrics):
     return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
             importance_power * (POWER_BUDGET / power))
 
-def save_csv(dict_list, filename):
-    with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
-        if os.path.getsize(filename) == 0:
-            writer.writeheader()
-        for d in dict_list:
-            writer.writerow(d)
-
-# Main REINFORCE loop
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = 3, 1550, 810, 1700, 2
-max_reward = -float('inf')
-best_config = None
-last_reward = 0
-
-state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-t_main = time.time()
-
-for episode in range(num_episodes):
+# Main REINFORCE algorithm
+def reinforce_algorithm(actor_network, optimizer):
     t1 = time.time()
-    
-    actions_taken = []
-    rewards = []
+    max_reward = -float('inf')
+    best_config = None
     time_got = []
-    state_indexes = []
     configs = []
 
-    for step in range(5):
-        actions = choose_action(state_index)
-        actions_taken.append(actions)
-        
-        cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-        cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-        gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-        memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-        cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+    # Initial configuration (starting in the middle of the range)
+    cpu_cores = 3
+    cpu_freq = 1550
+    gpu_freq = 810
+    memory_freq = 1700
+    cl = 2
 
-        state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        state_indexes.append(state_index)
-        
-        if state_index in prohibited_configs:
-            print("PROHIBITED CONFIG!")
-            continue
-        
-        t2 = time.time()
-        measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        elapsed_exec = round(time.time() - t2, 3)
-        time_got.append(elapsed_exec)
-        
-        if not measured_metrics or measured_metrics == "No Device":
-            print("Execution issue or No device found!")
-            break
-        
-        reward = calculate_reward(measured_metrics)
+    for episode in range(num_episodes):
+        states, actions, rewards = [], [], []
+        state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
-        config = {
-            "reward": reward,
-            "xaviernx_time_elapsed": elapsed_exec,
-            "cpu_cores": cpu_cores+1,
-            "cpu_freq": cpu_freq,
-            "gpu_freq": gpu_freq,
-            "memory_freq": memory_freq,
-            "cl": cl,
-            "throughput": measured_metrics[0]["throughput"],
-            "power_cons": measured_metrics[0]["power_cons"]
-        }
-        configs.append(config)
-        rewards.append(reward)
+        for _ in range(4):  # Define the number of steps per episode
+            state_tensor = torch.tensor(state, dtype=torch.float32)
+            
+            # Actor chooses action
+            action_probs = actor_network(state_tensor)
+            action_distribution = torch.distributions.Categorical(action_probs)
+            action = action_distribution.sample()
 
-        if reward == -1:
-            print("Prohibited Configuration!")
-            prohibited_configs.add(state_index)
-            continue
-        
-        print(f"Action {actions}, Reward: {reward}")
+            actions.append(action.item())
 
-        if reward > max_reward:
-            max_reward = reward
-            best_config = actions_taken[-1]
+            # Adjust configurations based on actions
+            cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+            cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+            gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+            memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+            cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-        if reward > last_reward - reward_threshold:
-            max_saturated_count -= 1
-            epsilon = 0.5
-            if max_saturated_count == 0:
-                print("REINFORCE is saturated")
+            if state in prohibited_configs:
+                print("PROHIBITED CONFIG!")
+                continue
+
+            # Execute configuration and get metrics
+            t1 = time.time()
+            measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+            elapsed_exec = round(time.time() - t1, 3)
+            time_got.append(elapsed_exec)
+
+            if not measured_metrics:
+                print("EXECUTION PROBLEM!")
+                continue
+            if measured_metrics == "No Device":
+                print("No Device/Inference Runtime")
                 break
 
-        last_reward = reward
-    
-    if rewards:
-        cumulative_return = sum([r * (gamma ** i) for i, r in enumerate(rewards)])
-        for i, action in enumerate(actions_taken):
-            update_policy(state_indexes[i], actions, rewards[i], cumulative_return)
+            reward = calculate_reward(measured_metrics)
+            rewards.append(reward)
+
+            config = {
+                "reward": reward,
+                "xaviernx_time_elapsed": elapsed_exec,
+                "cpu_cores": cpu_cores+1,
+                "cpu_freq": cpu_freq,
+                "gpu_freq": gpu_freq,
+                "memory_freq": memory_freq,
+                "cl": cl,
+                "throughput": measured_metrics[0]["throughput"],
+                "power_cons": measured_metrics[0]["power_cons"]
+            }
+            configs.append(config)
+
+            if reward == -1:
+                print("Prohibited Configuration!")
+                prohibited_configs.add(state)
+                continue
+
+            state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
+            states.append(state)
+
+            if reward > max_reward:
+                max_reward = reward
+                best_config = state
+
+        # Calculate returns
+        returns = []
+        Gt = 0
+        for reward in reversed(rewards):
+            Gt = reward + gamma * Gt  # Discounted reward
+            returns.insert(0, Gt)
+
+        returns = torch.tensor(returns, dtype=torch.float32)
+
+        # Update the actor network
+        optimizer.zero_grad()
+        for log_prob, Gt in zip(actions, returns):
+            log_prob_tensor = torch.log(action_probs[log_prob])
+            loss = -(log_prob_tensor * Gt)  # Policy gradient loss
+            loss.backward()
+        optimizer.step()
+
+        print(f"Episode: {episode}, Max Reward: {max_reward}")
 
     end_t1 = round(((time.time() - t1) - sum(time_got))*1000, 3)
+    end = end_t1 / len(time_got)
     for config in configs:
-        dict_record = [{'reinforce_time_elapsed': end_t1, **config}]
+        dict_record = [{'reinforce_time_elapsed': end, **config}]
         save_csv(dict_record, f"reinforce_jxavier_{sys.argv[4]}.csv")
+    print(f"Best Config: {best_config} in {sum(time_got)+end_t1} sec")
 
-print(f"Best Configuration: {best_config}")
+# Initialize the actor network
+input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
+output_size = 7  # Number of actions (e.g., no change, small/medium/large increase/decrease)
+
+actor_network = ActorNetwork(input_size, output_size)
+optimizer = optim.Adam(actor_network.parameters(), lr=lr)
+
+# Run the REINFORCE algorithm
+reinforce_algorithm(actor_network, optimizer)
