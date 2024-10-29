@@ -13,7 +13,7 @@ MEMORY_FREQ_RANGE = (1500, 1866)  # Memory frequency in MHz (1500 to 1866)
 CL_RANGE = (1, 3)  # Concurrency level (1 to 3)
 
 # Constants and thresholds
-POWER_BUDGET = 5000
+POWER_BUDGET = 6000
 THROUGHPUT_TARGET = 30
 
 importance_power = 1

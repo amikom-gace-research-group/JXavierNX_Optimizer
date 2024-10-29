@@ -17,7 +17,7 @@ MEMORY_FREQ_RANGE = range(1500, 1867)  # Memory frequency in MHz (1500 to 1866)
 CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
 
 # Constants and thresholds
-POWER_BUDGET = 5000  # Power budget in milliWatts
+POWER_BUDGET = 6000  # Power budget in milliWatts
 THROUGHPUT_TARGET = 30  # Throughput target in units
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments

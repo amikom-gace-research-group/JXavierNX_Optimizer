@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import sys
 import time
 import os
@@ -23,7 +24,7 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2134)
 
 CL_RANGE = range(1, 4)
-POWER_BUDGET = 5000
+POWER_BUDGET = 6000
 THROUGHPUT_TARGET = 30
 importance_power = 1
 importance_throughput = 1
@@ -31,7 +32,10 @@ importance_throughput = 1
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
-num_episodes = 20
+epsilon = 0.5
+epsilon_min = 0.01
+epsilon_decay = 0.995
+num_episodes = 100
 reward_threshold = 0.01
 max_saturated_count = 5
 
@@ -48,6 +52,9 @@ STEP_SIZES = {
 }
 
 prohibited_configs = set()
+
+# Initialize an empty Q-table as a dictionary
+Q_table = {}
 
 # Define initial beta parameters for Thompson Sampling (successes and failures for each action per state)
 beta_params = defaultdict(lambda: {i: [(1, 1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
@@ -91,6 +98,20 @@ def get_result():
         print(f"Error fetching result: {e}")
     return False
 
+# Retrieve Q-value for a state-action pair
+def get_q_value(state_index, action_index):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    return Q_table[state_key][np.ravel_multi_index(action_index, action_shape)]
+
+# Update Q-value for a state-action pair
+def update_q_value(state_index, action_index, new_value):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+    Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
+
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
@@ -125,9 +146,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
-def update_beta_params(state_index, actions, reward, measured_metrics):
-    power = measured_metrics[0]["power_cons"]
-    throughput = measured_metrics[0]["throughput"]
+def update_beta_params(state_index, actions, reward):
     state_key = tuple(state_index)
     
     # Scale success and failure counts based on the reward's magnitude
@@ -135,7 +154,7 @@ def update_beta_params(state_index, actions, reward, measured_metrics):
         success, failure = beta_params[state_key][i][action]
         
         # Scale the update based on reward value
-        if throughput > THROUGHPUT_TARGET and power < POWER_BUDGET:
+        if reward > 0:
             success_update = max(1, int(reward))  # Scale success proportional to reward
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
@@ -143,24 +162,30 @@ def update_beta_params(state_index, actions, reward, measured_metrics):
             beta_params[state_key][i][action] = (success, failure + failure_update)
 
 def choose_action_thompson(state_index):
-    chosen_actions = []
-    state_key = tuple(state_index)
-    
-    # Loop through each parameter/action dimension (e.g., 'cpu_cores', 'cpu_freq', etc.)
-    for dimension in range(len(ACTION_MAPPING)):
-        action_probabilities = []
+    if random.uniform(0, 1) < epsilon:
+        chosen_actions = []
+        state_key = tuple(state_index)
         
-        # Sample the probability for each action in this dimension
-        for action in range(len(ACTIONS)):
-            action_successes, action_failures = beta_params[state_key][dimension][action]
-            sampled_prob = np.random.beta(action_successes, action_failures)
-            action_probabilities.append(sampled_prob)
+        # Loop through each parameter/action dimension (e.g., 'cpu_cores', 'cpu_freq', etc.)
+        for dimension in range(len(ACTION_MAPPING)):
+            action_probabilities = []
+            
+            # Sample the probability for each action in this dimension
+            for action in range(len(ACTIONS)):
+                action_successes, action_failures = beta_params[state_key][dimension][action]
+                sampled_prob = np.random.beta(action_successes, action_failures)
+                action_probabilities.append(sampled_prob)
+            
+            # Choose the action with the highest sampled probability for this dimension
+            best_action = np.argmax(action_probabilities)
+            chosen_actions.append(best_action)
         
-        # Choose the action with the highest sampled probability for this dimension
-        best_action = np.argmax(action_probabilities)
-        chosen_actions.append(best_action)
-    
-    return tuple(chosen_actions)
+        return tuple(chosen_actions)
+    else:
+        state_key = tuple(state_index)
+        if state_key not in Q_table:
+            return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore if unseen state
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit
 
 # Calculate reward with shaping
 def calculate_reward(measured_metrics):
@@ -205,11 +230,12 @@ for episode in range(num_episodes):
     memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
     cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
-    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if state_index in prohibited_configs:
+    if new_state_index in prohibited_configs:
         print("PROHIBITED CONFIG!")
+        state_index = new_state_index
         continue
     
     # Execution, measurement, and reward
@@ -229,7 +255,15 @@ for episode in range(num_episodes):
         prohibited_configs.add(state_index)
 
     # Update Thompson Sampling beta parameters based on reward feedback
-    update_beta_params(state_index, actions, reward, measured_metrics)
+    update_beta_params(state_index, actions, reward)
+
+    # Choose the next action based on the new state index
+    new_actions = choose_action_thompson(new_state_index)
+
+    # Update Q-values using the old Q-value and the reward
+    old_q_value = get_q_value(state_index, actions)
+    new_q_value = old_q_value + alpha * (reward + gamma * get_q_value(new_state_index, new_actions) - old_q_value)  # SARSA update
+    update_q_value(state_index, actions, new_q_value)
 
     # Track the best configuration
     if reward > max_reward:
@@ -243,6 +277,12 @@ for episode in range(num_episodes):
                 break
 
     elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
+    last_reward = reward
+    state_index = new_state_index
+
+    # Epsilon decay for exploration
+    if epsilon > epsilon_min:
+        epsilon *= epsilon_decay
 
     configs = {
         "episode": episode,

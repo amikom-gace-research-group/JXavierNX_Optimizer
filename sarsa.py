@@ -21,7 +21,7 @@ elif sys.argv[5] == 'jorin-nano':
 
 CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
 # Constants and thresholds
-POWER_BUDGET = 5000
+POWER_BUDGET = 6000
 THROUGHPUT_TARGET = 30
 importance_power = 1
 importance_throughput = 1

@@ -13,7 +13,7 @@ MEMORY_FREQ_RANGE = range(1500, 1867)
 CL_RANGE = range(1, 4)  # Concurrency level
 
 # System constraints
-POWER_BUDGET = 5000  # Example power budget in mW
+POWER_BUDGET = 6000  # Example power budget in mW
 THROUGHPUT_TARGET = 30  # Example throughput target (inferences per second)
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
