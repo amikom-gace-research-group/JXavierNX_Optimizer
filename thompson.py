@@ -133,7 +133,7 @@ def update_beta_params(state_index, actions, reward):
         success, failure = beta_params[state_key][i][action]
         
         # Scale the update based on reward value
-        if reward > 0:
+        if reward >= 1:
             success_update = max(1, int(reward * 10))  # Scale success proportional to reward
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
@@ -165,17 +165,13 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    throughput_ratio = min(throughput / THROUGHPUT_TARGET, 1.0)  # Cap at 1.0 if it exceeds target
-    power_ratio = min(POWER_BUDGET / power, 1.0)  # Higher ratio is better, cap at 1.0
-
-    # Base reward for achieving both
-    if power <= POWER_BUDGET and throughput >= THROUGHPUT_TARGET:
-        return importance_throughput * throughput_ratio + importance_power * power_ratio
-
-    # Partial rewards for getting close to targets
-    reward = (importance_throughput * throughput_ratio + importance_power * power_ratio) / 2  # Scale down for partial
-    return reward if reward > 0 else -1  # Still use -1 if reward is too low (i.e., configuration is poor)
-
+    if power > POWER_BUDGET and throughput > THROUGHPUT_TARGET:
+        return importance_power * (POWER_BUDGET / power)
+    elif throughput < THROUGHPUT_TARGET and power < POWER_BUDGET:
+        return importance_throughput * (throughput / THROUGHPUT_TARGET)
+    else:
+        return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
+            importance_power * (POWER_BUDGET / power))
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
