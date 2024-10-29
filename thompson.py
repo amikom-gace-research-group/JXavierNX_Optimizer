@@ -136,10 +136,10 @@ def update_beta_params(state_index, actions, reward, measured_metrics):
         
         # Scale the update based on reward value
         if throughput > THROUGHPUT_TARGET and power < POWER_BUDGET:
-            success_update = max(1, int(reward * 10))  # Scale success proportional to reward
+            success_update = max(1, int(reward))  # Scale success proportional to reward
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
-            failure_update = max(1, int(abs(reward) * 10))  # Scale failure if reward is negative
+            failure_update = max(1, int(abs(reward)))  # Scale failure if reward is negative
             beta_params[state_key][i][action] = (success, failure + failure_update)
 
 def choose_action_thompson(state_index):
