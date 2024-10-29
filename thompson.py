@@ -164,12 +164,14 @@ def choose_action_thompson(state_index):
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
+
+    reward = (importance_throughput * (throughput / THROUGHPUT_TARGET) +
+            importance_power * (POWER_BUDGET / power))
     
     if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return -1
+        return -reward
     
-    return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
-            importance_power * (POWER_BUDGET / power))
+    return reward
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
