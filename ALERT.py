@@ -192,7 +192,7 @@ power_filter = KalmanFilterPower()
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 last_probability = 0, 0
 
-num_episodes = 20
+num_episodes = 100
 
 for episode in range(num_episodes):
     t1 = time.time()

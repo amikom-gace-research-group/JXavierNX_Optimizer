@@ -34,7 +34,7 @@ STEP_SIZES = {
 # Hyperparameters
 gamma = 0.99
 lr = 0.001
-num_episodes = 5
+num_episodes = 100
 
 prohibited_configs = set()
 

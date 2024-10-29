@@ -28,7 +28,7 @@ gamma = 0.9
 epsilon = 0.6
 epsilon_min = 0.01
 epsilon_decay = 0.995
-num_episodes = 1000
+num_episodes = 100
 reward_threshold = 0.01
 max_saturated_count = 5
 

@@ -33,7 +33,7 @@ STEP_SIZES = {
 # Hyperparameters
 gamma = 0.99
 lr = 0.001
-num_episodes = 5
+num_episodes = 10
 
 prohibited_configs = set()
 
@@ -148,7 +148,7 @@ def reinforce_algorithm(actor_network, optimizer):
         states, actions, rewards = [], [], []
         state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
-        for _ in range(4):  # Define the number of steps per episode
+        for _ in range(10):  # Define the number of steps per episode
             state_tensor = torch.tensor(state, dtype=torch.float32)
             
             # Actor chooses action
