@@ -152,25 +152,6 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
-# def close_freq_prohibited(state_index):
-#     for prohibited in prohibited_configs:
-#         if state_index[0] == prohibited[0] and state_index[4] == prohibited[4]:
-#             for i in range(1, 4):
-#                 if abs(state_index[i] - prohibited[i]) < 10:
-#                     return True
-#                 else:
-#                     break
-#     return False
-
-# def often_prohibited_cores_cl():
-#     cl = [prohibited[4] for prohibited in prohibited_configs]
-#     cores = [prohibited[0] for prohibited in prohibited_configs]
-    
-#     cl_prohibited = [cl for cl, count in Counter(cl).items() if count > 5]
-#     cores_prohibited = [cores for cores, count in Counter(cores).items() if count > 5]
-    
-#     return cl_prohibited, cores_prohibited
-
 # Efficient reward calculation
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
@@ -185,7 +166,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'q-learning_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'reward', 'xaviernx_time_elapsed', 'q-learning_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -198,11 +179,7 @@ best_config = None
 time_got = []
 
 # Initial configurations (starting in the middle of the range)
-cpu_cores = 3
-cpu_freq = 1550
-gpu_freq = 810
-memory_freq = 1700
-cl = 2
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
@@ -221,16 +198,11 @@ for episode in range(num_episodes):
     state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if (state_index in prohibited_configs): # or 
-        # state_index in close_prohibited or 
-        # cl in often_prohibited_cores_cl[0] or 
-        # cpu_cores in often_prohibited_cores_cl[1]):
+    if (state_index in prohibited_configs):
         print("PROHIBITED CONFIG!")
         continue
 
-
     t1 = time.time()
-
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
     elapsed_exec = round(time.time() - t1, 3)
 
@@ -242,6 +214,10 @@ for episode in range(num_episodes):
         break
 
     reward = calculate_reward(measured_metrics)
+    # Prohibited state handling
+    if reward == -1:
+        print("PROHIBITED CONFIG")
+        prohibited_configs.add(state_index)
     
     # Get the new state index after applying actions
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -258,6 +234,7 @@ for episode in range(num_episodes):
     time_got.append(elapsed + elapsed_exec)
 
     configs = {
+        "episode": episode,
         "reward": reward,
         "xaviernx_time_elapsed": elapsed_exec,
         "q-learning_time_elapsed": elapsed,
@@ -270,18 +247,12 @@ for episode in range(num_episodes):
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"ql_jxavier_{sys.argv[4]}.csv")
 
-    # Prohibited state handling
-    if reward == -1:
-        print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
-        continue
-
     # Track max reward and configurations
     if reward > max_reward:
         max_reward = reward
         best_config = dict_record
 
-    if reward > last_reward - reward_threshold:
+    if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
         epsilon = 0.5
         if max_saturated_count == 0:

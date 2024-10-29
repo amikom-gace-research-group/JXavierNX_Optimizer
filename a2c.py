@@ -38,18 +38,39 @@ num_episodes = 5
 
 prohibited_configs = set()
 
-# Actor Network
+# Actor Network with separate output layers for each configuration parameter
 class ActorNetwork(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_sizes):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, output_size)
+        
+        # Separate output layers for each parameter
+        self.cpu_cores_out = nn.Linear(128, output_sizes['cpu_cores'])
+        self.cpu_freq_out = nn.Linear(128, output_sizes['cpu_freq'])
+        self.gpu_freq_out = nn.Linear(128, output_sizes['gpu_freq'])
+        self.memory_freq_out = nn.Linear(128, output_sizes['memory_freq'])
+        self.cl_out = nn.Linear(128, output_sizes['cl'])
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return torch.softmax(self.fc3(x), dim=-1)
+        
+        # Output probabilities for each parameter independently
+        cpu_cores_probs = torch.softmax(self.cpu_cores_out(x), dim=-1)
+        cpu_freq_probs = torch.softmax(self.cpu_freq_out(x), dim=-1)
+        gpu_freq_probs = torch.softmax(self.gpu_freq_out(x), dim=-1)
+        memory_freq_probs = torch.softmax(self.memory_freq_out(x), dim=-1)
+        cl_probs = torch.softmax(self.cl_out(x), dim=-1)
+        
+        # Return action probabilities for each parameter
+        return {
+            'cpu_cores': cpu_cores_probs,
+            'cpu_freq': cpu_freq_probs,
+            'gpu_freq': gpu_freq_probs,
+            'memory_freq': memory_freq_probs,
+            'cl': cl_probs
+        }
 
 # Critic Network
 class CriticNetwork(nn.Module):
@@ -131,7 +152,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -157,34 +178,34 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     configs = []
 
     # Initial configuration (starting in the middle of the range)
-    cpu_cores = 3
-    cpu_freq = 1550
-    gpu_freq = 810
-    memory_freq = 1700
-    cl = 2
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
     for episode in range(num_episodes):
         states, actions, rewards = [], [], []
 
-        for step in range(4):  # Define the number of steps per episode
+        for _ in range(4):  # Define the number of steps per episode
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             state_tensor = torch.tensor(state, dtype=torch.float32)
-            
-            # Actor chooses action
+
+            # Actor chooses an action for each configuration parameter
             action_probs = actor_network(state_tensor)
-            action_distribution = torch.distributions.Categorical(action_probs)
-            action = action_distribution.sample()
+            cpu_cores_action = torch.distributions.Categorical(action_probs['cpu_cores']).sample().item()
+            cpu_freq_action = torch.distributions.Categorical(action_probs['cpu_freq']).sample().item()
+            gpu_freq_action = torch.distributions.Categorical(action_probs['gpu_freq']).sample().item()
+            memory_freq_action = torch.distributions.Categorical(action_probs['memory_freq']).sample().item()
+            cl_action = torch.distributions.Categorical(action_probs['cl']).sample().item()
 
-            actions.append(action.item())
-
+            actions_set = (cpu_cores_action, cpu_freq_action, gpu_freq_action, memory_freq_action, cl_action)
+            actions.append(actions_set)
+            
             # Adjust configurations based on actions
-            cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-            cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-            gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-            memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-            cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+            cpu_cores = adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+            cpu_freq = adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+            gpu_freq = adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+            memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+            cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-            if state in prohibited_configs:
+            if str(state) in prohibited_configs:
                 print("PROHIBITED CONFIG!")
                 continue
 
@@ -204,7 +225,12 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             reward = calculate_reward(measured_metrics)
             rewards.append(reward)
 
+            if reward == -1:
+                print("Prohibited Configuration!")
+                prohibited_configs.add(str(state))
+
             config = {
+                "episode": episode,
                 "reward": reward,
                 "xaviernx_time_elapsed": elapsed_exec,
                 "cpu_cores": cpu_cores+1,
@@ -217,11 +243,6 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             }
             configs.append(config)
 
-            if reward == -1:
-                print("Prohibited Configuration!")
-                prohibited_configs.add(state)
-                continue
-
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             states.append(state)
 
@@ -231,7 +252,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         # Calculate advantages and update networks
         returns, advantages = [], []
-        value_tensor = critic_network(torch.tensor(states, dtype=torch.float32)).detach().numpy()
+        value_tensor = critic_network(torch.tensor(np.array(states), dtype=torch.float32)).detach().numpy()
 
         for t in range(len(rewards)):
             Gt = sum([gamma ** i * rewards[t + i] for i in range(len(rewards) - t)])  # Return
@@ -244,10 +265,24 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         # Update the actor network
         actor_optimizer.zero_grad()
-        for log_prob, adv in zip(actions, advantages):
-            log_prob_tensor = torch.log(action_probs[log_prob])
-            loss = -(log_prob_tensor * adv)  # Policy gradient loss
-            loss.backward()
+        actor_loss = 0  # Initialize loss accumulator for the actor
+
+        for action_set, adv in zip(actions, advantages):
+            cpu_cores_log_prob = torch.log(action_probs['cpu_cores'][action_set[0]])
+            cpu_freq_log_prob = torch.log(action_probs['cpu_freq'][action_set[1]])
+            gpu_freq_log_prob = torch.log(action_probs['gpu_freq'][action_set[2]])
+            memory_freq_log_prob = torch.log(action_probs['memory_freq'][action_set[3]])
+            cl_log_prob = torch.log(action_probs['cl'][action_set[4]])
+            
+            # Sum log probabilities for each action dimension
+            total_log_prob = (cpu_cores_log_prob + cpu_freq_log_prob + gpu_freq_log_prob +
+                            memory_freq_log_prob + cl_log_prob)
+            
+            # Accumulate the loss
+            actor_loss += -(total_log_prob * adv)  # Policy gradient loss
+
+        # Now perform the backward pass and update the actor network parameters
+        actor_loss.backward()
         actor_optimizer.step()
 
         # Update the critic network
@@ -259,18 +294,25 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         print(f"Episode: {episode}, Max Reward: {max_reward}")
 
-    end_t1 = round(((time.time() - t1) - sum(time_got))*1000, 3)
+    end_t1 = round(((time.time() - t1) - sum(time_got)) * 1000, 3)
     end = end_t1 / len(time_got)
     for config in configs:
         dict_record = [{'a2c_time_elapsed': end, **config}]
         save_csv(dict_record, f"a2c_jxavier_{sys.argv[4]}.csv")
-    print(f"Best Config: {best_config} in {sum(time_got)+end_t1} sec")
+    print(f"Best Config: {best_config} in {sum(time_got) + end_t1} sec")
+
 
 # Initialize the actor and critic networks
 input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-output_size = 7  # Number of actions (e.g., no change, small/medium/large increase/decrease)
+output_sizes = {
+    'cpu_cores': 7,   # Number of actions for cpu_cores
+    'cpu_freq': 7,    # Number of actions for cpu_freq
+    'gpu_freq': 7,    # Number of actions for gpu_freq
+    'memory_freq': 7, # Number of actions for memory_freq
+    'cl': 7           # Number of actions for cl
+}
 
-actor_network = ActorNetwork(input_size, output_size)
+actor_network = ActorNetwork(input_size, output_sizes)
 critic_network = CriticNetwork(input_size)
 actor_optimizer = optim.Adam(actor_network.parameters(), lr=lr)
 critic_optimizer = optim.Adam(critic_network.parameters(), lr=lr)

@@ -8,13 +8,18 @@ import requests
 
 print("PID", os.getpid())
 
-# Define configuration ranges
-CPU_CORES_RANGE = range(1, 6)  # Number of CPU cores (1 to 6)
-CPU_FREQ_RANGE = range(1190, 1909)  # CPU frequency in MHz (1190 to 1908)
-GPU_FREQ_RANGE = range(510, 1111)  # GPU frequency in MHz (510 to 1110)
-MEMORY_FREQ_RANGE = range(1500, 1867)  # Memory frequency in MHz (1500 to 1866)
-CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
 
+CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
 # Constants and thresholds
 POWER_BUDGET = 5000
 THROUGHPUT_TARGET = 30
@@ -44,7 +49,7 @@ STEP_SIZES = {
     'cpu_freq': (1, 10, 50),
     'gpu_freq': (1, 10, 50),
     'memory_freq': (1, 10, 50),
-    'cl': (1, 2, 0)  # Concurrency level doesn't need medium step
+    'cl': (1, 0, 2)  # Concurrency level doesn't need medium step
 }
 
 # Prohibited configs
@@ -151,25 +156,6 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
-# def close_freq_prohibited(state_index):
-#     for prohibited in prohibited_configs:
-#         if state_index[0] == prohibited[0] and state_index[4] == prohibited[4]:
-#             for i in range(1, 4):
-#                 if abs(state_index[i] - prohibited[i]) < 10:
-#                     return True
-#                 else:
-#                     break
-#     return False
-
-# def often_prohibited_cores_cl():
-#     cl = [prohibited[4] for prohibited in prohibited_configs]
-#     cores = [prohibited[0] for prohibited in prohibited_configs]
-    
-#     cl_prohibited = [cl for cl, count in Counter(cl).items() if count > 5]
-#     cores_prohibited = [cores for cores, count in Counter(cores).items() if count > 5]
-    
-#     return cl_prohibited, cores_prohibited
-
 # Efficient reward calculation
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
@@ -184,7 +170,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'reward', 'xaviernx_time_elapsed', 'sarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'reward', 'xaviernx_time_elapsed', 'sarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -197,16 +183,11 @@ best_config = None
 time_got = []
 
 # Initial configurations (starting in the middle of the range)
-cpu_cores = 3
-cpu_freq = 1550
-gpu_freq = 810
-memory_freq = 1700
-cl = 2
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
 for episode in range(num_episodes):
-    # close_prohibited = close_freq_prohibited(state_index)
     # Choose action based on epsilon-greedy strategy
     actions = choose_action(state_index)
 
@@ -217,14 +198,12 @@ for episode in range(num_episodes):
     memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
     cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if (state_index in prohibited_configs): # or 
-        # state_index in close_prohibited or 
-        # cl in often_prohibited_cores_cl[0] or 
-        # cpu_cores in often_prohibited_cores_cl[1]):
+    if new_state_index in prohibited_configs:
         print("PROHIBITED CONFIG!")
+        state_index = new_state_index
         continue
 
     t1 = time.time()
@@ -239,9 +218,11 @@ for episode in range(num_episodes):
         break
 
     reward = calculate_reward(measured_metrics)
-    
-    # Get the new state index after applying actions
-    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+
+    # Prohibited state handling
+    if reward == -1:
+        print("PROHIBITED CONFIG")
+        prohibited_configs.add(new_state_index)
 
     # Choose the next action based on the new state index
     new_actions = choose_action(new_state_index)
@@ -256,6 +237,7 @@ for episode in range(num_episodes):
     time_got.append(elapsed + elapsed_exec)
 
     configs = {
+        "episode": episode,
         "reward": reward,
         "xaviernx_time_elapsed": elapsed_exec,
         "sarsa_time_elapsed": elapsed,
@@ -266,27 +248,22 @@ for episode in range(num_episodes):
         "cl": cl
     }
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"sarsa_jxavier_{sys.argv[4]}.csv")
-
-    # Prohibited state handling
-    if reward == -1:
-        print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
-        continue
+    save_csv(dict_record, f"sarsa_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     # Track max reward and configurations
     if reward > max_reward:
         max_reward = reward
         best_config = dict_record
 
-    if reward > last_reward - reward_threshold:
+    if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
-        epsilon = 0.3
+        epsilon += 0.1
         if max_saturated_count == 0:
             print("SARSA is saturated")
             break
 
     last_reward = reward
+    state_index = new_state_index
 
     # Epsilon decay for exploration
     if epsilon > epsilon_min:

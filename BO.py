@@ -33,6 +33,7 @@ time_got = []
 
 last_rewards = []  # To store recent rewards for saturation check
 MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
+episode_counter = 0
 
 # Define the parameter space for Bayesian Optimization
 space = [
@@ -106,7 +107,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -128,6 +129,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
     configs = {
+        "episode" : episode_counter,
         "infer_time": elapsed,
         "cpu_cores": int(cpu_cores) + 1,
         "cpu_freq": int(cpu_freq),
@@ -146,6 +148,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     if reward == 1e6:
         return reward  # Return penalty for invalid config
 
+    episode_counter += 1
     last_rewards.append(reward)
     
     # Check if optimization is saturated

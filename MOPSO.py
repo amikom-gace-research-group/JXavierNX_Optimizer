@@ -20,6 +20,7 @@ importance_power = 1
 importance_throughput = 1
 
 time_got = []
+prohibited_configs = set()
 
 # Function to get the result from the external system
 def get_result():
@@ -107,7 +108,7 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
@@ -139,6 +140,9 @@ class MOPSO:
                     int(particle.position[3] * (MEMORY_FREQ_RANGE[1] - MEMORY_FREQ_RANGE[0]) + MEMORY_FREQ_RANGE[0]),
                     int(particle.position[4] * (CL_RANGE[1] - CL_RANGE[0]) + CL_RANGE[0])
                 ]
+                if config in prohibited_configs:
+                    print("Prohibited Configuration!")
+                    continue
                 t2 = time.time()
                 metrics = execute_config(*config)
                 elapsed_exec = round(time.time() - t2, 3)
@@ -149,6 +153,11 @@ class MOPSO:
                     break
 
                 fitness = calculate_fitness(metrics)
+
+                if fitness == -1:
+                    print("Prohibited Configuration!")
+                    prohibited_configs.add(config)
+
                 if fitness > particle.best_fitness:
                     particle.best_fitness = fitness
                     particle.best_position = np.copy(particle.position)
@@ -163,6 +172,7 @@ class MOPSO:
 
                 # Save results to CSV
                 result_entry = {
+                    "iteration": iteration,
                     'reward': fitness,
                     'xavier_time_elapsed': elapsed_exec,
                     'cpu_cores': config[0]+1,

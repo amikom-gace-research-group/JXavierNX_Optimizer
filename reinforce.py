@@ -116,7 +116,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['episode', 'reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -142,11 +142,7 @@ def reinforce_algorithm(actor_network, optimizer):
     configs = []
 
     # Initial configuration (starting in the middle of the range)
-    cpu_cores = 3
-    cpu_freq = 1550
-    gpu_freq = 810
-    memory_freq = 1700
-    cl = 2
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
     for episode in range(num_episodes):
         states, actions, rewards = [], [], []
@@ -189,7 +185,12 @@ def reinforce_algorithm(actor_network, optimizer):
             reward = calculate_reward(measured_metrics)
             rewards.append(reward)
 
+            if reward == -1:
+                print("Prohibited Configuration!")
+                prohibited_configs.add(state)
+
             config = {
+                "episode": episode,
                 "reward": reward,
                 "xaviernx_time_elapsed": elapsed_exec,
                 "cpu_cores": cpu_cores+1,
@@ -201,11 +202,6 @@ def reinforce_algorithm(actor_network, optimizer):
                 "power_cons": measured_metrics[0]["power_cons"]
             }
             configs.append(config)
-
-            if reward == -1:
-                print("Prohibited Configuration!")
-                prohibited_configs.add(state)
-                continue
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             states.append(state)

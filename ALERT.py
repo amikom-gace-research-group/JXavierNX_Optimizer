@@ -175,7 +175,7 @@ def calculate_probability(goal, m, value_var, val):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['infer_overhead', 'alert_overhead', 'throughput_probability', 'power_probability', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
+        writer = csv.DictWriter(f, fieldnames=['episode', 'infer_overhead', 'alert_overhead', 'throughput_probability', 'power_probability', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -189,11 +189,7 @@ throughput_filter = KalmanFilter()
 power_filter = KalmanFilterPower()
 
 # Initial configurations (starting in the middle of the range)
-cpu_cores = 3
-cpu_freq = 1550
-gpu_freq = 810
-memory_freq = 1700
-cl = 2
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 last_probability = 0, 0
 
 num_episodes = 20
@@ -202,10 +198,7 @@ for episode in range(num_episodes):
     t1 = time.time()
     # Execute configuration and get metrics
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-    if episode < 1:
-        headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
-        requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-        continue
+
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
         print("EXECUTION PROBLEM!")
@@ -237,6 +230,7 @@ for episode in range(num_episodes):
     time_got.append(elapsed+elapsed_exec)
     #Save results to CSV
     configs = {
+        "episode": episode,
         "infer_overhead" : elapsed_exec,
         "alert_overhead" : elapsed,
         "throughput_probability" : throughput_probability,

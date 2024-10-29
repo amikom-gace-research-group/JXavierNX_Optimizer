@@ -138,19 +138,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+        writer = csv.DictWriter(f, fieldnames=['episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 
 # Main loop for NeuOS-based optimization (focus on throughput and power)
-cpu_cores = 3
-best_lag = 0
-cpu_freq = 1550
-gpu_freq = 810
-memory_freq = 1700
-cl = 2
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
 last_lag = 0
 best_power = POWER_BUDGET
@@ -164,10 +159,6 @@ for episode in range(20):  # Example: run for 100 episodes
     t1 = time.time()
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
-    if episode < 1:
-        headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
-        requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-        continue
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
         print("EXECUTION PROBLEM!")
@@ -190,6 +181,7 @@ for episode in range(20):  # Example: run for 100 episodes
     time_got.append(elapsed+elapsed_exec)
 
     configs = {
+        "episode": episode,
         "infer_overhead (sec)" : elapsed_exec,
         "neuos_overhead (ms)" : elapsed,
         "lag": lag,
