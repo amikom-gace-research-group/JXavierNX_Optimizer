@@ -125,7 +125,9 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None
 
-def update_beta_params(state_index, actions, reward):
+def update_beta_params(state_index, actions, reward, measured_metrics):
+    power = measured_metrics[0]["power_cons"]
+    throughput = measured_metrics[0]["throughput"]
     state_key = tuple(state_index)
     
     # Scale success and failure counts based on the reward's magnitude
@@ -133,7 +135,7 @@ def update_beta_params(state_index, actions, reward):
         success, failure = beta_params[state_key][i][action]
         
         # Scale the update based on reward value
-        if reward >= 1:
+        if throughput > THROUGHPUT_TARGET and power < POWER_BUDGET:
             success_update = max(1, int(reward * 10))  # Scale success proportional to reward
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
@@ -166,9 +168,12 @@ def calculate_reward(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET and throughput > THROUGHPUT_TARGET:
-        return importance_power * (POWER_BUDGET / power)
+        return importance_power * (power / POWER_BUDGET)
     elif throughput < THROUGHPUT_TARGET and power < POWER_BUDGET:
-        return importance_throughput * (throughput / THROUGHPUT_TARGET)
+        return importance_throughput * (THROUGHPUT_TARGET / throughput)
+    elif throughput < THROUGHPUT_TARGET and power > POWER_BUDGET:
+        return (importance_throughput * (THROUGHPUT_TARGET / throughput) +
+            importance_power * (power / POWER_BUDGET))
     else:
         return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
             importance_power * (POWER_BUDGET / power))
@@ -224,7 +229,7 @@ for episode in range(num_episodes):
         prohibited_configs.add(state_index)
 
     # Update Thompson Sampling beta parameters based on reward feedback
-    update_beta_params(state_index, actions, reward)
+    update_beta_params(state_index, actions, reward, measured_metrics)
 
     # Track the best configuration
     if reward > max_reward:
