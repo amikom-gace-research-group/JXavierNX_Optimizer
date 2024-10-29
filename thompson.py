@@ -50,7 +50,7 @@ STEP_SIZES = {
 prohibited_configs = set()
 
 # Define initial beta parameters for Thompson Sampling (successes and failures for each action per state)
-beta_params = defaultdict(lambda: {i: [(1, -1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
+beta_params = defaultdict(lambda: {i: [(1, 1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
 
 def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return (
@@ -138,7 +138,7 @@ def update_beta_params(state_index, actions, reward):
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
             failure_update = max(1, int(abs(reward) * 10))  # Scale failure if reward is negative
-            beta_params[state_key][i][action] = (success, failure - failure_update)
+            beta_params[state_key][i][action] = (success, failure + failure_update)
 
 def choose_action_thompson(state_index):
     chosen_actions = []
@@ -164,14 +164,18 @@ def choose_action_thompson(state_index):
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
+    
+    throughput_ratio = min(throughput / THROUGHPUT_TARGET, 1.0)  # Cap at 1.0 if it exceeds target
+    power_ratio = min(POWER_BUDGET / power, 1.0)  # Higher ratio is better, cap at 1.0
 
-    reward = (importance_throughput * (throughput / THROUGHPUT_TARGET) +
-            importance_power * (POWER_BUDGET / power))
-    
-    if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return -reward
-    
-    return reward
+    # Base reward for achieving both
+    if power <= POWER_BUDGET and throughput >= THROUGHPUT_TARGET:
+        return importance_throughput * throughput_ratio + importance_power * power_ratio
+
+    # Partial rewards for getting close to targets
+    reward = (importance_throughput * throughput_ratio + importance_power * power_ratio) / 2  # Scale down for partial
+    return reward if reward > 0 else -1  # Still use -1 if reward is too low (i.e., configuration is poor)
+
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
