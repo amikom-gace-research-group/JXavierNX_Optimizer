@@ -50,7 +50,7 @@ STEP_SIZES = {
 prohibited_configs = set()
 
 # Define initial beta parameters for Thompson Sampling (successes and failures for each action per state)
-beta_params = defaultdict(lambda: {i: [(1, 1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
+beta_params = defaultdict(lambda: {i: [(1, -1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
 
 def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return (
@@ -138,7 +138,7 @@ def update_beta_params(state_index, actions, reward):
             beta_params[state_key][i][action] = (success + success_update, failure)
         else:
             failure_update = max(1, int(abs(reward) * 10))  # Scale failure if reward is negative
-            beta_params[state_key][i][action] = (success, failure + failure_update)
+            beta_params[state_key][i][action] = (success, failure - failure_update)
 
 def choose_action_thompson(state_index):
     chosen_actions = []
