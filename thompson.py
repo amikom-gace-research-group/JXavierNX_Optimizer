@@ -168,11 +168,11 @@ def calculate_reward(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET and throughput > THROUGHPUT_TARGET:
-        return importance_power * (power / POWER_BUDGET)
+        return -(importance_power * (power / POWER_BUDGET))
     elif throughput < THROUGHPUT_TARGET and power < POWER_BUDGET:
-        return importance_throughput * (THROUGHPUT_TARGET / throughput)
+        return -(importance_throughput * (THROUGHPUT_TARGET / throughput))
     elif throughput < THROUGHPUT_TARGET and power > POWER_BUDGET:
-        return (importance_throughput * (THROUGHPUT_TARGET / throughput) +
+        return -(importance_throughput * (THROUGHPUT_TARGET / throughput) +
             importance_power * (power / POWER_BUDGET))
     else:
         return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
@@ -224,7 +224,7 @@ for episode in range(num_episodes):
         break
     reward = calculate_reward(measured_metrics)
 
-    if reward == -1:
+    if reward < 0:
         print("PROHIBITED CONFIG")
         prohibited_configs.add(state_index)
 
