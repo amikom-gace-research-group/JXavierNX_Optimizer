@@ -26,8 +26,8 @@ importance_power = 1
 importance_throughput = 1
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 20  # Number of iterations for Bayesian Optimization
-n_initial_points = 3
+n_calls = 100  # Number of iterations for Bayesian Optimization
+n_initial_points = 10
 
 time_got = []
 

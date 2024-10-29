@@ -154,7 +154,7 @@ time_got = []
 best_config = None
 max_saturated_count = 5
 
-for episode in range(20):  # Example: run for 100 episodes
+for episode in range(100):  # Example: run for 100 episodes
     # Get current metrics (throughput and power)
     t1 = time.time()
     measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
