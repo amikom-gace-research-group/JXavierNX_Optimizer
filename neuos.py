@@ -6,11 +6,16 @@ import sys
 import csv
 
 # Configuration ranges for CPU, GPU, and memory
-CPU_CORES_RANGE = range(1, 6)
-CPU_FREQ_RANGE = range(1190, 1909)
-GPU_FREQ_RANGE = range(510, 1111)
-MEMORY_FREQ_RANGE = range(1500, 1867)
-CL_RANGE = range(1, 4)  # Concurrency level
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
 
 # System constraints
 POWER_BUDGET = 6000  # Example power budget in mW
@@ -44,6 +49,11 @@ def delta_calculator(lag, power_consumed):
                 return config
         return SpeedUp_PowerUp[0]  # If no match, default to the lowest performance config
 
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return values
+
 # Function to apply the chosen DVFS configuration (adjust CPU, GPU, memory)
 def apply_dvfs(config):
     global cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
@@ -59,18 +69,18 @@ def apply_dvfs(config):
             if cl < max(CL_RANGE):
                 cl += 1
         else:  # Exceeding power budget, lower frequencies
-            cpu_freq = max(int(cpu_freq * config["PowerUp"]), min(CPU_FREQ_RANGE))
-            gpu_freq = max(int(gpu_freq * config["PowerUp"]), min(GPU_FREQ_RANGE))
-            memory_freq = max(int(memory_freq * config["PowerUp"]), min(MEMORY_FREQ_RANGE))
+            cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
+            gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
+            memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
             if cpu_cores > min(CPU_CORES_RANGE):
                 cpu_cores -= 1
             if cl > min(CL_RANGE):
                 cl -= 1
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
         if power_consumed > POWER_BUDGET:
-            cpu_freq = max(int(cpu_freq * config["PowerUp"]), min(CPU_FREQ_RANGE))
-            gpu_freq = max(int(gpu_freq * config["PowerUp"]), min(GPU_FREQ_RANGE))
-            memory_freq = max(int(memory_freq * config["PowerUp"]), min(MEMORY_FREQ_RANGE))
+            cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
+            gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
+            memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
             if cpu_cores > min(CPU_CORES_RANGE):
                 cpu_cores -= 1
             if cl > min(CL_RANGE):
@@ -105,11 +115,11 @@ def get_result():
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": cpu_cores,
-        "cpu_freq": cpu_freq,
-        "gpu_freq": gpu_freq,
-        "mem_freq": memory_freq,
-        "cl": cl
+        "cpu_cores": minmax(cpu_cores, CPU_CORES_RANGE),
+        "cpu_freq": minmax(cpu_freq, CPU_FREQ_RANGE),
+        "gpu_freq": minmax(gpu_freq, GPU_FREQ_RANGE),
+        "mem_freq": minmax(memory_freq, MEMORY_FREQ_RANGE),
+        "cl": minmax(cl, CL_RANGE)
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
