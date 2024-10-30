@@ -16,7 +16,7 @@ elif sys.argv[5] == 'jorin-nano':
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
-
+CL_RANGE = range(1, 4)
 # System constraints
 POWER_BUDGET = 6000  # Example power budget in mW
 THROUGHPUT_TARGET = 30  # Example throughput target (inferences per second)
