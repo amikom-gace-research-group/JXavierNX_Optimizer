@@ -148,6 +148,7 @@ def save_csv(dict_list, filename):
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 
 last_lag = 0
+best_lag = 0
 best_power = POWER_BUDGET
 last_power = 0
 time_got = []
