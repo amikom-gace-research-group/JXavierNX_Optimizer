@@ -9,7 +9,7 @@ from collections import defaultdict
 
 print("PID", os.getpid())
 
-# Device-specific configurations
+# Configuration ranges for CPU, GPU, and memory
 if sys.argv[5] == 'jxavier':
     CPU_CORES_RANGE = range(1, 6)
     CPU_FREQ_RANGE = range(1190, 1909)
@@ -22,9 +22,9 @@ elif sys.argv[5] == 'jorin-nano':
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
-    
-POWER_BUDGET = 6000
-THROUGHPUT_TARGET = 30
+
+POWER_BUDGET = sys.argv[6]
+THROUGHPUT_TARGET = sys.argv[7]
 importance_power = 1
 importance_throughput = 1
 

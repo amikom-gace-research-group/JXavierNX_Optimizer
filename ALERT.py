@@ -9,16 +9,21 @@ from scipy.stats import norm
 
 print("PID", os.getpid())
 
-# Define configuration ranges
-CPU_CORES_RANGE = range(1, 6)  # Number of CPU cores (2 to 6)
-CPU_FREQ_RANGE = range(1190, 1909)  # CPU frequency in MHz (1190 to 1908)
-GPU_FREQ_RANGE = range(510, 1111)  # GPU frequency in MHz (510 to 1110)
-MEMORY_FREQ_RANGE = range(1500, 1867)  # Memory frequency in MHz (1500 to 1866)
-CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+    CL_RANGE = range(1, 4)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
+    CL_RANGE = range(1, 3)
 
-# Constants and thresholds
-POWER_BUDGET = 6000  # Power budget in milliWatts
-THROUGHPUT_TARGET = 30  # Throughput target in units
+POWER_BUDGET = sys.argv[6]
+THROUGHPUT_TARGET = sys.argv[7]
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
 max_saturated_count = 5
@@ -251,7 +256,7 @@ for episode in range(num_episodes):
         throughput_probability, power_probability, cpu_freq, gpu_freq, memory_freq, cl
     )
 
-    save_csv([configs], f"alert_jxavier_{sys.argv[4]}.csv")
+    save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     if throughput_probability > 0.8 and power_probability > 0.8:
         best_config = configs

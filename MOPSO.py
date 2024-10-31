@@ -5,16 +5,21 @@ import time
 import sys
 import os
 
-# Define configuration ranges
-CPU_CORES_RANGE = (1, 5)  # Number of CPU cores (1 to 6)
-CPU_FREQ_RANGE = (1190, 1908)  # CPU frequency in MHz (1190 to 1908)
-GPU_FREQ_RANGE = (510, 1110)  # GPU frequency in MHz (510 to 1110)
-MEMORY_FREQ_RANGE = (1500, 1866)  # Memory frequency in MHz (1500 to 1866)
-CL_RANGE = (1, 3)  # Concurrency level (1 to 3)
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+    CL_RANGE = range(1, 4)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
+    CL_RANGE = range(1, 3)
 
-# Constants and thresholds
-POWER_BUDGET = 6000
-THROUGHPUT_TARGET = 30
+POWER_BUDGET = sys.argv[6]
+THROUGHPUT_TARGET = sys.argv[7]
 
 importance_power = 1
 importance_throughput = 1
@@ -205,7 +210,7 @@ class MOPSO:
             if metrics == "No Device":
                 break
 
-        save_csv(results, f"mopso_jxavier_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
+        save_csv(results, f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
         return self.best_config, self.global_best_fitness
 
 

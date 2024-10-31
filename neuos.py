@@ -18,10 +18,9 @@ elif sys.argv[5] == 'jorin-nano':
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
-    
-# System constraints
-POWER_BUDGET = 6000  # Example power budget in mW
-THROUGHPUT_TARGET = 30  # Example throughput target (inferences per second)
+
+POWER_BUDGET = sys.argv[6]
+THROUGHPUT_TARGET = sys.argv[7]
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = [

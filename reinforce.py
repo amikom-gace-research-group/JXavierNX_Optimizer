@@ -9,17 +9,24 @@ import csv
 import os
 
 # Constants and thresholds
-POWER_BUDGET = 6000
-THROUGHPUT_TARGET = 30
 importance_power = 1
 importance_throughput = 1
 
-# Configuration ranges
-CPU_CORES_RANGE = range(1, 6)
-CPU_FREQ_RANGE = range(1190, 1909)
-GPU_FREQ_RANGE = range(510, 1111)
-MEMORY_FREQ_RANGE = range(1500, 1867)
-CL_RANGE = range(1, 4)
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+    CL_RANGE = range(1, 4)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
+    CL_RANGE = range(1, 3)
+
+POWER_BUDGET = sys.argv[6]
+THROUGHPUT_TARGET = sys.argv[7]
 
 # Step sizes for adjustment
 STEP_SIZES = {
@@ -233,7 +240,7 @@ def reinforce_algorithm(actor_network, optimizer):
     end = end_t1 / len(time_got)
     for config in configs:
         dict_record = [{'reinforce_time_elapsed': end, **config}]
-        save_csv(dict_record, f"reinforce_jxavier_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"reinforce_{sys.argv[5]}_{sys.argv[4]}.csv")
     print(f"Best Config: {best_config} in {sum(time_got)+end_t1} sec")
 
 # Initialize the actor network
