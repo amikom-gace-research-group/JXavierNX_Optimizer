@@ -13,13 +13,14 @@ if sys.argv[5] == 'jxavier':
     CPU_FREQ_RANGE = range(1190, 1909)
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
+    CL_RANGE = range(1, 4)
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = range(1, 6)
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
+    CL_RANGE = range(1, 3)
 
-CL_RANGE = range(1, 4)  # Concurrency level (1 to 3)
 # Constants and thresholds
 POWER_BUDGET = 6000
 THROUGHPUT_TARGET = 30
