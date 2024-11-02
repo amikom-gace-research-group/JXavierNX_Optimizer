@@ -121,6 +121,7 @@ def save_csv(dict_list, filename):
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
+    global episode_counter
     print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     
     t1 = time.time()
