@@ -22,8 +22,8 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
 
-POWER_BUDGET = sys.argv[6]
-THROUGHPUT_TARGET = sys.argv[7]
+POWER_BUDGET = int(sys.argv[6])
+THROUGHPUT_TARGET = int(sys.argv[7])
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
 max_saturated_count = 5
