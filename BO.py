@@ -6,7 +6,7 @@ import os
 import csv
 import requests
 from skopt import gp_minimize
-from skopt.space import Integer, Real
+from skopt.space import Integer, Real, Categorical
 from skopt.utils import use_named_args
 
 print("PID", os.getpid())
