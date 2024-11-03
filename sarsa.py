@@ -16,7 +16,7 @@ if sys.argv[5] == 'jxavier':
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
 elif sys.argv[5] == 'jorin-nano':
-    CPU_CORES_RANGE = (6)
+    CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
