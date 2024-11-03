@@ -40,9 +40,11 @@ last_rewards = []  # To store recent rewards for saturation check
 MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
 episode_counter = 0
 
+cores_space = (Categorical([CPU_CORES_RANGE], name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
+
 # Define the parameter space for Bayesian Optimization
 space = [
-    CPU_CORES_RANGE,
+    cores_space,
     Integer(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), name='cpu_freq'),
     Integer(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), name='gpu_freq'),
     Integer(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), name='mem_freq'),
