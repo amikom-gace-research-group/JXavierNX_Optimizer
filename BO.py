@@ -152,17 +152,18 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     
     reward = calculate_reward(measured_metrics)
     print(f"Configuration reward: {reward}")
-    
-    if reward == 1e6:
-        return reward  # Return penalty for invalid config
 
-    episode_counter += 1
     last_rewards.append(reward)
     
     # Check if optimization is saturated
     if len(last_rewards) > MAX_SATURATION_CALLS and all(r == last_rewards[-1] for r in last_rewards[-MAX_SATURATION_CALLS:]):
         print("Optimization is saturated. Stopping further iterations.")
         raise RuntimeError("Optimization saturated.")  # Raising an exception to stop optimization
+    
+    if reward == 1e6:
+        return reward  # Return penalty for invalid config
+
+    episode_counter += 1
 
     return -reward  # Minimize the negative reward to maximize reward
 
