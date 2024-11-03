@@ -18,7 +18,7 @@ if sys.argv[5] == 'jxavier':
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
 elif sys.argv[5] == 'jorin-nano':
-    CPU_CORES_RANGE = 6
+    CPU_CORES_RANGE = [6]
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
@@ -40,7 +40,7 @@ last_rewards = []  # To store recent rewards for saturation check
 MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
 episode_counter = 0
 
-cores_space = (Categorical([CPU_CORES_RANGE], name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
+cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
 
 # Define the parameter space for Bayesian Optimization
 space = [
