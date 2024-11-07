@@ -164,7 +164,7 @@ best_power = POWER_BUDGET
 last_power = 0
 time_got = []
 best_config = None
-max_saturated_count = 5
+max_saturated_count = 10
 
 for episode in range(100):  # Example: run for 100 episodes
     # Get current metrics (throughput and power)

@@ -61,8 +61,8 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def calibrate():
-    for x in reversed(range(1190, 1909, 360)):
-        for y in reversed(range(510, 1111, 300)):
+    for x in reversed(range(1190, 1909, 720)):
+        for y in reversed(range(510, 1111, 600)):
             for z in reversed(range(1500, 1867, 183)):
                 for _ in range(5):
                     measured_metrics = execute_config(5, x, y, z, 1)
@@ -76,8 +76,8 @@ def calibrate():
                     dict_record = [{**configs, **measured_metrics[0]}]
                     save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-    for x in range(1190, 1909, 360):
-        for y in range(510, 1111, 300):
+    for x in range(1190, 1909, 720):
+        for y in range(510, 1111, 600):
             for z in range(1500, 1867, 183):
                 for _ in range(5):
                     measured_metrics = execute_config(5, x, y, z, 1)

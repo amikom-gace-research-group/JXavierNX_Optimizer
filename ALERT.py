@@ -26,7 +26,7 @@ POWER_BUDGET = int(sys.argv[6])
 THROUGHPUT_TARGET = int(sys.argv[7])
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
-max_saturated_count = 5
+max_saturated_count = 10
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:

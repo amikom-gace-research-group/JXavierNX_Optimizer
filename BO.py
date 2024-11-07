@@ -37,7 +37,7 @@ n_initial_points = 10
 time_got = []
 
 last_rewards = []  # To store recent rewards for saturation check
-MAX_SATURATION_CALLS = 5  # Number of calls to check for saturation
+MAX_SATURATION_CALLS = 10  # Number of calls to check for saturation
 episode_counter = 0
 
 cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))

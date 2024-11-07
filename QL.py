@@ -35,7 +35,7 @@ epsilon_min = 0.01
 epsilon_decay = 0.995
 num_episodes = 100
 reward_threshold = 0.01
-max_saturated_count = 5
+max_saturated_count = 10
 
 # Define action constants
 ACTIONS = [0, 1, 2, 3, 4, 5, 6]  # No change, Small/Medium/Large Increase/Decrease

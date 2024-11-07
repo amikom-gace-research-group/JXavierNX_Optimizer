@@ -120,7 +120,7 @@ def save_csv(results, filename):
 
 # MOPSO Class
 class MOPSO:
-    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold=5):
+    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold=10):
         self.swarm_size = swarm_size
         self.problem_size = problem_size
         self.bounds = bounds
