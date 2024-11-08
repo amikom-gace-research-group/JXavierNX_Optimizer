@@ -220,6 +220,9 @@ for episode in range(100):  # Example: run for 100 episodes
         if max_saturated_count == 0:
             print("NeuOS is saturated")
             break
+    else:
+        max_saturated_count = 5
+        
     # Check if the system meets the target and stop if it stabilizes
     if lag < best_lag and power_consumed <= best_power:
         best_lag = lag

@@ -266,6 +266,8 @@ for episode in range(num_episodes):
         if max_saturated_count == 0:
             print("ALERT is saturated")
             break
+    else:
+        max_saturated_count = 5
 
     last_probability = throughput_probability, power_probability
 

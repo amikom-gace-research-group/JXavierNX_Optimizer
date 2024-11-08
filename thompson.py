@@ -274,6 +274,8 @@ for episode in range(num_episodes):
         if max_saturated_count == 0:
                 print("Thompson is saturated")
                 break
+    else:
+        max_saturated_count = 5
 
     elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
     last_reward = reward
