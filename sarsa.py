@@ -264,7 +264,7 @@ for episode in range(num_episodes):
             print("SARSA is saturated")
             break
     else:
-        max_saturated_count = 5
+        max_saturated_count = 10
 
     last_reward = reward
     state_index = new_state_index
