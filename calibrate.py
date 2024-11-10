@@ -61,35 +61,31 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def calibrate():
-    for x in reversed(range(1190, 1909, 720)):
-        for y in reversed(range(510, 1111, 600)):
-            for z in reversed(range(1500, 1867, 183)):
-                for _ in range(5):
-                    measured_metrics = execute_config(5, x, y, z, 1)
-                    configs = {
-                        "cpu_cores": 6,
-                        "cpu_freq": x,
-                        "gpu_freq": y,
-                        "memory_freq": z,
-                        "cl": 1
-                    }
-                    dict_record = [{**configs, **measured_metrics[0]}]
-                    save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
+    for x, y, z in zip(reversed(range(1190, 1909, 718)), reversed(range(510, 1111, 600)), reversed(range(1500, 1867, 366))):
+        for _ in range(5):
+            measured_metrics = execute_config(5, x, y, z, 1)
+            configs = {
+                "cpu_cores": 6,
+                "cpu_freq": x,
+                "gpu_freq": y,
+                "memory_freq": z,
+                "cl": 3
+            }
+            dict_record = [{**configs, **measured_metrics[0]}]
+            save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-    for x in range(1190, 1909, 720):
-        for y in range(510, 1111, 600):
-            for z in range(1500, 1867, 183):
-                for _ in range(5):
-                    measured_metrics = execute_config(5, x, y, z, 1)
-                    configs = {
-                        "cpu_cores": 6,
-                        "cpu_freq": x,
-                        "gpu_freq": y,
-                        "memory_freq": z,
-                        "cl": 1
-                    }
-                    dict_record = [{**configs, **measured_metrics[0]}]
-                    save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
+    for x, y, z in zip(range(1190, 1909, 718), range(510, 1111, 600), range(1500, 1867, 366)):
+        for _ in range(5):
+            measured_metrics = execute_config(5, x, y, z, 1)
+            configs = {
+                "cpu_cores": 6,
+                "cpu_freq": x,
+                "gpu_freq": y,
+                "memory_freq": z,
+                "cl": 3
+            }
+            dict_record = [{**configs, **measured_metrics[0]}]
+            save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
                     
 
