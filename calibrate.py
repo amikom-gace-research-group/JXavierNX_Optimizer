@@ -69,7 +69,7 @@ def calibrate():
                 "cpu_freq": x,
                 "gpu_freq": y,
                 "memory_freq": z,
-                "cl": 3
+                "cl": sys.argv[6]
             }
             dict_record = [{**configs, **measured_metrics[0]}]
             save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
@@ -82,7 +82,7 @@ def calibrate():
                 "cpu_freq": x,
                 "gpu_freq": y,
                 "memory_freq": z,
-                "cl": 3
+                "cl": sys.argv[6]
             }
             dict_record = [{**configs, **measured_metrics[0]}]
             save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
