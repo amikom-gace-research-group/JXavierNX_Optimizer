@@ -214,6 +214,8 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
             cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
+            state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
+
             if str(state) in prohibited_configs:
                 print("PROHIBITED CONFIG!")
                 continue
@@ -239,7 +241,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 prohibited_configs.add(str(state))
 
             config = {
-	"api_time": api_time,
+	            "api_time": api_time,
                 "episode": episode,
                 "reward": reward,
                 "xaviernx_time_elapsed": elapsed_exec,
@@ -270,8 +272,8 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             returns.append(Gt)
             advantages.append(advantage)
 
-        returns = torch.tensor(returns, dtype=torch.float32)
-        advantages = torch.tensor(advantages, dtype=torch.float32)
+        returns = torch.tensor(np.array(returns), dtype=torch.float32)
+        advantages = torch.tensor(np.array(advantages), dtype=torch.float32)
 
         # Update the actor network
         actor_optimizer.zero_grad()
