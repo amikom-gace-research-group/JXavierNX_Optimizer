@@ -129,27 +129,29 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         if response.status_code == 201:
             av_dev = 0
             while True:
+                t1 = time.time()
                 metrics = get_result()
+                elapsed = round(time.time() - t1, 3)
                 if metrics:
                     metrics = [metrics[-1]]
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-                    return metrics
+                    return metrics, elapsed
                 else:
                     av_dev += 1
                     print("Waiting for device...")
                     if av_dev == 30:
-                        return "No Device"
+                        return "No Device", None
                     time.sleep(10)
         else:
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
-    return None
+    return None, None
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -169,7 +171,7 @@ max_saturated_count = 10
 for episode in range(100):  # Example: run for 100 episodes
     # Get current metrics (throughput and power)
     t1 = time.time()
-    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
@@ -193,6 +195,7 @@ for episode in range(100):  # Example: run for 100 episodes
     time_got.append(elapsed+elapsed_exec)
 
     configs = {
+	"api_time": api_time,
         "episode": episode,
         "infer_overhead (sec)" : elapsed_exec,
         "neuos_overhead (ms)" : elapsed,

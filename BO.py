@@ -82,22 +82,24 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         if response.status_code == 201:
             av_dev = 0
             while True:
+                t1 = time.time()
                 metrics = get_result()
+                elapsed = round(time.time() - t1, 3)
                 if metrics:
                     metrics = [metrics[-1]]
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-                    return metrics
+                    return metrics, elapsed
                 else:
                     av_dev += 1
                     print("Waiting for device...")
                     if av_dev == 30:
-                        return "No Device"
+                        return "No Device", None
                     time.sleep(10)
         else:
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
-    return None
+    return None, None
 
 # Reward function based on power and throughput metrics
 # Efficient reward calculation
@@ -114,7 +116,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -127,7 +129,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     
     t1 = time.time()
-    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
+    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
     elapsed = round(time.time() - t1, 3)
     time_got.append(elapsed)
@@ -137,6 +139,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
     configs = {
+	"api_time": api_time,
         "episode" : episode_counter,
         "infer_time": elapsed,
         "cpu_cores": int(cpu_cores) + 1,

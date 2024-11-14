@@ -128,22 +128,24 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         if response.status_code == 201:
             av_dev = 0
             while True:
+                t1 = time.time()
                 metrics = get_result()
+                elapsed = round(time.time() - t1, 3)
                 if metrics:
                     metrics = [metrics[-1]]
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-                    return metrics
+                    return metrics, elapsed
                 else:
                     av_dev += 1
                     print("Waiting for device...")
                     if av_dev == 30:
-                        return "No Device"
+                        return "No Device", None
                     time.sleep(10)
         else:
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
-    return None
+    return None, None
 
 def update_beta_params(state_index, actions, reward):
     state_key = tuple(state_index)
@@ -205,7 +207,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'episode', 'xaviernx_time_elapsed', 'thompson_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'xaviernx_time_elapsed', 'thompson_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -239,7 +241,7 @@ for episode in range(num_episodes):
     
     # Execution, measurement, and reward
     t1 = time.time()
-    measured_metrics = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
         print("EXECUTION PROBLEM!")
@@ -267,7 +269,8 @@ for episode in range(num_episodes):
     # Track the best configuration
     if reward > max_reward:
         max_reward = reward
-        best_config = {"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
+        best_config = {
+	"api_time": api_time,"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
 
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
@@ -286,6 +289,7 @@ for episode in range(num_episodes):
         epsilon *= epsilon_decay
 
     configs = {
+	"api_time": api_time,
         "episode": episode,
         "xaviernx_time_elapsed": elapsed_exec,
         "thompson_time_elapsed": elapsed,

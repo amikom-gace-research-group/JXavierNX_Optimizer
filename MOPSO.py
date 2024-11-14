@@ -58,22 +58,24 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         if response.status_code == 201:
             av_dev = 0
             while True:
+                t1 = time.time()
                 metrics = get_result()
+                elapsed = round(time.time() - t1, 3)
                 if metrics:
                     metrics = [metrics[-1]]
                     requests.delete(f"{sys.argv[1]}/api/output", headers=headers)
-                    return metrics
+                    return metrics, elapsed
                 else:
                     av_dev += 1
                     print("Waiting for device...")
                     if av_dev == 30:
-                        return "No Device"
+                        return "No Device", None
                     time.sleep(10)
         else:
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
-    return None
+    return None, None
 
 # Reward function based on power and throughput metrics
 def calculate_fitness(measured_metrics):
@@ -113,7 +115,7 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
