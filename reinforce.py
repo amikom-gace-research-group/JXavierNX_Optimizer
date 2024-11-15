@@ -201,7 +201,7 @@ def reinforce_algorithm(actor_network, optimizer):
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
-            if state in prohibited_configs:
+            if str(state) in prohibited_configs:
                 print("PROHIBITED CONFIG!")
                 continue
 
