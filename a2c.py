@@ -264,7 +264,12 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         # Calculate advantages and update networks
         returns, advantages = [], []
-        value_tensor = critic_network(torch.tensor(np.array(states), dtype=torch.float32)).detach().numpy()
+        states = np.array(states)
+        if states.size == 0 or states.shape[1] != 5:  # replace 5 with the correct feature count
+            print("Error: `states` has an unexpected shape:", states.shape)
+            # Handle the error, e.g., set default values or skip the update
+        else:
+            value_tensor = critic_network(torch.tensor(states, dtype=torch.float32)).detach().numpy()
 
         for t in range(len(rewards)):
             Gt = sum([gamma ** i * rewards[t + i] for i in range(len(rewards) - t)])  # Return
@@ -299,7 +304,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         # Update the critic network
         critic_optimizer.zero_grad()
-        values = critic_network(torch.tensor(states, dtype=torch.float32)).squeeze()
+        values = critic_network(torch.tensor(np.array(states), dtype=torch.float32)).squeeze()
         critic_loss = nn.MSELoss()(values, returns)
         critic_loss.backward()
         critic_optimizer.step()
