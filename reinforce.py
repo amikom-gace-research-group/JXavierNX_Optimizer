@@ -46,16 +46,37 @@ prohibited_configs = set()
 
 # Actor Network
 class ActorNetwork(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_sizes):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, output_size)
+        
+        # Separate output layers for each parameter
+        self.cpu_cores_out = nn.Linear(128, output_sizes['cpu_cores'])
+        self.cpu_freq_out = nn.Linear(128, output_sizes['cpu_freq'])
+        self.gpu_freq_out = nn.Linear(128, output_sizes['gpu_freq'])
+        self.memory_freq_out = nn.Linear(128, output_sizes['memory_freq'])
+        self.cl_out = nn.Linear(128, output_sizes['cl'])
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return torch.softmax(self.fc3(x), dim=-1)
+        
+        # Output probabilities for each parameter independently
+        cpu_cores_probs = torch.softmax(self.cpu_cores_out(x), dim=-1)
+        cpu_freq_probs = torch.softmax(self.cpu_freq_out(x), dim=-1)
+        gpu_freq_probs = torch.softmax(self.gpu_freq_out(x), dim=-1)
+        memory_freq_probs = torch.softmax(self.memory_freq_out(x), dim=-1)
+        cl_probs = torch.softmax(self.cl_out(x), dim=-1)
+        
+        # Return action probabilities for each parameter
+        return {
+            'cpu_cores': cpu_cores_probs,
+            'cpu_freq': cpu_freq_probs,
+            'gpu_freq': gpu_freq_probs,
+            'memory_freq': memory_freq_probs,
+            'cl': cl_probs
+        }
 
 # Adjust configuration values based on action
 def adjust_value(value, action, steps, min_val, max_val):
