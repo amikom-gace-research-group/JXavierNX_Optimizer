@@ -269,9 +269,15 @@ def reinforce_algorithm(actor_network, optimizer):
 
 # Initialize the actor network
 input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-output_size = 7  # Number of actions (e.g., no change, small/medium/large increase/decrease)
+output_sizes = {
+    'cpu_cores': 7,   # Number of actions for cpu_cores
+    'cpu_freq': 7,    # Number of actions for cpu_freq
+    'gpu_freq': 7,    # Number of actions for gpu_freq
+    'memory_freq': 7, # Number of actions for memory_freq
+    'cl': 7           # Number of actions for cl
+}  # Number of actions (e.g., no change, small/medium/large increase/decrease)
 
-actor_network = ActorNetwork(input_size, output_size)
+actor_network = ActorNetwork(input_size, output_sizes)
 optimizer = optim.Adam(actor_network.parameters(), lr=lr)
 
 # Run the REINFORCE algorithm
