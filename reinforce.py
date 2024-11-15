@@ -183,17 +183,21 @@ def reinforce_algorithm(actor_network, optimizer):
             
             # Actor chooses action
             action_probs = actor_network(state_tensor)
-            action_distribution = torch.distributions.Categorical(action_probs)
-            action = action_distribution.sample()
+            cpu_cores_action = torch.distributions.Categorical(action_probs['cpu_cores']).sample().item()
+            cpu_freq_action = torch.distributions.Categorical(action_probs['cpu_freq']).sample().item()
+            gpu_freq_action = torch.distributions.Categorical(action_probs['gpu_freq']).sample().item()
+            memory_freq_action = torch.distributions.Categorical(action_probs['memory_freq']).sample().item()
+            cl_action = torch.distributions.Categorical(action_probs['cl']).sample().item()
 
-            actions.append(action.item())
+            actions_set = (cpu_cores_action, cpu_freq_action, gpu_freq_action, memory_freq_action, cl_action)
+            actions.append(actions_set)
 
             # Adjust configurations based on actions
-            cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-            cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-            gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-            memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-            cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+            cpu_cores = adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+            cpu_freq = adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+            gpu_freq = adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+            memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+            cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
             if state in prohibited_configs:
                 print("PROHIBITED CONFIG!")
@@ -253,8 +257,14 @@ def reinforce_algorithm(actor_network, optimizer):
         # Update the actor network
         optimizer.zero_grad()
         for log_prob, Gt in zip(actions, returns):
-            log_prob_tensor = torch.log(action_probs[log_prob])
-            loss = -(log_prob_tensor * Gt)  # Policy gradient loss
+            cpu_cores_log_prob = torch.log(action_probs['cpu_cores'][log_prob[0]])
+            cpu_freq_log_prob = torch.log(action_probs['cpu_freq'][log_prob[1]])
+            gpu_freq_log_prob = torch.log(action_probs['gpu_freq'][log_prob[2]])
+            memory_freq_log_prob = torch.log(action_probs['memory_freq'][log_prob[3]])
+            cl_log_prob = torch.log(action_probs['cl'][log_prob[4]])
+            total_log_prob = (cpu_cores_log_prob + cpu_freq_log_prob + gpu_freq_log_prob +
+                            memory_freq_log_prob + cl_log_prob)
+            loss = -(total_log_prob * Gt)  # Policy gradient loss
             loss.backward()
         optimizer.step()
 
