@@ -227,7 +227,7 @@ def reinforce_algorithm(actor_network, optimizer):
             Gt = reward + gamma * Gt  # Discounted reward
             returns.insert(0, Gt)
 
-        returns = torch.tensor(returns, dtype=torch.float32)
+        returns = torch.tensor(np.array(returns), dtype=torch.float32)
 
         # Update the actor network
         optimizer.zero_grad()
