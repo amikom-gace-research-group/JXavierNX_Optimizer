@@ -199,6 +199,8 @@ def reinforce_algorithm(actor_network, optimizer):
             memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
             cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
+            state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
+
             if state in prohibited_configs:
                 print("PROHIBITED CONFIG!")
                 continue
@@ -221,7 +223,7 @@ def reinforce_algorithm(actor_network, optimizer):
 
             if reward == -1:
                 print("Prohibited Configuration!")
-                prohibited_configs.add(state)
+                prohibited_configs.add(str(state))
 
             config = {
 	            "api_time": api_time,
