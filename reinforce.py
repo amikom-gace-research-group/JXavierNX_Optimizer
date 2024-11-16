@@ -267,7 +267,7 @@ def reinforce_algorithm(actor_network, optimizer):
             total_log_prob = (cpu_cores_log_prob + cpu_freq_log_prob + gpu_freq_log_prob +
                             memory_freq_log_prob + cl_log_prob)
             loss = -(total_log_prob * Gt)  # Policy gradient loss
-            loss.backward()
+        loss.backward()
         optimizer.step()
 
         print(f"Episode: {episode}, Max Reward: {max_reward}")
