@@ -250,6 +250,8 @@ def reinforce_algorithm(actor_network, optimizer):
         # Calculate returns
         returns = []
         Gt = 0
+        if len(rewards) == 0:
+            continue
         for reward in reversed(rewards):
             Gt = reward + gamma * Gt  # Discounted reward
             returns.insert(0, Gt)
