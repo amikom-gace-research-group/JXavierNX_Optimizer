@@ -150,14 +150,13 @@ class MOPSO:
         results = []
         for iteration in range(self.max_iter):
             for particle in self.swarm:
-                config = {
-                    "cpu_cores": int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
-                    "cpu_freq": int(particle.position[1] * (self.config_ranges["CPU_FREQ_RANGE"][-1] - self.config_ranges["CPU_FREQ_RANGE"][0]) + self.config_ranges["CPU_FREQ_RANGE"][0]),
-                    "gpu_freq": int(particle.position[2] * (self.config_ranges["GPU_FREQ_RANGE"][-1] - self.config_ranges["GPU_FREQ_RANGE"][0]) + self.config_ranges["GPU_FREQ_RANGE"][0]),
-                    "mem_freq": int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
-                    "cl": int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
-                }
-                print(*config)
+                config = [
+                    int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
+                    int(particle.position[1] * (self.config_ranges["CPU_FREQ_RANGE"][-1] - self.config_ranges["CPU_FREQ_RANGE"][0]) + self.config_ranges["CPU_FREQ_RANGE"][0]),
+                    int(particle.position[2] * (self.config_ranges["GPU_FREQ_RANGE"][-1] - self.config_ranges["GPU_FREQ_RANGE"][0]) + self.config_ranges["GPU_FREQ_RANGE"][0]),
+                    int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
+                    int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
+                ]
                 if tuple(config) in prohibited_configs:
                     print("Prohibited Configuration!")
                     continue
