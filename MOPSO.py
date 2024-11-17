@@ -157,6 +157,7 @@ class MOPSO:
                     "mem_freq": int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
                     "cl": int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
                 }
+                print(*config)
                 if tuple(config) in prohibited_configs:
                     print("Prohibited Configuration!")
                     continue
