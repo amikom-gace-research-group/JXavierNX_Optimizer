@@ -149,6 +149,7 @@ class MOPSO:
     def optimize(self):
         results = []
         for iteration in range(self.max_iter):
+            best_fitness_this_iter = -1
             for particle in self.swarm:
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
