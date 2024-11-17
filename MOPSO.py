@@ -147,7 +147,7 @@ class MOPSO:
                     int(particle.position[3] * (MEMORY_FREQ_RANGE[1] - MEMORY_FREQ_RANGE[0]) + MEMORY_FREQ_RANGE[0]),
                     int(particle.position[4] * (CL_RANGE[1] - CL_RANGE[0]) + CL_RANGE[0])
                 ]
-                if config in prohibited_configs:
+                if str(config) in prohibited_configs:
                     print("Prohibited Configuration!")
                     continue
                 t2 = time.time()
@@ -163,7 +163,7 @@ class MOPSO:
 
                 if fitness == -1:
                     print("Prohibited Configuration!")
-                    prohibited_configs.add(config)
+                    prohibited_configs.add(str(config))
 
                 if fitness > particle.best_fitness:
                     particle.best_fitness = fitness
