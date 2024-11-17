@@ -152,7 +152,7 @@ class MOPSO:
                     print("Prohibited Configuration!")
                     continue
                 t2 = time.time()
-                metrics = execute_config(*config)
+                metrics, api_time = execute_config(*config)
                 elapsed_exec = round(time.time() - t2, 3)
                 time_got.append(elapsed_exec)
                 if not metrics or metrics == "No Device":
@@ -180,6 +180,7 @@ class MOPSO:
 
                 # Save results to CSV
                 result_entry = {
+                    "api_time": api_time,
                     "iteration": iteration,
                     'reward': fitness,
                     'xavier_time_elapsed': elapsed_exec,
