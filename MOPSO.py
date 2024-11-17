@@ -79,6 +79,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Reward function based on power and throughput metrics
 def calculate_fitness(measured_metrics):
+    print(measured_metrics)
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
