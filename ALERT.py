@@ -23,7 +23,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 POWER_BUDGET = int(sys.argv[6])
-THROUGHPUT_TARGET = int(sys.argv[7])
+
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
 max_saturated_count = 10
@@ -150,32 +150,27 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
-def adjust_configuration(throughput_probability, power_probability, cpu_freq, gpu_freq, memory_freq, cl):
-    if throughput_probability < 0.8:
-        # Increase resources if throughput probability is low
-        adjustment = int((1 - throughput_probability) * scaling_factor * 100)
-        cpu_freq = min(cpu_freq + adjustment, max(CPU_FREQ_RANGE))
-        gpu_freq = min(gpu_freq + adjustment, max(GPU_FREQ_RANGE))
-        memory_freq = min(memory_freq + adjustment, max(MEMORY_FREQ_RANGE))
-        cl = min(cl + 1, max(CL_RANGE))  # Increase concurrency
-    elif power_probability < 0.8:
+def adjust_configuration(power_probability, cpu_freq, gpu_freq, memory_freq, cl):
+    adjustment = int((1 - power_probability) * scaling_factor * 100)
+    if power_probability < 0.8:
         # Decrease resources if power probability is low
-        adjustment = int((1 - power_probability) * scaling_factor * 100)
         cpu_freq = max(cpu_freq - adjustment, min(CPU_FREQ_RANGE))
         gpu_freq = max(gpu_freq - adjustment, min(GPU_FREQ_RANGE))
         memory_freq = max(memory_freq - adjustment, min(MEMORY_FREQ_RANGE))
         cl = max(cl - 1, min(CL_RANGE))  # Decrease concurrency
+    else:
+        # Increase resources if throughput probability is low
+        cpu_freq = min(cpu_freq + adjustment, max(CPU_FREQ_RANGE))
+        gpu_freq = min(gpu_freq + adjustment, max(GPU_FREQ_RANGE))
+        memory_freq = min(memory_freq + adjustment, max(MEMORY_FREQ_RANGE))
+        cl = min(cl + 1, max(CL_RANGE))  # Increase concurrency
     return cpu_freq, gpu_freq, memory_freq, cl
 
-def calculate_probability(goal, m, value_var, val):
+def calculate_probability(goal, m, value_var):
     # Calculate the standard deviation from variance
     sigma = np.sqrt(value_var)
-    
     # Z-score for the normal distribution
-    if val:
-        z_score = (m - goal) / sigma if sigma > 0 else float('inf')
-    else:
-        z_score =  (goal - m) / sigma if sigma > 0 else float('inf')
+    z_score =  (goal - m) / sigma if sigma > 0 else float('inf')
     # Use the CDF to calculate the probability
     return norm.cdf(z_score)
 
@@ -190,6 +185,7 @@ def save_csv(dict_list, filename):
 
 time_got = []
 best_config = None
+best_throughput = -float('inf')
 
 # Initialize Kalman Filters for throughput and power
 throughput_filter = KalmanFilter()
@@ -229,10 +225,9 @@ for episode in range(num_episodes):
     estimated_power= power_slowdown_factor * power_measurement
 
     # Calculate probability of meeting throughput/power target
-    throughput_probability = calculate_probability(THROUGHPUT_TARGET, estimated_throughput, throughput_var, 1)
     power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var, 0)
 
-    print(f"throughput probability {throughput_probability}, power_probability {power_probability}")
+    print(f"power_probability {power_probability}")
     elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
     time_got.append(elapsed+elapsed_exec)
     #Save results to CSV
@@ -241,9 +236,7 @@ for episode in range(num_episodes):
         "episode": episode,
         "infer_overhead" : elapsed_exec,
         "alert_overhead" : elapsed,
-        "throughput_probability" : throughput_probability,
         "power_probability": power_probability,
-        "throughput_target": THROUGHPUT_TARGET,
         "power_budget": POWER_BUDGET,
         "cpu_cores": cpu_cores+1,
         "cpu_freq": cpu_freq,
@@ -255,16 +248,16 @@ for episode in range(num_episodes):
     }
 
     # Adjust configurations based on probabilities
-    cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(
-        throughput_probability, power_probability, cpu_freq, gpu_freq, memory_freq, cl
+    cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, cpu_freq, gpu_freq, memory_freq, cl
     )
 
     save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-    if throughput_probability > 0.8 and power_probability > 0.8:
+    if power_probability > 0.8 and measured_metrics[0]["throughput"] > best_throughput:
         best_config = configs
+        best_throughput = measured_metrics[0]["throughput"]
 
-    if abs(last_probability[0] - throughput_probability) <= 0.01 and abs(last_probability[1] - power_probability) <= 0.01:
+    if abs(last_probability[1] - power_probability) <= 0.01:
         max_saturated_count -= 1
         if max_saturated_count == 0:
             print("ALERT is saturated")
@@ -272,7 +265,7 @@ for episode in range(num_episodes):
     else:
         max_saturated_count = 10
 
-    last_probability = throughput_probability, power_probability
+    last_probability = power_probability
 
     print(f"Configs: {configs}")
 

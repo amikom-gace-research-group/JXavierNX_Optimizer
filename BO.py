@@ -25,10 +25,8 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 POWER_BUDGET = int(sys.argv[6])
-THROUGHPUT_TARGET = int(sys.argv[7])
 
-importance_power = 1
-importance_throughput = 1
+best_throughput = -float('inf')
 
 # Hyperparameters for Bayesian Optimization
 n_calls = 100  # Number of iterations for Bayesian Optimization
@@ -107,11 +105,10 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
+    if power > POWER_BUDGET:
         return 1e6
     
-    return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
-            importance_power * (POWER_BUDGET / power))
+    return throughput / POWER_BUDGET
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -125,7 +122,7 @@ def save_csv(dict_list, filename):
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter
+    global episode_counter, best_throughput
     print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     
     t1 = time.time()
@@ -133,6 +130,9 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
     elapsed = round(time.time() - t1, 3)
     time_got.append(elapsed)
+
+    if measured_metrics[0]["throughput"] > best_throughput:
+        best_throughput = measured_metrics[0]["throughput"]
     
     if not measured_metrics or measured_metrics == "No Device":
         print("No device detected. Raising an exception to stop optimization.")
@@ -147,7 +147,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         "gpu_freq": int(gpu_freq),
         "mem_freq": int(mem_freq),
         "cl": int(cl),
-        "throughput_target": THROUGHPUT_TARGET,
         "power_budget": POWER_BUDGET,
     }
     result = {**configs, **measured_metrics[0]}

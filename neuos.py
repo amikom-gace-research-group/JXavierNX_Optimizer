@@ -20,7 +20,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 POWER_BUDGET = int(sys.argv[6])
-THROUGHPUT_TARGET = int(sys.argv[7])
+best_throughput = -float('inf')
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = [
@@ -30,20 +30,19 @@ SpeedUp_PowerUp = [
     {"SpeedUp": 2.0, "PowerUp": 1.5}   # High performance, higher power consumption
 ]
 
-# Function to calculate LAG (how much the system is ahead/behind the throughput target)
-def calculate_lag(throughput, throughput_target):
-    return (throughput_target - throughput) / throughput_target
+def calculate_lag(power, power_budget):
+    return (power - power_budget) / power_budget
 
 def delta_calculator(lag, power_consumed):
     required_speedup = 1 / (1 - lag)  # Calculate the required speedup to bring throughput closer to the target
     
-    if lag < 0:  # System is behind throughput target (speed up)
+    if lag < 0:
         # Loop through configurations, looking for the one that provides at least the required speedup
         for config in SpeedUp_PowerUp:
             if config["SpeedUp"] >= required_speedup and config["PowerUp"] * power_consumed <= POWER_BUDGET:
                 return config
         return SpeedUp_PowerUp[-1]  # If no match, default to the highest performance config
-    else:  # System is ahead of throughput target (slow down)
+    else:
         # Loop through configurations in reverse to find the one that slows down performance but stays within the budget
         for config in reversed(SpeedUp_PowerUp):
             if config["SpeedUp"] <= required_speedup and config["PowerUp"] * power_consumed <= POWER_BUDGET:
@@ -56,11 +55,11 @@ def minmax(values, range):
     return values
 
 # Function to apply the chosen DVFS configuration (adjust CPU, GPU, memory)
-def apply_dvfs(config):
-    global cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
+def apply_dvfs(config, throughput):
+    global cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, best_throughput
     # Dynamically adjust CPU cores and concurrency level (CL) based on throughput and power
-    if lag < 0:  # If system is behind throughput target, increase resources if within power budget
-        if power_consumed <= POWER_BUDGET:
+    if lag < 0:
+        if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
             cpu_freq = min(int(cpu_freq * config["SpeedUp"]), max(CPU_FREQ_RANGE))
             gpu_freq = min(int(gpu_freq * config["SpeedUp"]), max(GPU_FREQ_RANGE))
@@ -69,31 +68,17 @@ def apply_dvfs(config):
                 cpu_cores += 1
             if cl < max(CL_RANGE):
                 cl += 1
-        else:  # Exceeding power budget, lower frequencies
-            cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
-            gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
-            memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
-            if cpu_cores > min(CPU_CORES_RANGE):
-                cpu_cores -= 1
-            if cl > min(CL_RANGE):
-                cl -= 1
-    elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
-        if power_consumed > POWER_BUDGET:
-            cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
-            gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
-            memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
-            if cpu_cores > min(CPU_CORES_RANGE):
-                cpu_cores -= 1
-            if cl > min(CL_RANGE):
-                cl -= 1
         else:
-            cpu_freq = min(int(cpu_freq * config["SpeedUp"]), max(CPU_FREQ_RANGE))
-            gpu_freq = min(int(gpu_freq * config["SpeedUp"]), max(GPU_FREQ_RANGE))
-            memory_freq = min(int(memory_freq * config["SpeedUp"]), max(MEMORY_FREQ_RANGE))
-            if cpu_cores < max(CPU_CORES_RANGE):
-                cpu_cores += 1
-            if cl < max(CL_RANGE):
-                cl += 1
+            best_throughput = throughput
+
+    elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
+        cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
+        gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
+        memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
+        if cpu_cores > min(CPU_CORES_RANGE):
+            cpu_cores -= 1
+        if cl > min(CL_RANGE):
+            cl -= 1
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
@@ -151,7 +136,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -186,7 +171,7 @@ for episode in range(100):  # Example: run for 100 episodes
     power_consumed = measured_metrics[0]['power_cons']
 
     # Calculate LAG based on throughput
-    lag = calculate_lag(throughput, THROUGHPUT_TARGET)
+    lag = calculate_lag(power_consumed, POWER_BUDGET)
     
     # Choose DVFS configuration based on LAG and power consumption
     dvfs_config = delta_calculator(lag, power_consumed)
@@ -200,7 +185,6 @@ for episode in range(100):  # Example: run for 100 episodes
         "infer_overhead (sec)" : elapsed_exec,
         "neuos_overhead (ms)" : elapsed,
         "lag": lag,
-        "throughput_target": THROUGHPUT_TARGET,
         "power_budget": POWER_BUDGET,
         "cpu_cores": cpu_cores+1,
         "cpu_freq": cpu_freq,
@@ -212,7 +196,7 @@ for episode in range(100):  # Example: run for 100 episodes
     }
     
     # Apply the DVFS configuration
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_dvfs(dvfs_config)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_dvfs(dvfs_config, throughput)
     
     save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
     # Log the results

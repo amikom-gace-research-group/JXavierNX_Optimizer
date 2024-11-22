@@ -26,10 +26,6 @@ def set_device_ranges(device_type):
         raise ValueError("Invalid device type specified.")
 
 POWER_BUDGET = int(sys.argv[6])
-THROUGHPUT_TARGET = int(sys.argv[7])
-
-importance_power = 1
-importance_throughput = 1
 
 time_got = []
 prohibited_configs = set()
@@ -86,15 +82,13 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Reward function based on power and throughput metrics
 def calculate_fitness(measured_metrics):
-    print(measured_metrics)
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return -1 # Penalty for exceeding power budget or not meeting throughput target
+    if power > POWER_BUDGET:
+        return -(power / POWER_BUDGET)
     
-    return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
-            importance_power * (POWER_BUDGET / power))
+    return throughput / POWER_BUDGET
 
 class Particle:
     def __init__(self, problem_size):
@@ -145,6 +139,7 @@ class MOPSO:
         self.global_best_fitness = -1
         self.best_config = None
         self.no_improvement_count = 0
+        self.best_throughput = -float('inf')
 
     def optimize(self):
         results = []
@@ -176,9 +171,10 @@ class MOPSO:
                     print("Prohibited Configuration!")
                     prohibited_configs.add(tuple(config))
 
-                if fitness > particle.best_fitness:
+                if fitness > particle.best_fitness and metrics[0]["throughput"] > self.best_throughput:
                     particle.best_fitness = fitness
                     particle.best_position = np.copy(particle.position)
+                    self.best_throughput = metrics[0]["throughput"]
 
                 if fitness > self.global_best_fitness:
                     self.best_config = config

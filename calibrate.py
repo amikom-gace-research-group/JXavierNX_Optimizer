@@ -63,17 +63,17 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def calibrate():
-    for cl in [1, 3]:
+    for cl in [1, 2, 3]:
         for _ in range(5):
-            for x, y, z in zip(reversed(range(1190, 1909, 718)), reversed(range(510, 1111, 600)), reversed(range(1500, 1867, 366))):
+            for i, x, y, z in zip(reversed(range(1, 6)), reversed(range(1190, 1909)), reversed(range(510, 1111)), reversed(range(1500, 1867))):
                 for _ in range(5):
                     t1 = time.time()
-                    measured_metrics, api_time = execute_config(5, x, y, z, cl)
+                    measured_metrics, api_time = execute_config(i, x, y, z, cl)
                     elapsed_exec = round(time.time() - t1, 3)
                     configs = {
                         "api_time": api_time,
                         "infer_time": elapsed_exec,
-                        "cpu_cores": 6,
+                        "cpu_cores": i+1,
                         "cpu_freq": x,
                         "gpu_freq": y,
                         "memory_freq": z,
@@ -82,15 +82,15 @@ def calibrate():
                     dict_record = [{**configs, **measured_metrics[0]}]
                     save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-            for x, y, z in zip(range(1190, 1909, 718), range(510, 1111, 600), range(1500, 1867, 366)):
+            for i, x, y, z in zip(range(1, 6), range(1190, 1909, 718), range(510, 1111, 600), range(1500, 1867, 366)):
                 for _ in range(5):
                     t1 = time.time()
-                    measured_metrics, api_time = execute_config(5, x, y, z, cl)
+                    measured_metrics, api_time = execute_config(i, x, y, z, cl)
                     elapsed_exec = round(time.time() - t1, 3)
                     configs = {
                         "api_time": api_time,
                         "infer_time": elapsed_exec,
-                        "cpu_cores": 6,
+                        "cpu_cores": i+1,
                         "cpu_freq": x,
                         "gpu_freq": y,
                         "memory_freq": z,

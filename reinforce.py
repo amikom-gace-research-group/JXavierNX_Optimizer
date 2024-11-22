@@ -8,10 +8,6 @@ import sys
 import csv
 import os
 
-# Constants and thresholds
-importance_power = 1
-importance_throughput = 1
-
 if sys.argv[5] == 'jxavier':
     CPU_CORES_RANGE = range(1, 6)
     CPU_FREQ_RANGE = range(1190, 1909)
@@ -26,7 +22,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 POWER_BUDGET = int(sys.argv[6])
-THROUGHPUT_TARGET = int(sys.argv[7])
+
 
 # Step sizes for adjustment
 STEP_SIZES = {
@@ -157,16 +153,16 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET or throughput < THROUGHPUT_TARGET:
-        return -1
+    if power > POWER_BUDGET:
+        return -(power / POWER_BUDGET)
     
-    return (importance_throughput * (throughput / THROUGHPUT_TARGET) +
-            importance_power * (POWER_BUDGET / power))
+    return throughput / POWER_BUDGET
 
 # Main REINFORCE algorithm
 def reinforce_algorithm(actor_network, optimizer):
     t1 = time.time()
     max_reward = -float('inf')
+    best_throughput = -float('inf')
     best_config = None
     time_got = []
     configs = []
@@ -221,7 +217,7 @@ def reinforce_algorithm(actor_network, optimizer):
             reward = calculate_reward(measured_metrics)
             rewards.append(reward)
 
-            if reward == -1:
+            if reward < 0:
                 print("Prohibited Configuration!")
                 prohibited_configs.add(str(state))
 
@@ -243,9 +239,10 @@ def reinforce_algorithm(actor_network, optimizer):
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             states.append(state)
 
-            if reward > max_reward:
+            if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput:
                 max_reward = reward
                 best_config = state
+                best_throughput = measured_metrics[0]["throughput"]
 
         # Calculate returns
         returns = []
