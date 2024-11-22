@@ -5,7 +5,7 @@ import time
 import os
 import csv
 import requests
-from collections import defaultdict
+from pyDOE import lhs
 
 print("PID", os.getpid())
 
@@ -31,10 +31,12 @@ importance_throughput = 1
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
-epsilon = 0.5
-epsilon_min = 0.01
-epsilon_decay = 0.995
-num_episodes = 100
+epsilon = 0.5  # Initial epsilon
+epsilon_min = 0.01  # Minimum epsilon value (always exploit after this threshold)
+epsilon_decay_rate = 0.995  # Decay rate for epsilon
+epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
+reward_threshold = 0.01  # Threshold under which epsilon will increase
+num_episodes = 100  # Number of episodes to run
 reward_threshold = 0.01
 max_saturated_count = 10
 
@@ -54,9 +56,6 @@ prohibited_configs = set()
 
 # Initialize an empty Q-table as a dictionary
 Q_table = {}
-
-# Define initial beta parameters for Thompson Sampling (successes and failures for each action per state)
-beta_params = defaultdict(lambda: {i: [(1, 1) for _ in ACTIONS] for i in range(len(ACTION_MAPPING))})
 
 def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return (
@@ -86,8 +85,8 @@ def adjust_value(value, action, steps, min_val, max_val):
 
 def get_result():
     headers = {
-        'Authorization': sys.argv[2],  # Use 'APIKey' if your service requires this
-        'Content-Type': 'application/json'  # Set content type to JSON
+        'Authorization': sys.argv[2],
+        'Content-Type': 'application/json'
     }
     try:
         response = requests.get(f"{sys.argv[1]}/api/output", headers=headers)
@@ -96,6 +95,27 @@ def get_result():
     except requests.RequestException as e:
         print(f"Error fetching result: {e}")
     return False
+
+# Latin Hypercube Sampling to explore new states
+def lhs_sampling(num_samples, ranges):
+    lhs_samples = lhs(len(ranges), samples=num_samples)
+    sampled_values = []
+    for i, r in enumerate(ranges):
+        sampled_values.append(lhs_samples[:, i] * (r[-1] - r[0]) + r[0])
+    return np.array(sampled_values).T
+
+# Generate LHS samples for the exploration phase
+def generate_lhs_samples():
+    num_samples = 10  # Number of samples per episode
+    ranges = [
+        (min(CPU_CORES_RANGE), max(CPU_CORES_RANGE) + 1),
+        (min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE) + 1),
+        (min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE) + 1),
+        (min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE) + 1),
+        (min(CL_RANGE), max(CL_RANGE) + 1)
+    ]
+    samples = lhs_sampling(num_samples, ranges)
+    return [tuple(map(int, sample)) for sample in samples]
 
 # Retrieve Q-value for a state-action pair
 def get_q_value(state_index, action_index):
@@ -110,6 +130,27 @@ def update_q_value(state_index, action_index, new_value):
     if state_key not in Q_table:
         Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
     Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
+
+# Adaptive epsilon strategy: adjust epsilon based on reward performance
+def choose_action_adaptive(state_index, lhs_samples, episode, reward):
+    global epsilon
+    
+    # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
+    if reward < reward_threshold:
+        epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
+    else:
+        epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
+    
+    # Select action based on epsilon
+    if random.uniform(0, 1) < epsilon:
+        # Exploration: choose random action from LHS samples
+        return random.choice(lhs_samples)
+    else:
+        # Exploitation: choose best known action
+        state_key = tuple(state_index)
+        if state_key not in Q_table:
+            return random.choice(lhs_samples)  # Use LHS samples for unseen states
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit best known action
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -147,47 +188,6 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
-def update_beta_params(state_index, actions, reward):
-    state_key = tuple(state_index)
-    
-    # Scale success and failure counts based on the reward's magnitude
-    for i, action in enumerate(actions):
-        success, failure = beta_params[state_key][i][action]
-        
-        # Scale the update based on reward value
-        if reward > 0:
-            success_update = max(1, int(reward))  # Scale success proportional to reward
-            beta_params[state_key][i][action] = (success + success_update, failure)
-        else:
-            failure_update = max(1, int(abs(reward)))  # Scale failure if reward is negative
-            beta_params[state_key][i][action] = (success, failure + failure_update)
-
-def choose_action_thompson(state_index):
-    if random.uniform(0, 1) < epsilon:
-        chosen_actions = []
-        state_key = tuple(state_index)
-        
-        # Loop through each parameter/action dimension (e.g., 'cpu_cores', 'cpu_freq', etc.)
-        for dimension in range(len(ACTION_MAPPING)):
-            action_probabilities = []
-            
-            # Sample the probability for each action in this dimension
-            for action in range(len(ACTIONS)):
-                action_successes, action_failures = beta_params[state_key][dimension][action]
-                sampled_prob = np.random.beta(action_successes, action_failures)
-                action_probabilities.append(sampled_prob)
-            
-            # Choose the action with the highest sampled probability for this dimension
-            best_action = np.argmax(action_probabilities)
-            chosen_actions.append(best_action)
-        
-        return tuple(chosen_actions)
-    else:
-        state_key = tuple(state_index)
-        if state_key not in Q_table:
-            return [random.choice(ACTIONS) for _ in range(len(ACTION_MAPPING))]  # Explore if unseen state
-        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit
-
 # Calculate reward with shaping
 def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
@@ -213,16 +213,11 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
-last_reward = 0
-max_reward = -float('inf')
-best_config = None
-
-# Initial state configuration
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
-state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-
+# Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
-    actions = choose_action_thompson(state_index)
+    lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
+    reward = calculate_reward(get_result())  # Get the current reward based on performance
+    actions = choose_action_adaptive(state_index, lhs_samples, episode, reward)
     
     # Adjust values for each action
     cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
@@ -230,7 +225,10 @@ for episode in range(num_episodes):
     gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
     memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
     cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+    
+    # Print the chosen configuration
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
+
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
@@ -253,13 +251,10 @@ for episode in range(num_episodes):
 
     if reward < 0:
         print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
-
-    # Update Thompson Sampling beta parameters based on reward feedback
-    update_beta_params(state_index, actions, reward)
+        prohibited_configs.add(new_state_index)
 
     # Choose the next action based on the new state index
-    new_actions = choose_action_thompson(new_state_index)
+    new_actions = choose_action_adaptive(new_state_index)
 
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
@@ -270,7 +265,7 @@ for episode in range(num_episodes):
     if reward > max_reward:
         max_reward = reward
         best_config = {
-	"api_time": api_time,"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
+    "api_time": api_time,"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
 
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
@@ -284,12 +279,8 @@ for episode in range(num_episodes):
     last_reward = reward
     state_index = new_state_index
 
-    # Epsilon decay for exploration
-    if epsilon > epsilon_min:
-        epsilon *= epsilon_decay
-
     configs = {
-	"api_time": api_time,
+    "api_time": api_time,
         "episode": episode,
         "xaviernx_time_elapsed": elapsed_exec,
         "thompson_time_elapsed": elapsed,
