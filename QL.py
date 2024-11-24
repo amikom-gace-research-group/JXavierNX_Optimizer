@@ -133,7 +133,7 @@ def update_q_value(state_index, action_index, new_value):
     Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
 # Adaptive epsilon strategy: adjust epsilon based on reward performance
-def choose_action_adaptive(state_index, lhs_samples, episode, reward):
+def choose_action_adaptive(state_index, lhs_samples, reward):
     global epsilon
     
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
@@ -145,13 +145,13 @@ def choose_action_adaptive(state_index, lhs_samples, episode, reward):
     # Select action based on epsilon
     if random.uniform(0, 1) < epsilon:
         # Exploration: choose random action from LHS samples
-        return random.choice(lhs_samples)
+        return random.choice(lhs_samples), "exploration"
     else:
         # Exploitation: choose best known action
         state_key = tuple(state_index)
         if state_key not in Q_table:
-            return random.choice(lhs_samples)  # Use LHS samples for unseen states
-        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit best known action
+            return random.choice(lhs_samples), "exploration" # Use LHS samples for unseen states
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"  # Exploit best known action
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -241,7 +241,7 @@ for episode in range(num_episodes):
         prohibited_configs.add(state_index)
     
     lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    actions = choose_action_adaptive(state_index, lhs_samples, reward)
+    actions, phase = choose_action_adaptive(state_index, lhs_samples, reward)
     
     # Adjust values for each action
     cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
@@ -281,9 +281,11 @@ for episode in range(num_episodes):
 
     configs = {
     "api_time": api_time,
+    "reward": reward,
+        "phase":phase,
         "episode": episode,
         "xaviernx_time_elapsed": elapsed_exec,
-        "thompson_time_elapsed": elapsed,
+        "ql_time_elapsed": elapsed,
         "cpu_cores": cpu_cores + 1,
         "cpu_freq": cpu_freq,
         "gpu_freq": gpu_freq,

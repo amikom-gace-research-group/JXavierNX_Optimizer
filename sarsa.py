@@ -239,7 +239,7 @@ for episode in range(num_episodes):
         prohibited_configs.add(state_index)
     
     lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    actions = choose_action_adaptive(state_index, lhs_samples, reward)
+    actions, phase = choose_action_adaptive(state_index, lhs_samples, reward)
     
     # Adjust values for each action
     cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
@@ -251,7 +251,7 @@ for episode in range(num_episodes):
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Choose the next action based on the new state index
-    new_actions = choose_action_adaptive(new_state_index, lhs_samples, reward)
+    new_actions, phase = choose_action_adaptive(new_state_index, lhs_samples, reward)
 
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
@@ -278,10 +278,12 @@ for episode in range(num_episodes):
     state_index = new_state_index
 
     configs = {
-    "api_time": api_time,
+        "api_time": api_time,
+        "reward": reward,
+        "phase":phase,
         "episode": episode,
         "xaviernx_time_elapsed": elapsed_exec,
-        "thompson_time_elapsed": elapsed,
+        "sarsa_time_elapsed": elapsed,
         "cpu_cores": cpu_cores + 1,
         "cpu_freq": cpu_freq,
         "gpu_freq": gpu_freq,
