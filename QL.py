@@ -27,6 +27,7 @@ POWER_BUDGET = int(sys.argv[6])
 
 best_throughput = -float('inf')
 max_reward = -float('inf')
+last_reward = 0
 
 # Hyperparameters
 alpha = 0.1
