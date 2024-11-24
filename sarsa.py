@@ -133,14 +133,8 @@ def update_q_value(state_index, action_index, new_value):
     Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
 # Adaptive epsilon strategy: adjust epsilon based on reward performance
-def choose_action_adaptive(state_index, lhs_samples, reward):
+def choose_action_adaptive(state_index, lhs_samples):
     global epsilon
-    
-    # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < reward_threshold:
-        epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
-    else:
-        epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
     
     # Select action based on epsilon
     if random.uniform(0, 1) < epsilon:
@@ -209,17 +203,27 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 # Initial configuration (starting in the middle of the range)
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+lhs_samples = generate_lhs_samples()
+actions, phase = choose_action_adaptive(state_index, lhs_samples)
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
     # Print the chosen configuration
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
+    
+    # Adjust values for each action
+    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
-    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if state_index in prohibited_configs:
+    if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
-        state_index = state_index
+        state_index = new_state_index
         continue
     
     # Execution, measurement, and reward
@@ -236,22 +240,11 @@ for episode in range(num_episodes):
 
     if reward < 0:
         print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
-    
-    lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    actions, phase = choose_action_adaptive(state_index, lhs_samples, reward)
-    
-    # Adjust values for each action
-    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+        prohibited_configs.add(new_state_index)
 
-    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-
+    lhs_samples = generate_lhs_samples()
     # Choose the next action based on the new state index
-    new_actions, phase = choose_action_adaptive(new_state_index, lhs_samples, reward)
+    new_actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
 
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
@@ -276,6 +269,13 @@ for episode in range(num_episodes):
     elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
     last_reward = reward
     state_index = new_state_index
+    actions = new_actions
+
+    # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
+    if reward < reward_threshold:
+        epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
+    else:
+        epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
 
     configs = {
         "api_time": api_time,
