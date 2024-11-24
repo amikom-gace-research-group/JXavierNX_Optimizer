@@ -223,7 +223,8 @@ for episode in range(num_episodes):
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
-        state_index = new_state_index
+        lhs_samples = generate_lhs_samples()
+        actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
         continue
     
     # Execution, measurement, and reward
@@ -249,7 +250,7 @@ for episode in range(num_episodes):
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
     new_q_value = old_q_value + alpha * (reward + gamma * get_q_value(new_state_index, new_actions) - old_q_value)  # SARSA update
-    update_q_value(state_index, actions, new_q_value)
+    update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
     if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput:

@@ -224,7 +224,8 @@ for episode in range(num_episodes):
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
-        state_index = new_state_index
+        lhs_samples = generate_lhs_samples()
+        actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
         continue
     
     # Execution, measurement, and reward
@@ -241,17 +242,17 @@ for episode in range(num_episodes):
 
     if reward < 0:
         print("PROHIBITED CONFIG")
-        prohibited_configs.add(state_index)
+        prohibited_configs.add(new_state_index)
     
     lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    actions, phase = choose_action_adaptive(state_index, lhs_samples)
+    new_actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
 
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
     max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))) )
 
     new_q_value = old_q_value + alpha * (reward + gamma * max_next_q_value - old_q_value)  # Q-learning update
-    update_q_value(state_index, actions, new_q_value)
+    update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
     if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput:
@@ -271,6 +272,7 @@ for episode in range(num_episodes):
     elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
     last_reward = reward
     state_index = new_state_index
+    actions = new_actions
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward < reward_threshold:
