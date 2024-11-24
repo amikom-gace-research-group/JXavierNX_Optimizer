@@ -202,7 +202,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'xaviernx_time_elapsed', 'thompson_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'sarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -291,7 +291,7 @@ for episode in range(num_episodes):
         "cl": cl
     }
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"sarsalhs_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"sarsa_{sys.argv[5]}_{sys.argv[4]}.csv")
     print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
 
 print(f"Best Config: {best_config} with Reward: {max_reward}")

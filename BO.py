@@ -113,7 +113,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput_target', 'power_budget', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -138,7 +138,11 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         print("No device detected. Raising an exception to stop optimization.")
         raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
+    reward = calculate_reward(measured_metrics)
+    print(f"Configuration reward: {reward}")
+    
     configs = {
+        "reward": reward,
 	"api_time": api_time,
         "episode" : episode_counter,
         "infer_time": elapsed,
@@ -151,9 +155,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     }
     result = {**configs, **measured_metrics[0]}
     save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
-    
-    reward = calculate_reward(measured_metrics)
-    print(f"Configuration reward: {reward}")
 
     last_rewards.append(reward)
     

@@ -177,7 +177,7 @@ def calculate_probability(goal, m, value_var):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'throughput_probability', 'power_probability', 'throughput_target', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_probability', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
