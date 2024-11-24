@@ -206,28 +206,20 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
+# Initial configuration (starting in the middle of the range)
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
-    lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    reward = calculate_reward(get_result())  # Get the current reward based on performance
-    actions = choose_action_adaptive(state_index, lhs_samples, episode, reward)
-    
-    # Adjust values for each action
-    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
-    
     # Print the chosen configuration
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
 
-    new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if new_state_index in prohibited_configs:
+    if state_index in prohibited_configs:
         print("PROHIBITED CONFIG!")
-        state_index = new_state_index
+        state_index = state_index
         continue
     
     # Execution, measurement, and reward
@@ -244,7 +236,17 @@ for episode in range(num_episodes):
 
     if reward < 0:
         print("PROHIBITED CONFIG")
-        prohibited_configs.add(new_state_index)
+        prohibited_configs.add(state_index)
+    
+    lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
+    actions = choose_action_adaptive(state_index, lhs_samples, reward)
+    
+    # Adjust values for each action
+    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
+    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
+    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
+    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
+    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
     # Get the new state index after applying actions
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -266,7 +268,7 @@ for episode in range(num_episodes):
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
         if max_saturated_count == 0:
-                print("Thompson is saturated")
+                print("QL is saturated")
                 break
     else:
         max_saturated_count = 10
