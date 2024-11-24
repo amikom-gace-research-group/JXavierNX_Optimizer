@@ -26,6 +26,7 @@ elif sys.argv[5] == 'jorin-nano':
 POWER_BUDGET = int(sys.argv[6])
 
 best_throughput = -float('inf')
+max_reward = -float('inf')
 
 # Hyperparameters
 alpha = 0.1
