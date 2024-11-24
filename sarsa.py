@@ -36,7 +36,6 @@ epsilon = 0.5  # Initial epsilon
 epsilon_min = 0.01  # Minimum epsilon value (always exploit after this threshold)
 epsilon_decay_rate = 0.995  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
-reward_threshold = 0.01  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
 reward_threshold = 0.01
 max_saturated_count = 10
@@ -273,7 +272,7 @@ for episode in range(num_episodes):
     actions = new_actions
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < reward_threshold:
+    if reward < 0:
         epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
     else:
         epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves

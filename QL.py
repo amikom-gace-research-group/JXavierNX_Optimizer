@@ -275,7 +275,7 @@ for episode in range(num_episodes):
     actions = new_actions
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < reward_threshold:
+    if reward < 0:
         epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
     else:
         epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
