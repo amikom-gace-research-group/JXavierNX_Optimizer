@@ -145,13 +145,13 @@ def choose_action_adaptive(state_index, lhs_samples, reward):
     # Select action based on epsilon
     if random.uniform(0, 1) < epsilon:
         # Exploration: choose random action from LHS samples
-        return random.choice(lhs_samples)
+        return random.choice(lhs_samples), "exploration"
     else:
         # Exploitation: choose best known action
         state_key = tuple(state_index)
         if state_key not in Q_table:
-            return random.choice(lhs_samples)  # Use LHS samples for unseen states
-        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape)  # Exploit best known action
+            return random.choice(lhs_samples), "exploration" # Use LHS samples for unseen states
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"  # Exploit best known action
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
