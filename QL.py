@@ -107,11 +107,11 @@ def lhs_sampling(num_samples, ranges):
 def generate_lhs_samples():
     num_samples = 10  # Number of samples per episode
     ranges = [
-        (min(CPU_CORES_RANGE), max(CPU_CORES_RANGE) + 1),
-        (min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE) + 1),
-        (min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE) + 1),
-        (min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE) + 1),
-        (min(CL_RANGE), max(CL_RANGE) + 1)
+        (min(ACTIONS), max(ACTIONS) + 1),
+        (min(ACTIONS), max(ACTIONS) + 1),
+        (min(ACTIONS), max(ACTIONS) + 1),
+        (min(ACTIONS), max(ACTIONS) + 1),
+        (min(ACTIONS), max(ACTIONS) + 1)
     ]
     samples = lhs_sampling(num_samples, ranges)
     return [tuple(map(int, sample)) for sample in samples]
