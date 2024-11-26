@@ -3,6 +3,7 @@ import time
 import sys
 import csv
 import os
+from itertools import product
 
 def get_result():
     headers = {
@@ -63,9 +64,16 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def calibrate():
-    for cl in [1, 2, 3]:
-        for _ in range(5):
-            for i, x, y, z in zip(reversed(range(1, 6)), reversed(range(1190, 1909)), reversed(range(510, 1111)), reversed(range(1500, 1867))):
+    for _ in range(5):  # Repeat the outer loop 5 times
+        for cl in [1, 2, 3]:  # Iterate over concurrency levels
+            # Reversed combinations
+            reversed_combinations = reversed(list(product(
+                range(1, 6, 4),  # CPU cores
+                range(1190, 1909, 718),  # CPU frequency
+                range(510, 1111, 600),  # GPU frequency
+                range(1500, 1867, 366)  # Memory frequency
+            )))
+            for i, x, y, z in reversed_combinations:
                 for _ in range(5):
                     t1 = time.time()
                     measured_metrics, api_time = execute_config(i, x, y, z, cl)
@@ -82,7 +90,13 @@ def calibrate():
                     dict_record = [{**configs, **measured_metrics[0]}]
                     save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-            for i, x, y, z in zip(range(1, 6), range(1190, 1909, 718), range(510, 1111, 600), range(1500, 1867, 366)):
+            reversed_combinations = list(product(
+                range(1, 6, 4),  # CPU cores
+                range(1190, 1909, 718),  # CPU frequency
+                range(510, 1111, 600),  # GPU frequency
+                range(1500, 1867, 366)  # Memory frequency
+            ))
+            for i, x, y, z in reversed_combinations:
                 for _ in range(5):
                     t1 = time.time()
                     measured_metrics, api_time = execute_config(i, x, y, z, cl)
