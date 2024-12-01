@@ -123,7 +123,7 @@ def save_csv(results, filename):
 
 # MOPSO Class
 class MOPSO:
-    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold, config_ranges, api_url, auth_header, power_budget, throughput_target):
+    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold, config_ranges, api_url, auth_header, power_budget):
         self.swarm_size = swarm_size
         self.problem_size = problem_size
         self.bounds = bounds
@@ -133,7 +133,6 @@ class MOPSO:
         self.api_url = api_url
         self.auth_header = auth_header
         self.power_budget = power_budget
-        self.throughput_target = throughput_target
         self.swarm = [Particle(problem_size) for _ in range(swarm_size)]
         self.global_best_position = np.zeros(problem_size)
         self.global_best_fitness = -1
@@ -237,7 +236,6 @@ if __name__ == "__main__":
         api_url=sys.argv[1],
         auth_header=sys.argv[2],
         power_budget=int(sys.argv[6]),
-        throughput_target=int(sys.argv[7])
     )
     # Run the MOPSO algorithm
     t1 = time.time()
