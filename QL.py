@@ -293,7 +293,7 @@ for episode in range(num_episodes):
         "cl": cl
     }
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"sarsalhs_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"ql_{sys.argv[5]}_{sys.argv[4]}.csv")
     print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
 
 print(f"Best Config: {best_config} with Reward: {max_reward}")
