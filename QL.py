@@ -33,12 +33,11 @@ last_reward = 0
 alpha = 0.1
 gamma = 0.9
 epsilon = 0.5  # Initial epsilon
-epsilon_min = 0.01  # Minimum epsilon value (always exploit after this threshold)
+epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 epsilon_decay_rate = 0.995  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
 reward_threshold = 0.01  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
-reward_threshold = 0.01
 max_saturated_count = 10
 
 # Define actions and step sizes
