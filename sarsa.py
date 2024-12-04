@@ -267,15 +267,16 @@ for episode in range(num_episodes):
         max_saturated_count = 10
 
     elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
-    last_reward = reward
-    state_index = new_state_index
-    actions = new_actions
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < 0:
+    if reward < last_reward:
         epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
     else:
         epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
+
+    last_reward = reward
+    state_index = new_state_index
+    actions = new_actions
 
     configs = {
         "api_time": api_time,
