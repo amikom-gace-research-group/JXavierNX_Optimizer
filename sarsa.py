@@ -286,10 +286,6 @@ for episode in range(num_episodes):
     else:
         epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
 
-    last_reward = reward
-    state_index = new_state_index
-    actions = new_actions
-
     configs = {
         "api_time": api_time,
         "reward": reward,
