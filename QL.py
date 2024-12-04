@@ -204,74 +204,84 @@ def save_csv(dict_list, filename):
 # Initial configuration (starting in the middle of the range)
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-lhs_samples = generate_lhs_samples()
-actions, phase = choose_action_adaptive(state_index, lhs_samples)
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
-    # Print the chosen configuration
+    # Generate LHS samples for this episode
+    lhs_samples = generate_lhs_samples()
+
+    # Choose actions based on current state and LHS samples
+    actions, phase = choose_action_adaptive(state_index, lhs_samples)
+
+    # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
 
-    # Adjust values for each action
+    # Adjust values for the chosen actions
     cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
     cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
     gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
     memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
     cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
 
+    # Convert to new state index
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
-        lhs_samples = generate_lhs_samples()
-        actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
+        state_index = new_state_index
         continue
-    
-    # Execution, measurement, and reward
+
+    # Execute the chosen configuration and get metrics
     t1 = time.time()
     measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
     elapsed_exec = round(time.time() - t1, 3)
-    if not measured_metrics:
-        print("EXECUTION PROBLEM!")
+
+    if not measured_metrics or measured_metrics == "No Device":
+        print("EXECUTION PROBLEM OR DEVICE UNAVAILABLE!")
         continue
-    if measured_metrics == "No Device":
-        print("No Device/Inference Runtime")
-        break
+
+    # Calculate the reward for this configuration
     reward = calculate_reward(measured_metrics)
 
     if reward < 0:
-        print("PROHIBITED CONFIG")
+        print("PROHIBITED CONFIG!")
         prohibited_configs.add(new_state_index)
-    
-    lhs_samples = generate_lhs_samples()  # Generate LHS samples for this episode
-    new_actions, phase = choose_action_adaptive(new_state_index, lhs_samples)
 
-    # Update Q-values using the old Q-value and the reward
+    new_actions, _ = choose_action_adaptive(new_state_index, lhs_samples)
+
+    # Update Q-value using the Bellman equation
     old_q_value = get_q_value(state_index, actions)
-    max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))) )
+    max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))))
 
-    new_q_value = old_q_value + alpha * (reward + gamma * max_next_q_value - old_q_value)  # Q-learning update
+    new_q_value = old_q_value + alpha * (reward + gamma * max_next_q_value - old_q_value)
     update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
     if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput:
         max_reward = reward
         best_config = {
-    "api_time": api_time,"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl}
+            "api_time": api_time,
+            "cpu_cores": cpu_cores+1,
+            "cpu_freq": cpu_freq,
+            "gpu_freq": gpu_freq,
+            "memory_freq": memory_freq,
+            "cl": cl
+        }
         best_throughput = measured_metrics[0]["throughput"]
 
+    # Check for saturation
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
         if max_saturated_count == 0:
-                print("QL is saturated")
-                break
+            print("QL is saturated")
+            break
     else:
         max_saturated_count = 10
 
-    elapsed = round(((time.time() - t1) - elapsed_exec)*1000, 3)
+    # Update state and last reward
     last_reward = reward
     state_index = new_state_index
-    actions = new_actions
+    elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward < last_reward:
