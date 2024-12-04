@@ -34,7 +34,7 @@ alpha = 0.1
 gamma = 0.9
 epsilon = 0.5  # Initial epsilon
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
-epsilon_decay_rate = 0.995  # Decay rate for epsilon
+epsilon_decay_rate = 0.75  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
 reward_threshold = 0.01  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
@@ -284,7 +284,7 @@ for episode in range(num_episodes):
     elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < last_reward:
+    if reward < 0:
         epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
     else:
         epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
