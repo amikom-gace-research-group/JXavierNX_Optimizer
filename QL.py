@@ -35,8 +35,6 @@ gamma = 0.9
 epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
-epsilon_decay_rate = 0.75  # Decay rate for epsilon
-epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
 reward_threshold = 0.00001  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
 max_saturated_count = 10
@@ -276,11 +274,11 @@ for episode in range(num_episodes):
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward < 0:
-        epsilon_explore = min(epsilon_explore * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
-        epsilon_exploit = max(epsilon_exploit * epsilon_decay_rate, epsilon_min)
+        epsilon_explore = min(epsilon_explore * 1.05, 1)  # Increase epsilon if performance is bad
+        epsilon_exploit = max(epsilon_exploit * 0.995, epsilon_min)
     else:
-        epsilon_explore = max(epsilon_explore * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
-        epsilon_exploit = min(epsilon_exploit * epsilon_increase_rate, 1)
+        epsilon_explore = max(epsilon_explore * 0.75, epsilon_min)  # Decay epsilon if performance improves
+        epsilon_exploit = min(epsilon_exploit * 1.05, 1)
 
     configs = {
     "api_time": api_time,
