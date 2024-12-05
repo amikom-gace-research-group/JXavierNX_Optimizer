@@ -35,7 +35,7 @@ gamma = 0.9
 epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
-epsilon_decay_rate = 0.75  # Decay rate for epsilon
+epsilon_decay_rate = 0.95  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
 reward_threshold = 0.01  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
@@ -230,6 +230,8 @@ for episode in range(num_episodes):
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
         state_index = new_state_index
+        epsilon_explore = 0.5
+        epsilon_exploit = 0.5
         continue
 
     # Execute the chosen configuration and get metrics
@@ -273,7 +275,10 @@ for episode in range(num_episodes):
     # Check for saturation
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
-        if max_saturated_count == 0:
+        if max_saturated_count == 5:
+            epsilon_explore = 0.5
+            epsilon_exploit = 0.5
+        elif max_saturated_count == 0:
             print("QL is saturated")
             break
     else:
