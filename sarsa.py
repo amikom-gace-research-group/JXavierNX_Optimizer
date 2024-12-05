@@ -38,7 +38,7 @@ epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshol
 epsilon_decay_rate = 0.75  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
 num_episodes = 100  # Number of episodes to run
-reward_threshold = 0.01
+reward_threshold = 0.0001
 max_saturated_count = 10
 
 # Define actions and step sizes

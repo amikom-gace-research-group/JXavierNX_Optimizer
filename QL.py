@@ -37,7 +37,7 @@ epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 epsilon_decay_rate = 0.75  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
-reward_threshold = 0.01  # Threshold under which epsilon will increase
+reward_threshold = 0.0001  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
 max_saturated_count = 10
 
