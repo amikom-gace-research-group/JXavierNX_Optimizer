@@ -282,18 +282,6 @@ for episode in range(num_episodes):
         epsilon_explore = max(epsilon_explore * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
         epsilon_exploit = min(epsilon_exploit * epsilon_increase_rate, 1)
     
-    # Check for saturation
-    if abs(reward - last_reward) < reward_threshold:
-        max_saturated_count -= 1
-        if max_saturated_count == 5:
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-        elif max_saturated_count == 0:
-            print("SARSA is saturated")
-            break
-    else:
-        max_saturated_count = 10
-    
     configs = {
         "api_time": api_time,
         "reward": reward,
@@ -309,6 +297,19 @@ for episode in range(num_episodes):
     }
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"sarsa_{sys.argv[5]}_{sys.argv[4]}.csv")
+
+    # Check for saturation
+    if abs(reward - last_reward) < reward_threshold:
+        max_saturated_count -= 1
+        if max_saturated_count == 5:
+            epsilon_explore = 0.5
+            epsilon_exploit = 0.5
+        elif max_saturated_count == 0:
+            print("SARSA is saturated")
+            break
+    else:
+        max_saturated_count = 10
+        
     print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
 
 print(f"Best Config: {best_config} with Reward: {max_reward}")
