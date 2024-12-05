@@ -269,18 +269,6 @@ for episode in range(num_episodes):
         }
         best_throughput = measured_metrics[0]["throughput"]
 
-    # Check for saturation
-    if abs(reward - last_reward) < reward_threshold:
-        max_saturated_count -= 1
-        if max_saturated_count == 5:
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-        elif max_saturated_count == 0:
-            print("SARSA is saturated")
-            break
-    else:
-        max_saturated_count = 10
-
     # Update state and last reward
     last_reward = reward
     state_index = new_state_index
@@ -293,6 +281,19 @@ for episode in range(num_episodes):
     else:
         epsilon_explore = max(epsilon_explore * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
         epsilon_exploit = min(epsilon_exploit * epsilon_increase_rate, 1)
+    
+    # Check for saturation
+    if abs(reward - last_reward) < reward_threshold:
+        max_saturated_count -= 1
+        if max_saturated_count == 5:
+            epsilon_explore = 0.5
+            epsilon_exploit = 0.5
+        elif max_saturated_count == 0:
+            print("SARSA is saturated")
+            break
+    else:
+        max_saturated_count = 10
+    
     configs = {
         "api_time": api_time,
         "reward": reward,
