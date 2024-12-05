@@ -32,7 +32,8 @@ last_reward = 0
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
-epsilon = 0.5  # Initial epsilon
+epsilon_explore = 0.5
+epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 epsilon_decay_rate = 0.75  # Decay rate for epsilon
 epsilon_increase_rate = 1.05  # Rate of increase if performance is poor
@@ -133,10 +134,10 @@ def update_q_value(state_index, action_index, new_value):
 
 # Adaptive epsilon strategy: adjust epsilon based on reward performance
 def choose_action_adaptive(state_index, lhs_samples):
-    global epsilon
+    global epsilon_explore, epsilon_exploit
     
     # Select action based on epsilon
-    if random.uniform(0, 1) < epsilon:
+    if (epsilon_explore/epsilon_exploit) > 0.5:
         # Exploration: choose random action from LHS samples
         return random.choice(lhs_samples), "exploration"
     else:
@@ -285,9 +286,11 @@ for episode in range(num_episodes):
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward < 0:
-        epsilon = min(epsilon * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
+        epsilon_explore = min(epsilon_explore * epsilon_increase_rate, 1)  # Increase epsilon if performance is bad
+        epsilon_exploit = max(epsilon_exploit * epsilon_decay_rate, epsilon_min)
     else:
-        epsilon = max(epsilon * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
+        epsilon_explore = max(epsilon_explore * epsilon_decay_rate, epsilon_min)  # Decay epsilon if performance improves
+        epsilon_exploit = min(epsilon_exploit * epsilon_increase_rate, 1)
 
     configs = {
     "api_time": api_time,
