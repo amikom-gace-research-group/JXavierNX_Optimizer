@@ -269,9 +269,6 @@ for episode in range(num_episodes):
         }
         best_throughput = measured_metrics[0]["throughput"]
 
-    # Update state and last reward
-    last_reward = reward
-    state_index = new_state_index
     elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
@@ -309,6 +306,9 @@ for episode in range(num_episodes):
             break
     else:
         max_saturated_count = 10
+    
+    last_reward = reward
+    state_index = new_state_index
 
     print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
 
