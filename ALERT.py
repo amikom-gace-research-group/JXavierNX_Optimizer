@@ -225,7 +225,7 @@ for episode in range(num_episodes):
     estimated_power= power_slowdown_factor * power_measurement
 
     # Calculate probability of meeting throughput/power target
-    power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var, 0)
+    power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var)
 
     print(f"power_probability {power_probability}")
     elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
