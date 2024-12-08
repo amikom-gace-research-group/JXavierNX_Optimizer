@@ -25,7 +25,7 @@ elif sys.argv[5] == 'jorin-nano':
 POWER_BUDGET = int(sys.argv[6])
 
 slowdown_factor = 1.0  # Global slowdown factor (initial)
-scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
+scaling_factor = 0.5  # Scaling factor for gradual frequency adjustments
 max_saturated_count = 10
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
