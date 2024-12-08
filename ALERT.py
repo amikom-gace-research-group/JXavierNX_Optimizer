@@ -193,7 +193,7 @@ power_filter = KalmanFilterPower()
 
 # Initial configurations (starting in the middle of the range)
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
-last_probability = 0, 0
+last_probability = 0
 
 num_episodes = 100
 
@@ -257,7 +257,7 @@ for episode in range(num_episodes):
         best_config = configs
         best_throughput = measured_metrics[0]["throughput"]
 
-    if abs(last_probability[1] - power_probability) <= 0.01:
+    if abs(last_probability - power_probability) <= 0.01:
         max_saturated_count -= 1
         if max_saturated_count == 0:
             print("ALERT is saturated")
