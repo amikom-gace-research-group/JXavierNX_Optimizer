@@ -231,7 +231,7 @@ if __name__ == "__main__":
         problem_size=5,
         bounds=bounds,
         max_iter=10,
-        saturation_threshold=10,
+        saturation_threshold=50,
         config_ranges=device_ranges,
         api_url=sys.argv[1],
         auth_header=sys.argv[2],

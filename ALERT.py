@@ -26,7 +26,7 @@ POWER_BUDGET = int(sys.argv[6])
 
 slowdown_factor = 1.0  # Global slowdown factor (initial)
 scaling_factor = 0.5  # Scaling factor for gradual frequency adjustments
-max_saturated_count = 10
+max_saturated_count = 50
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
@@ -257,13 +257,13 @@ for episode in range(num_episodes):
         best_config = configs
         best_throughput = measured_metrics[0]["throughput"]
 
-    if abs(last_probability - power_probability) <= 0.01:
+    if abs(last_probability - power_probability) <= 0.00001:
         max_saturated_count -= 1
         if max_saturated_count == 0:
             print("ALERT is saturated")
             break
     else:
-        max_saturated_count = 10
+        max_saturated_count = 50
 
     last_probability = power_probability
 

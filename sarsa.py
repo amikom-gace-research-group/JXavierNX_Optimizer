@@ -37,7 +37,7 @@ epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 num_episodes = 100  # Number of episodes to run
 reward_threshold = 0.00001
-max_saturated_count = 10
+max_saturated_count = 50
 
 # Define actions and step sizes
 ACTIONS = [0, 1, 2, 3, 4, 5, 6]
@@ -296,14 +296,14 @@ for episode in range(num_episodes):
     # Check for saturation
     if abs(reward - last_reward) < reward_threshold:
         max_saturated_count -= 1
-        if max_saturated_count == 5:
+        if max_saturated_count == 25:
             epsilon_explore = 0.5
             epsilon_exploit = 0.5
         elif max_saturated_count == 0:
             print("SARSA is saturated")
             break
     else:
-        max_saturated_count = 10
+        max_saturated_count = 50
     
     last_reward = reward
     state_index = new_state_index
