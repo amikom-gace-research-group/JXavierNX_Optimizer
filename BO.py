@@ -6,8 +6,9 @@ import os
 import csv
 import requests
 from skopt import gp_minimize
-from skopt.space import Integer, Real, Categorical
+from skopt.space import Integer, Categorical
 from skopt.utils import use_named_args
+from skopt.acquisition import gaussian_ei, gaussian_pi, gaussian_lcb
 
 print("PID", os.getpid())
 
@@ -170,10 +171,58 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
     return -reward  # Minimize the negative reward to maximize reward
 
+# Custom callback to track the optimization progress
+class PhaseTracker:
+    def __init__(self, filename="optimization_phases.csv"):
+        self.points = []  # Store sampled points
+        self.acquisition_values = []  # Store acquisition function values
+        self.acquisition_type = []  # Track acquisition function (EI, PI, LCB)
+        self.filename = filename
+        
+        # Write header to CSV file if it doesn't exist
+        with open(self.filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Iteration", "Point", "Acquisition Function", "Phase"])
+
+    def __call__(self, res):
+        # Get the last evaluated point
+        x = res.x_iters[-1]
+        self.points.append(x)
+        
+        # Compute acquisition function values for the current model
+        model = res.models[-1]
+        x_array = np.array([x])
+        ei = gaussian_ei(x_array, model)
+        pi = gaussian_pi(x_array, model)
+        lcb = gaussian_lcb(x_array, model)
+        
+        # Log the acquisition function values
+        self.acquisition_values.append((ei[0], pi[0], lcb[0]))
+        
+        # Determine if the phase is exploration or exploitation
+        if np.argmax([ei[0], pi[0], lcb[0]]) == 0:
+            phase = "Exploration (EI)"
+            acquisition_type = "EI"
+        elif np.argmax([ei[0], pi[0], lcb[0]]) == 1:
+            phase = "Exploration (PI)"
+            acquisition_type = "PI"
+        else:
+            phase = "Exploitation (LCB)"
+            acquisition_type = "LCB"
+        
+        # Write data to CSV file
+        iteration = len(self.points)
+        with open(self.filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([iteration, x, acquisition_type, phase])
+
+# Initialize the tracker
+tracker = PhaseTracker()
+
 # Main Optimization Loop
 try:
     t2 = time.time()
-    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=n_initial_points)
+    res = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=n_initial_points, callback=[tracker])
     # Run Bayesian Optimization
     elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
     elapsed_total = round(time.time() - t2, 3)
