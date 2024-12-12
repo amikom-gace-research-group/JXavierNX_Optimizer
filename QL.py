@@ -32,6 +32,7 @@ last_reward = 0
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
+prohibited_addition = 0
 epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
@@ -227,10 +228,14 @@ for episode in range(num_episodes):
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG!")
+        prohibited_addition += 1
         state_index = new_state_index
-        epsilon_explore = 0.5
-        epsilon_exploit = 0.5
+        if prohibited_addition > 5:
+            epsilon_explore = 0.5
+            epsilon_exploit = 0.5
         continue
+
+    prohibited_addition = 0
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
