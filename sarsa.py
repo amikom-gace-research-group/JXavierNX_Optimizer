@@ -117,6 +117,17 @@ def generate_lhs_samples():
     samples = lhs_sampling(num_samples, ranges)
     return [tuple(map(int, sample)) for sample in samples]
 
+def get_best_configuration(q_table):
+    best_state = None
+    best_q_value = float('-inf')
+
+    for state, actions in q_table.items():
+        for _, q_value in actions.items():
+            if q_value > best_q_value:
+                best_state = state
+
+    return best_state
+
 # Retrieve Q-value for a state-action pair
 def get_q_value(state_index, action_index):
     state_key = tuple(state_index)
@@ -226,15 +237,8 @@ for episode in range(num_episodes):
 
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
-        print("PROHIBITED CONFIG!")
-        prohibited_addition += 1
-        state_index = new_state_index
-        if prohibited_addition > 5:
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-        continue
-
-    prohibited_addition = 0
+        print("PROHIBITED CONFIG, RESET TO BEST CONFIG!")
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration(Q_table)
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
