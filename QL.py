@@ -122,9 +122,10 @@ def get_best_configuration(q_table):
     best_q_value = float('-inf')
 
     for state, actions in q_table.items():
-        for _, q_value in actions.items():
-            if q_value > best_q_value:
-                best_state = state
+        q_value = q_table[state][actions]
+        if q_value > best_q_value:
+            best_state = state
+            best_q_value = q_value
 
     return best_state
 
