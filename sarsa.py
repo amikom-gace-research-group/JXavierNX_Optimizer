@@ -117,16 +117,19 @@ def generate_lhs_samples():
     samples = lhs_sampling(num_samples, ranges)
     return [tuple(map(int, sample)) for sample in samples]
 
-def get_best_configuration(q_table):
-    best_state = None
+def get_best_configuration():
     best_q_value = float('-inf')
+    best_state = None
 
-    for state, actions in q_table.items():
-        q_value = q_table[state][actions]
-        if q_value > best_q_value:
+    for state, q_values in Q_table.items():
+        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+        max_q_value = q_values[max_q_index]
+        
+        if max_q_value > best_q_value:
+            best_q_value = max_q_value
             best_state = state
-            best_q_value = q_value
 
+    best_state = tuple([int(x) for x in best_state])
     return best_state
 
 # Retrieve Q-value for a state-action pair
@@ -144,18 +147,48 @@ def update_q_value(state_index, action_index, new_value):
     Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
 # Adaptive epsilon strategy: adjust epsilon based on reward performance
+def calculate_diversity(lhs_samples, state_key, tau=1.0):
+    """
+    Select a configuration for exploration based on diversity scores.
+
+    Args:
+        lhs_samples: List of LHS-sampled configurations.
+        state_key: Current state (for reference, though not directly used here).
+        tau: Temperature parameter for softmax scaling (higher = more uniform).
+
+    Returns:
+        selected_action: The selected action for exploration.
+    """
+    # Calculate diversity scores: Higher score for configurations far from each other
+    diversity_scores = []
+    for sample in lhs_samples:
+        # Example: Calculate score as the distance from the current state_key
+        # Adjust based on your problem's definition of diversity
+        diversity_score = sum(abs(np.array(sample) - np.array(state_key))) if state_key else 1
+        diversity_scores.append(diversity_score)
+
+    diversity_scores = np.array(diversity_scores)
+
+    # Convert diversity scores to probabilities using softmax
+    exp_scores = np.exp(diversity_scores / tau)
+    probabilities = exp_scores / np.sum(exp_scores)
+
+    # Select an action based on probabilities
+    selected_action = lhs_samples[np.random.choice(len(lhs_samples), p=probabilities)]
+    
+    return selected_action
+
 def choose_action_adaptive(state_index, lhs_samples):
     global epsilon_explore, epsilon_exploit
     
     # Select action based on epsilon
     if (epsilon_explore/epsilon_exploit) > 0.5:
-        # Exploration: choose random action from LHS samples
-        return random.choice(lhs_samples), "exploration"
+        return calculate_diversity(lhs_samples, state_key), "exploration"
     else:
         # Exploitation: choose best known action
         state_key = tuple(state_index)
         if state_key not in Q_table:
-            return random.choice(lhs_samples), "exploration" # Use LHS samples for unseen states
+            return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
         return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"  # Exploit best known action
 
 # Execute the configuration on the system
@@ -239,7 +272,7 @@ for episode in range(num_episodes):
     # Check for prohibited configurations
     if new_state_index in prohibited_configs and episode > 0:
         print("PROHIBITED CONFIG, RESET TO BEST CONFIG!")
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration(Q_table)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
