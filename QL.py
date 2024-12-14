@@ -129,7 +129,7 @@ def get_best_configuration():
             best_q_value = max_q_value
             best_state = state
 
-    best_state = tuple([int(x) for x in best_state])
+    best_state = tuple([int(x+1) for x in best_state])
     return best_state
 
 # Retrieve Q-value for a state-action pair
