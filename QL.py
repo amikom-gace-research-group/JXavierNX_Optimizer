@@ -181,13 +181,12 @@ def calculate_diversity(lhs_samples, state_key, tau=1.0):
 
 def choose_action_adaptive(state_index, lhs_samples):
     global epsilon_explore, epsilon_exploit
-    
+    state_key = tuple(state_index)
     # Select action based on epsilon
     if (epsilon_explore/epsilon_exploit) > 0.5:
         return calculate_diversity(lhs_samples, state_key), "exploration"
     else:
         # Exploitation: choose best known action
-        state_key = tuple(state_index)
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
         return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"  # Exploit best known action
