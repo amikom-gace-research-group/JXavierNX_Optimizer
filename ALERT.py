@@ -23,10 +23,6 @@ elif sys.argv[5] == 'jorin-nano':
 
 POWER_BUDGET = int(sys.argv[6])
 
-slowdown_factor = 1.0  # Global slowdown factor (initial)
-scaling_factor = 0.5  # Scaling factor for gradual frequency adjustments
-max_saturated_count = 50
-
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
     def __init__(self):
@@ -97,7 +93,6 @@ class KalmanFilterPower:
         
         return self._x, self._P
 
-
 # Retrieve the result from the system API
 def get_result():
     headers = {
@@ -149,123 +144,188 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
-def adjust_configuration(power_probability, cpu_freq, gpu_freq, memory_freq, cl):
-    adjustment = int((1 - power_probability) * scaling_factor * 100)
-    if power_probability < 0.8:
-        # Decrease resources if power probability is low
-        cpu_freq = max(cpu_freq - adjustment, min(CPU_FREQ_RANGE))
-        gpu_freq = max(gpu_freq - adjustment, min(GPU_FREQ_RANGE))
-        memory_freq = max(memory_freq - adjustment, min(MEMORY_FREQ_RANGE))
-        cl = max(cl - 1, min(CL_RANGE))  # Decrease concurrency
-    else:
-        # Increase resources if throughput probability is low
-        cpu_freq = min(cpu_freq + adjustment, max(CPU_FREQ_RANGE))
-        gpu_freq = min(gpu_freq + adjustment, max(GPU_FREQ_RANGE))
-        memory_freq = min(memory_freq + adjustment, max(MEMORY_FREQ_RANGE))
-        cl = min(cl + 1, max(CL_RANGE))  # Increase concurrency
-    return cpu_freq, gpu_freq, memory_freq, cl
+# -----------------------
+# Profiling Configurations
+# -----------------------
 
-def calculate_probability(goal, m, value_var):
-    # Calculate the standard deviation from variance
-    sigma = np.sqrt(value_var)
-    # Z-score for the normal distribution
-    z_score =  (goal - m) / sigma if sigma > 0 else float('inf')
-    # Use the CDF to calculate the probability
+def profile_configurations():
+    """
+    Profiles a subset of configurations and returns profiling data.
+    """
+    profiling_data = []
+    sampled_configs = []
+
+    # Stratified sampling: Select a subset of configurations
+    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+        for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+            for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+                for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 2):
+                    for cl in CL_RANGE:
+                        config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                        sampled_configs.append(config)
+
+    # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
+    for config in sampled_configs:
+        measured_metrics, _ = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+        throughput = measured_metrics[0]['throughput']
+        power = measured_metrics[0]['power_cons']
+        data = {**config, "throughput": throughput, "power": power}
+        profiling_data.append(data)
+        with open("profiling_alert.csv", 'a', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+            if os.path.getsize("profiling_alert.csv") == 0:
+                writer.writeheader()
+            writer.writerow(data)
+
+    print("[Profiling] Completed profiling configurations.")
+    return profiling_data
+
+
+# -----------------------
+# Dynamic Configuration Selection
+# -----------------------
+
+def select_best_configuration(profiling_data, power_budget, power_variance):
+    """
+    Selects the best configuration to maximize throughput under a power budget.
+
+    Args:
+        profiling_data: List of profiled configurations with throughput, power metrics, and variance.
+        power_budget: Power budget constraint (W).
+
+    Returns:
+        dict: The best configuration.
+    """
+    # Step 1: Extract relevant data from profiling_data
+    power = np.array([entry['power'] for entry in profiling_data])  # Mean power consumption
+    throughput = np.array([entry['throughput'] for entry in profiling_data])  # Throughput
+    configurations = np.array(profiling_data)
+
+    # Step 2: Create binary mask for valid configurations
+    power_mask = (power <= power_budget).astype(int)  # 1 if within power budget, 0 otherwise
+
+    # Step 3: Calculate power probabilities
+    power_probabilities = np.array([calculate_probability(power_budget, p, var) for p, var in zip(power, power_variance)])
+
+    # Step 4: Create value matrix for scoring
+    k_throughput = 1.0  # Weight for throughput (primary objective)
+    k_power_probability = 0.5  # Weight for power probability (secondary objective)
+    B = 99999999  # Large constant to make valid scores positive
+    value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
+
+    # Step 5: Select the best configuration
+    if np.sum(power_mask) == 0:
+        print("No valid configuration found within the power budget.")
+        return None
+
+    best_index = np.argmax(value_matrix)  # Find the index of the highest score
+    best_config = configurations[best_index]
+
+    return best_config, best_index
+
+
+# -----------------------
+# Runtime Execution Loop
+# -----------------------
+
+def execute_runtime(profiling_data, num_episodes=100):
+    """
+    Executes the runtime learning and adjustment process.
+    """
+    throughput_filter = KalmanFilter()
+    power_filter = KalmanFilterPower()
+    best_config = None
+    power_var = 0.01
+
+    for episode in range(num_episodes):
+        t1 = time.time()
+
+         # Select the best configuration dynamically
+        best_config, best_index = select_best_configuration(profiling_data, POWER_BUDGET, power_var)
+
+        if best_config is None:
+            print("[Runtime] No valid configuration found.")
+            break
+
+        # Adjust frequencies to the selected configuration
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
+
+        t1 = time.time()
+        # Simulated runtime execution (replace with actual API call)
+        measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+
+        elapsed_exec = round(time.time() - t1, 3)
+        if not measured_metrics:
+            print("EXECUTION PROBLEM!")
+            continue
+        if measured_metrics == "No Device":
+            print("No Device/No Inference Runtime")
+            break
+
+        throughput = measured_metrics[0]['throughput']
+        power = measured_metrics[0]['power_cons']
+
+        # Update Kalman Filters
+        predicted_throughput, _ = throughput_filter.update(throughput)
+        predicted_power, power_var = power_filter.update(power)
+
+        # Update slowdown factor
+        slowdown_factor = predicted_throughput / throughput
+        estimated_throughput = slowdown_factor * throughput
+        power_slowdown_factor = predicted_power / power
+        estimated_power= power_slowdown_factor * power
+
+        profiling_data[best_index]['power'] = estimated_power
+        profiling_data[best_index]['throughput'] = estimated_throughput
+
+        elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
+        configs = {
+            "api_time": api_time,
+            "episode": episode+1,
+            "infer_overhead" : elapsed_exec,
+            "alert_overhead" : elapsed,
+            "power_budget": POWER_BUDGET,
+            "cpu_cores": cpu_cores+1,
+            "cpu_freq": cpu_freq,
+            "gpu_freq": gpu_freq,
+            "memory_freq": memory_freq,
+            "cl": cl,
+            "estimated_throughput": estimated_throughput,
+            "estimated_power": estimated_power
+        }
+        save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
+
+        print(f"[Runtime] Episode {episode + 1}: Selected configuration {best_config}")
+
+
+# -----------------------
+# Helper Functions
+# -----------------------
+
+def calculate_probability(goal, mean, variance):
+    """
+    Calculates the probability of meeting a constraint using a Gaussian distribution.
+    """
+    sigma = np.sqrt(variance)
+    z_score = (goal - mean) / sigma if sigma > 0 else float("inf")
     return norm.cdf(z_score)
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_probability', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 
-time_got = []
-best_config = None
-best_throughput = -float('inf')
+# -----------------------
+# Execution
+# -----------------------
 
-# Initialize Kalman Filters for throughput and power
-throughput_filter = KalmanFilter()
-power_filter = KalmanFilterPower()
+if __name__ == "__main__":
+    # Step 1: Profiling
+    profiling_data = profile_configurations()
 
-# Initial configurations (starting in the middle of the range)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
-last_probability = 0
-
-num_episodes = 100
-
-for episode in range(num_episodes):
-    t1 = time.time()
-    # Execute configuration and get metrics
-    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-
-    elapsed_exec = round(time.time() - t1, 3)
-    if not measured_metrics:
-        print("EXECUTION PROBLEM!")
-        continue
-    if measured_metrics == "No Device":
-        print("No Device/No Inference Runtime")
-        break
-
-    # Update Kalman Filters with current metrics
-    throughput_measurement = measured_metrics[0]['throughput']
-    power_measurement = measured_metrics[0]['power_cons']
-
-    # Update Kalman filters for throughput and power
-    predicted_throughput, throughput_var = throughput_filter.update(throughput_measurement)
-    predicted_power, power_var = power_filter.update(power_measurement)
-
-    # Update global slowdown factor based on throughput measurement
-    slowdown_factor = predicted_throughput / throughput_measurement
-    estimated_throughput = slowdown_factor * throughput_measurement
-    power_slowdown_factor = predicted_power / power_measurement
-    estimated_power= power_slowdown_factor * power_measurement
-
-    # Calculate probability of meeting throughput/power target
-    power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var)
-
-    print(f"power_probability {power_probability}")
-    elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
-    time_got.append(elapsed+elapsed_exec)
-    #Save results to CSV
-    configs = {
-	"api_time": api_time,
-        "episode": episode,
-        "infer_overhead" : elapsed_exec,
-        "alert_overhead" : elapsed,
-        "power_probability": power_probability,
-        "power_budget": POWER_BUDGET,
-        "cpu_cores": cpu_cores+1,
-        "cpu_freq": cpu_freq,
-        "gpu_freq": gpu_freq,
-        "memory_freq": memory_freq,
-        "cl": cl,
-        "estimated_throughput": estimated_throughput,
-        "estimated_power": estimated_power
-    }
-
-    # Adjust configurations based on probabilities
-    cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, cpu_freq, gpu_freq, memory_freq, cl
-    )
-
-    save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
-
-    if power_probability > 0.8 and measured_metrics[0]["throughput"] > best_throughput:
-        best_config = configs
-        best_throughput = measured_metrics[0]["throughput"]
-
-    if abs(last_probability - power_probability) <= 0.00001:
-        max_saturated_count -= 1
-        if max_saturated_count == 0:
-            print("ALERT is saturated")
-            break
-    else:
-        max_saturated_count = 50
-
-    last_probability = power_probability
-
-    print(f"Configs: {configs}")
-
-print(f"Best Config: {best_config} in {sum(time_got)} sec")
+    # Step 2: Runtime execution
+    execute_runtime(profiling_data, num_episodes=100)
