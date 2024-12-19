@@ -174,47 +174,51 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 # Custom callback to track the optimization progress
 class PhaseTracker:
     def __init__(self, filename="optimization_phases.csv"):
-        self.points = []  # Store sampled points
-        self.acquisition_values = []  # Store acquisition function values
-        self.acquisition_type = []  # Track acquisition function (EI, PI, LCB)
+        self.points = []
+        self.acquisition_values = []
+        self.acquisition_type = []
         self.filename = filename
-        
+
         # Write header to CSV file if it doesn't exist
-        with open(self.filename, mode='w', newline='') as file:
+        with open(self.filename, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(["Iteration", "Point", "Acquisition Function", "Phase"])
 
     def __call__(self, res):
-        # Get the last evaluated point
-        x = res.x_iters[-1]
+        x = res.x_iters[-1]  # Get the last evaluated point
         self.points.append(x)
-        
-        # Compute acquisition function values for the current model
-        model = res.models[-1]
-        x_array = np.array([x])
-        ei = gaussian_ei(x_array, model)
-        pi = gaussian_pi(x_array, model)
-        lcb = gaussian_lcb(x_array, model)
-        
-        # Log the acquisition function values
-        self.acquisition_values.append((ei[0], pi[0], lcb[0]))
-        
-        # Determine if the phase is exploration or exploitation
-        if np.argmax([ei[0], pi[0], lcb[0]]) == 0:
-            phase = "Exploration (EI)"
-            acquisition_type = "EI"
-        elif np.argmax([ei[0], pi[0], lcb[0]]) == 1:
-            phase = "Exploration (PI)"
-            acquisition_type = "PI"
+
+        # If no model has been built yet, set default acquisition values
+        if not res.models:
+            phase = "Exploration (Initial Sampling)"
+            acquisition_type = "Random"
         else:
-            phase = "Exploitation (LCB)"
-            acquisition_type = "LCB"
-        
-        # Write data to CSV file
+            # Compute acquisition function values for the current model
+            model = res.models[-1]
+            x_array = np.array([x])
+            ei = gaussian_ei(x_array, model)
+            pi = gaussian_pi(x_array, model)
+            lcb = gaussian_lcb(x_array, model)
+
+            self.acquisition_values.append((ei[0], pi[0], lcb[0]))
+
+            # Determine phase based on the acquisition function
+            if np.argmax([ei[0], pi[0], lcb[0]]) == 0:
+                phase = "Exploration (EI)"
+                acquisition_type = "EI"
+            elif np.argmax([ei[0], pi[0], lcb[0]]) == 1:
+                phase = "Exploration (PI)"
+                acquisition_type = "PI"
+            else:
+                phase = "Exploitation (LCB)"
+                acquisition_type = "LCB"
+
+        # Write data to CSV
         iteration = len(self.points)
-        with open(self.filename, mode='a', newline='') as file:
+        with open(self.filename, mode="a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([iteration, x, acquisition_type, phase])
+
 
 # Initialize the tracker
 tracker = PhaseTracker()

@@ -4,7 +4,6 @@ import time
 import os
 import csv
 import requests
-from statistics import median
 from scipy.stats import norm
 
 print("PID", os.getpid())
