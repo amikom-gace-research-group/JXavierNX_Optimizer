@@ -259,7 +259,7 @@ def execute_runtime(profiling_data, num_episodes=100):
         best_config, best_index = best
 
         # Adjust frequencies to the selected configuration
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_cores"], best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
 
         t1 = time.time()
         # Simulated runtime execution (replace with actual API call)
