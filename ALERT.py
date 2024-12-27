@@ -296,7 +296,7 @@ def execute_runtime(profiling_data, num_episodes=100):
             "infer_overhead" : elapsed_exec,
             "alert_overhead" : elapsed,
             "power_budget": POWER_BUDGET,
-            "cpu_cores": cpu_cores+1,
+            "cpu_cores": int(cpu_cores)+1,
             "cpu_freq": cpu_freq,
             "gpu_freq": gpu_freq,
             "memory_freq": memory_freq,
