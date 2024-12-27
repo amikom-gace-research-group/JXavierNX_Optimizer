@@ -205,7 +205,7 @@ def select_best_configuration(profiling_data, power_budget, power_variance):
     power_mask = (power <= power_budget).astype(int)  # 1 if within power budget, 0 otherwise
 
     # Step 3: Calculate power probabilities
-    power_probabilities = np.array([calculate_probability(power_budget, p, var) for p, var in zip(power, power_variance)])
+    power_probabilities = np.array([calculate_probability(power_budget, p, var) for p, var in zip(power, [power_variance])])
 
     # Step 4: Create value matrix for scoring
     k_throughput = 1.0  # Weight for throughput (primary objective)
