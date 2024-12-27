@@ -152,33 +152,41 @@ def profile_configurations():
     """
     Profiles a subset of configurations and returns profiling data.
     """
-    profiling_data = []
-    sampled_configs = []
+    if os.path.exists("profiling_alert.csv"):
+        print("[Profiling] profiling configurations was profiled.")
+        with open("profiling_alert.csv", mode='r', encoding='utf-8') as file:
+            csv_reader = csv.DictReader(file)
+            # Convert each row into a dictionary and add it to a list
+            data = [dict(row) for row in csv_reader]
+        return data
+    else:
+        profiling_data = []
+        sampled_configs = []
 
-    # Stratified sampling: Select a subset of configurations
-    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
-        for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
-            for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
-                for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
-                    for cl in CL_RANGE:
-                        config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
-                        sampled_configs.append(config)
+        # Stratified sampling: Select a subset of configurations
+        for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+            for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+                for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+                    for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                        for cl in CL_RANGE:
+                            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                            sampled_configs.append(config)
 
-    # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
-    for config in sampled_configs:
-        measured_metrics, _ = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        throughput = measured_metrics[0]['throughput']
-        power = measured_metrics[0]['power_cons']
-        data = {**config, "throughput": throughput, "power": power}
-        profiling_data.append(data)
-        with open("profiling_alert.csv", 'a', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
-            if os.path.getsize("profiling_alert.csv") == 0:
-                writer.writeheader()
-            writer.writerow(data)
+        # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
+        for config in sampled_configs:
+            measured_metrics, _ = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+            throughput = measured_metrics[0]['throughput']
+            power = measured_metrics[0]['power_cons']
+            data = {**config, "throughput": throughput, "power": power}
+            profiling_data.append(data)
+            with open("profiling_alert.csv", 'a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+                if os.path.getsize("profiling_alert.csv") == 0:
+                    writer.writeheader()
+                writer.writerow(data)
 
-    print("[Profiling] Completed profiling configurations.")
-    return profiling_data
+        print("[Profiling] Completed profiling configurations.")
+        return profiling_data
 
 
 # -----------------------
