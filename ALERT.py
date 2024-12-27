@@ -174,7 +174,7 @@ def profile_configurations():
 
         # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
         for config in sampled_configs:
-            measured_metrics, _ = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+            measured_metrics, _ = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
             throughput = measured_metrics[0]['throughput']
             power = measured_metrics[0]['power_cons']
             data = {**config, "throughput": throughput, "power": power}
