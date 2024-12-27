@@ -205,8 +205,8 @@ def select_best_configuration(profiling_data, power_budget, power_variance):
         dict: The best configuration.
     """
     # Step 1: Extract relevant data from profiling_data
-    power = np.array([entry['power'] for entry in profiling_data])  # Mean power consumption
-    throughput = np.array([entry['throughput'] for entry in profiling_data])  # Throughput
+    power = np.array([float(entry['power']) for entry in profiling_data])  # Mean power consumption
+    throughput = np.array([float(entry['throughput']) for entry in profiling_data])  # Throughput
     configurations = np.array(profiling_data)
 
     # Step 2: Create binary mask for valid configurations
@@ -249,11 +249,14 @@ def execute_runtime(profiling_data, num_episodes=100):
         t1 = time.time()
 
          # Select the best configuration dynamically
-        best_config, best_index = select_best_configuration(profiling_data, POWER_BUDGET, power_var)
+        best = select_best_configuration(profiling_data, POWER_BUDGET, power_var)
 
-        if best_config is None:
+        if best is None:
             print("[Runtime] No valid configuration found.")
+            os.remove("profiling_alert.csv")
             break
+
+        best_config, best_index = best
 
         # Adjust frequencies to the selected configuration
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
@@ -305,6 +308,8 @@ def execute_runtime(profiling_data, num_episodes=100):
 
         print(f"[Runtime] Episode {episode + 1}: Selected configuration {best_config}")
 
+    if best is None:
+        return "No Best"
 
 # -----------------------
 # Helper Functions
@@ -332,8 +337,15 @@ def save_csv(dict_list, filename):
 # -----------------------
 
 if __name__ == "__main__":
-    # Step 1: Profiling
-    profiling_data = profile_configurations()
+    while True:
+        # Step 1: Profiling
+        profiling_data = profile_configurations()
 
-    # Step 2: Runtime execution
-    execute_runtime(profiling_data, num_episodes=100)
+        # Step 2: Runtime execution
+        out = execute_runtime(profiling_data, num_episodes=100)
+        if out == "No Best":
+            continue
+        else:
+            break
+
+
