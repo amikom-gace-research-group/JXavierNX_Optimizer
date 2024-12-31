@@ -142,9 +142,11 @@ class MOPSO:
 
     def optimize(self):
         results = []
+        episode = 0
         for iteration in range(self.max_iter):
             best_fitness_this_iter = -1
             for particle in self.swarm:
+                episode += 1
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
                     int(particle.position[1] * (self.config_ranges["CPU_FREQ_RANGE"][-1] - self.config_ranges["CPU_FREQ_RANGE"][0]) + self.config_ranges["CPU_FREQ_RANGE"][0]),
@@ -186,6 +188,7 @@ class MOPSO:
                 # Save results to CSV
                 result_entry = {
                     "api_time": api_time,
+                    "episode": episode,
                     "iteration": iteration,
                     'reward': fitness,
                     'xavier_time_elapsed': elapsed_exec,
