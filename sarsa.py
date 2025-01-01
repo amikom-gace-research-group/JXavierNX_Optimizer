@@ -1,10 +1,10 @@
 import numpy as np
-import random
 import sys
 import time
 import os
 import csv
 import requests
+import pandas as pd
 from pyDOE import lhs
 
 print("PID", os.getpid())
@@ -23,6 +23,19 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
 
+sampled_configs = []
+
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                    sampled_configs.append(config)
+
+sampled_configs = pd.DataFrame(sampled_configs)
+
 POWER_BUDGET = int(sys.argv[6])
 
 best_throughput = -float('inf')
@@ -38,7 +51,6 @@ epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 num_episodes = 100  # Number of episodes to run
 reward_threshold = 0.00001
-max_saturated_count = 50
 
 # Define actions and step sizes
 ACTIONS = [0, 1, 2, 3, 4, 5, 6]
@@ -59,11 +71,11 @@ Q_table = {}
 
 def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return (
-        np.searchsorted(CPU_CORES_RANGE, cpu_cores),
-        np.searchsorted(CPU_FREQ_RANGE, cpu_freq),
-        np.searchsorted(GPU_FREQ_RANGE, gpu_freq),
-        np.searchsorted(MEMORY_FREQ_RANGE, memory_freq),
-        np.searchsorted(CL_RANGE, cl)
+        np.searchsorted(sampled_configs['cpu_cores'], cpu_cores),
+        np.searchsorted(sampled_configs['cpu_freq'], cpu_freq),
+        np.searchsorted(sampled_configs['gpu_freq'], gpu_freq),
+        np.searchsorted(sampled_configs['memory_freq'], memory_freq),
+        np.searchsorted(sampled_configs['cl'], cl)
     )
 
 # Adjust configuration values based on action
@@ -129,7 +141,7 @@ def get_best_configuration():
             best_q_value = max_q_value
             best_state = state
 
-    best_state = tuple([conf[int(x)] for x, conf in zip(best_state, [CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE])])
+    best_state = tuple([conf[int(x)] for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
     return best_state
 
 # Retrieve Q-value for a state-action pair
@@ -249,13 +261,13 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'sarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'sarsa_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 # Initial configuration (starting in the middle of the range)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
@@ -269,11 +281,11 @@ for episode in range(num_episodes):
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
 
     # Adjust values for the chosen actions
-    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']))
+    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']))
+    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']))
+    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']))
+    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl']))
 
     # Convert to new state index
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -349,18 +361,6 @@ for episode in range(num_episodes):
     }
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"sarsa_{sys.argv[5]}_{sys.argv[4]}.csv")
-
-    # Check for saturation
-    if abs(reward - last_reward) < reward_threshold:
-        max_saturated_count -= 1
-        if max_saturated_count == 25:
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-        elif max_saturated_count == 0:
-            print("SARSA is saturated")
-            break
-    else:
-        max_saturated_count = 50
     
     last_reward = reward
     state_index = new_state_index

@@ -1,5 +1,5 @@
 import numpy as np
-import random
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,6 +21,19 @@ elif sys.argv[5] == 'jorin-nano':
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
+
+sampled_configs = []
+
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                    sampled_configs.append(config)
+
+sampled_configs = pd.DataFrame(sampled_configs)
 
 POWER_BUDGET = int(sys.argv[6])
 
@@ -156,7 +169,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -180,14 +193,16 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     best_config = None
     time_got = []
     configs = []
+    episode = 0
 
     # Initial configuration (starting in the middle of the range)
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 
-    for episode in range(num_episodes):
+    for _ in range(num_episodes):
         states, actions, rewards = [], [], []
 
         for _ in range(10):  # Define the number of steps per episode
+            episode += 1
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             state_tensor = torch.tensor(state, dtype=torch.float32)
 
@@ -203,11 +218,11 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             actions.append(actions_set)
             
             # Adjust configurations based on actions
-            cpu_cores = adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(CPU_CORES_RANGE), max(CPU_CORES_RANGE))
-            cpu_freq = adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE))
-            gpu_freq = adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE))
-            memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE))
-            cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(CL_RANGE), max(CL_RANGE))
+            cpu_cores = adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']))
+            cpu_freq = adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']))
+            gpu_freq = adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']))
+            memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']))
+            cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl']))
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
@@ -246,7 +261,10 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 "memory_freq": memory_freq,
                 "cl": cl,
                 "throughput": measured_metrics[0]["throughput"],
-                "power_cons": measured_metrics[0]["power_cons"]
+                "power_cons": measured_metrics[0]["power_cons"],
+                "cpu%": measured_metrics[0]["cpu%"],
+                "gpu%": measured_metrics[0]["gpu%"],
+                "mem%": measured_metrics[0]["mem%"]
             }
             configs.append(config)
 

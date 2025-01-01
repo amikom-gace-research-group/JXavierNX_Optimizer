@@ -174,13 +174,19 @@ def profile_configurations():
 
         # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
         for config in sampled_configs:
+            t1 = time.time()
             measured_metrics, _ = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
+            config["cpu_cores"] = config["cpu_cores"] + 1
+            elapsed_exec = round(time.time() - t1, 3)
             throughput = measured_metrics[0]['throughput']
             power = measured_metrics[0]['power_cons']
-            data = {**config, "throughput": throughput, "power": power}
+            cpu =  measured_metrics[0]["cpu%"]
+            gpu = measured_metrics[0]["gpu%"]
+            mem = measured_metrics[0]["mem%"]
+            data = {**config, "throughput": throughput, "power": power, "cpu%": cpu, "gpu%": gpu, "mem%": mem, "profiling_time (s)": elapsed_exec}
             profiling_data.append(data)
             with open("profiling_alert.csv", 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu%', 'gpu%', 'mem%'])
                 if os.path.getsize("profiling_alert.csv") == 0:
                     writer.writeheader()
                 writer.writerow(data)
@@ -302,7 +308,10 @@ def execute_runtime(profiling_data, num_episodes=100):
             "memory_freq": memory_freq,
             "cl": cl,
             "estimated_throughput": estimated_throughput,
-            "estimated_power": estimated_power
+            "estimated_power": estimated_power,
+            "cpu%": measured_metrics[0]["cpu%"],
+            "gpu%": measured_metrics[0]["gpu%"],
+            "mem%": measured_metrics[0]["mem%"]
         }
         save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
 
@@ -326,7 +335,7 @@ def calculate_probability(goal, mean, variance):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:

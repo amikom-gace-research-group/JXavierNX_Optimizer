@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 import time
 import requests
@@ -18,6 +19,19 @@ elif sys.argv[5] == 'jorin-nano':
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
+
+sampled_configs = []
+
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                    sampled_configs.append(config)
+
+sampled_configs = pd.DataFrame(sampled_configs)
 
 POWER_BUDGET = int(sys.argv[6])
 best_throughput = -float('inf')
@@ -61,23 +75,23 @@ def apply_dvfs(config, throughput):
     if lag < 0:
         if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
-            cpu_freq = min(int(cpu_freq * config["SpeedUp"]), max(CPU_FREQ_RANGE))
-            gpu_freq = min(int(gpu_freq * config["SpeedUp"]), max(GPU_FREQ_RANGE))
-            memory_freq = min(int(memory_freq * config["SpeedUp"]), max(MEMORY_FREQ_RANGE))
-            if cpu_cores < max(CPU_CORES_RANGE):
+            cpu_freq = min(int(cpu_freq * config["SpeedUp"]), max(sampled_configs['cpu_freq']))
+            gpu_freq = min(int(gpu_freq * config["SpeedUp"]), max(sampled_configs['gpu_freq']))
+            memory_freq = min(int(memory_freq * config["SpeedUp"]), max(sampled_configs['memory_freq']))
+            if cpu_cores < max(sampled_configs['cpu_cores']):
                 cpu_cores += 1
-            if cl < max(CL_RANGE):
+            if cl < max(sampled_configs['cl']):
                 cl += 1
         else:
             best_throughput = throughput
 
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
-        cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(CPU_FREQ_RANGE))
-        gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(GPU_FREQ_RANGE))
-        memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(MEMORY_FREQ_RANGE))
-        if cpu_cores > min(CPU_CORES_RANGE):
+        cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(sampled_configs['cpu_freq']))
+        gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(sampled_configs['gpu_freq']))
+        memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(sampled_configs['memory_freq']))
+        if cpu_cores > min(sampled_configs['cpu_cores']):
             cpu_cores -= 1
-        if cl > min(CL_RANGE):
+        if cl > min(sampled_configs['cl']):
             cl -= 1
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
@@ -101,11 +115,11 @@ def get_result():
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": minmax(cpu_cores, CPU_CORES_RANGE),
-        "cpu_freq": minmax(cpu_freq, CPU_FREQ_RANGE),
-        "gpu_freq": minmax(gpu_freq, GPU_FREQ_RANGE),
-        "mem_freq": minmax(memory_freq, MEMORY_FREQ_RANGE),
-        "cl": minmax(cl, CL_RANGE)
+        "cpu_cores": minmax(cpu_cores, sampled_configs['cpu_cores']),
+        "cpu_freq": minmax(cpu_freq, sampled_configs['cpu_freq']),
+        "gpu_freq": minmax(gpu_freq, sampled_configs['gpu_freq']),
+        "mem_freq": minmax(memory_freq, sampled_configs['memory_freq']),
+        "cl": minmax(cl, sampled_configs['cl'])
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
@@ -136,14 +150,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 
 # Main loop for NeuOS-based optimization (focus on throughput and power)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 
 last_lag = 0
 best_lag = 0
@@ -180,7 +194,7 @@ for episode in range(100):  # Example: run for 100 episodes
     time_got.append(elapsed+elapsed_exec)
 
     configs = {
-	"api_time": api_time,
+	    "api_time": api_time,
         "episode": episode,
         "infer_overhead (sec)" : elapsed_exec,
         "neuos_overhead (ms)" : elapsed,
@@ -192,7 +206,10 @@ for episode in range(100):  # Example: run for 100 episodes
         "memory_freq": memory_freq,
         "cl": cl,
         "throughput": throughput,
-        "power": power_consumed
+        "power": power_consumed,
+        "cpu%": measured_metrics[0]["cpu%"],
+        "gpu%": measured_metrics[0]["gpu%"],
+        "mem%": measured_metrics[0]["mem%"]
     }
     
     # Apply the DVFS configuration

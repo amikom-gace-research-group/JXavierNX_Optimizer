@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import requests
 import csv
 import time
@@ -7,23 +8,33 @@ import os
 
 def set_device_ranges(device_type):
     if device_type == 'jxavier':
-        return {
-            "CPU_CORES_RANGE": range(1, 6),
-            "CPU_FREQ_RANGE": range(1190, 1909),
-            "GPU_FREQ_RANGE": range(510, 1111),
-            "MEMORY_FREQ_RANGE": range(1500, 1867),
-            "CL_RANGE": range(1, 4)
-        }
+        CPU_CORES_RANGE = range(1, 6)
+        CPU_FREQ_RANGE = range(1190, 1909)
+        GPU_FREQ_RANGE = range(510, 1111)
+        MEMORY_FREQ_RANGE = range(1500, 1867)
+        CL_RANGE = range(1, 4)
     elif device_type == 'jorin-nano':
-        return {
-            "CPU_CORES_RANGE": [5],
-            "CPU_FREQ_RANGE": range(806, 1510),
-            "GPU_FREQ_RANGE": range(306, 624),
-            "MEMORY_FREQ_RANGE": range(1500, 2133),
-            "CL_RANGE": range(1, 3)
-        }
+        CPU_CORES_RANGE = [5]
+        CPU_FREQ_RANGE = range(806, 1510)
+        GPU_FREQ_RANGE = range(306, 624)
+        MEMORY_FREQ_RANGE = range(1500, 2133)
+        CL_RANGE = range(1, 3)
     else:
         raise ValueError("Invalid device type specified.")
+    
+    sampled_configs = []
+
+    # Stratified sampling: Select a subset of configurations
+    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+        for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+            for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+                for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                    for cl in CL_RANGE:
+                        config = {"CPU_CORES_RANGE": int(cpu_cores), "CPU_FREQ_RANGE": int(cpu_freq), "GPU_FREQ_RANGE": int(gpu_freq), "MEMORY_FREQ_RANGE": int(memory_freq), "CL_RANGE": cl}
+                        sampled_configs.append(config)
+
+    return pd.DataFrame(sampled_configs)
+
 
 POWER_BUDGET = int(sys.argv[6])
 
@@ -116,7 +127,7 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
@@ -198,7 +209,10 @@ class MOPSO:
                     'mem_freq': config[3],
                     'cl': config[4],
                     'throughput': metrics[0]["throughput"],
-                    'power_cons': metrics[0]["power_cons"]
+                    'power_cons': metrics[0]["power_cons"],
+                    "cpu%": metrics[0]["cpu%"],
+                    "gpu%": metrics[0]["gpu%"],
+                    "mem%": metrics[0]["mem%"]
                 }
                 results.append(result_entry)
 

@@ -2,8 +2,22 @@ import requests
 import time
 import sys
 import csv
+import numpy as np
 import os
 from itertools import product
+
+if sys.argv[5] == 'jxavier':
+    CPU_CORES_RANGE = range(1, 6)
+    CPU_FREQ_RANGE = range(1190, 1909)
+    GPU_FREQ_RANGE = range(510, 1111)
+    MEMORY_FREQ_RANGE = range(1500, 1867)
+    CL_RANGE = range(1, 4)
+elif sys.argv[5] == 'jorin-nano':
+    CPU_CORES_RANGE = [5]
+    CPU_FREQ_RANGE = range(806, 1510)
+    GPU_FREQ_RANGE = range(306, 624)
+    MEMORY_FREQ_RANGE = range(1500, 2133)
+    CL_RANGE = range(1, 3)
 
 def get_result():
     headers = {
@@ -64,56 +78,50 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def calibrate():
-    for _ in range(5):  # Repeat the outer loop 5 times
-        for cl in [1, 2, 3]:  # Iterate over concurrency levels
-            # Reversed combinations
-            reversed_combinations = reversed(list(product(
-                range(1, 6, 4),  # CPU cores
-                range(1190, 1909, 718),  # CPU frequency
-                range(510, 1111, 600),  # GPU frequency
-                range(1500, 1867, 366)  # Memory frequency
-            )))
-            for i, x, y, z in reversed_combinations:
-                for _ in range(5):
-                    t1 = time.time()
-                    measured_metrics, api_time = execute_config(i, x, y, z, cl)
-                    elapsed_exec = round(time.time() - t1, 3)
-                    configs = {
-                        "api_time": api_time,
-                        "infer_time": elapsed_exec,
-                        "cpu_cores": i+1,
-                        "cpu_freq": x,
-                        "gpu_freq": y,
-                        "memory_freq": z,
-                        "cl": cl
-                    }
-                    dict_record = [{**configs, **measured_metrics[0]}]
-                    save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
+    sampled_configs = []
 
-            reversed_combinations = list(product(
-                range(1, 6, 4),  # CPU cores
-                range(1190, 1909, 718),  # CPU frequency
-                range(510, 1111, 600),  # GPU frequency
-                range(1500, 1867, 366)  # Memory frequency
-            ))
-            for i, x, y, z in reversed_combinations:
-                for _ in range(5):
-                    t1 = time.time()
-                    measured_metrics, api_time = execute_config(i, x, y, z, cl)
-                    elapsed_exec = round(time.time() - t1, 3)
-                    configs = {
-                        "api_time": api_time,
-                        "infer_time": elapsed_exec,
-                        "cpu_cores": i+1,
-                        "cpu_freq": x,
-                        "gpu_freq": y,
-                        "memory_freq": z,
-                        "cl": cl
-                    }
-                    dict_record = [{**configs, **measured_metrics[0]}]
-                    save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
+    # Stratified sampling: Select a subset of configurations
+    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+        for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+            for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+                for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                    for cl in CL_RANGE:
+                        config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                        sampled_configs.append(config)
+    # Reversed combinations
+    for config in reversed(sampled_configs):
+        for _ in range(5):
+            t1 = time.time()
+            measured_metrics, api_time = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
+            elapsed_exec = round(time.time() - t1, 3)
+            configs = {
+                "api_time": api_time,
+                "infer_time": elapsed_exec,
+                "cpu_cores": config["cpu_cores"]+1,
+                "cpu_freq": config["cpu_freq"],
+                "gpu_freq": config["gpu_freq"],
+                "memory_freq": config["memory_freq"],
+                "cl": config["cl"]
+            }
+            dict_record = [{**configs, **measured_metrics[0]}]
+            save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-                    
+    for config in sampled_configs:
+        for _ in range(5):
+            t1 = time.time()
+            measured_metrics, api_time = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
+            elapsed_exec = round(time.time() - t1, 3)
+            configs = {
+                "api_time": api_time,
+                "infer_time": elapsed_exec,
+                "cpu_cores": config["cpu_cores"]+1,
+                "cpu_freq": config["cpu_freq"],
+                "gpu_freq": config["gpu_freq"],
+                "memory_freq": config["memory_freq"],
+                "cl": config["cl"]
+            }
+            dict_record = [{**configs, **measured_metrics[0]}]
+            save_csv(dict_record, f"calibration_{sys.argv[5]}_{sys.argv[4]}.csv")
 
 if __name__ == "__main__":
     calibrate()

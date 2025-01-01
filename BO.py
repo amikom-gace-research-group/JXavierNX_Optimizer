@@ -1,5 +1,5 @@
 import numpy as np
-import random
+import pandas as pd
 import sys
 import time
 import os
@@ -25,6 +25,19 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
 
+sampled_configs = []
+
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+                    sampled_configs.append(config)
+
+sampled_configs = pd.DataFrame(sampled_configs)
+
 POWER_BUDGET = int(sys.argv[6])
 
 best_throughput = -float('inf')
@@ -39,15 +52,15 @@ last_rewards = []  # To store recent rewards for saturation check
 MAX_SATURATION_CALLS = 50  # Number of calls to check for saturation
 episode_counter = 0
 
-cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
+cores_space = (Categorical(sampled_configs['cpu_cores'], name='cpu_cores') if len(sampled_configs['cpu_cores']) == 1 else Integer(min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']), name='cpu_cores'))
 
 # Define the parameter space for Bayesian Optimization
 space = [
     cores_space,
-    Integer(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), name='cpu_freq'),
-    Integer(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), name='gpu_freq'),
-    Integer(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), name='mem_freq'),
-    Integer(min(CL_RANGE), max(CL_RANGE), name='cl')
+    Integer(min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']), name='cpu_freq'),
+    Integer(min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']), name='gpu_freq'),
+    Integer(min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']), name='mem_freq'),
+    Integer(min(sampled_configs['cl']), max(sampled_configs['cl']), name='cl')
 ]
 
 # Function to get the result from the external system
@@ -114,7 +127,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -144,7 +157,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     
     configs = {
         "reward": reward,
-	"api_time": api_time,
+	    "api_time": api_time,
         "episode" : episode_counter,
         "infer_time": elapsed,
         "cpu_cores": int(cpu_cores) + 1,
