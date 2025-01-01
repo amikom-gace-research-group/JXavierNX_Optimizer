@@ -150,7 +150,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu%', 'gpu%', 'mem%'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead (sec)', 'neuos_overhead (ms)', 'lag', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -206,9 +206,9 @@ for episode in range(100):  # Example: run for 100 episodes
         "cl": cl,
         "throughput": throughput,
         "power": power_consumed,
-        "cpu%": measured_metrics[0]["cpu%"],
-        "gpu%": measured_metrics[0]["gpu%"],
-        "mem%": measured_metrics[0]["mem%"]
+        "cpu_percent": measured_metrics[0]["cpu_percent"],
+        "gpu_percent": measured_metrics[0]["gpu_percent"],
+        "mem_percent": measured_metrics[0]["mem_percent"]
     }
     
     # Apply the DVFS configuration

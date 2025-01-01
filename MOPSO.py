@@ -127,7 +127,7 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
@@ -206,9 +206,9 @@ class MOPSO:
                     'cl': config[4],
                     'throughput': metrics[0]["throughput"],
                     'power_cons': metrics[0]["power_cons"],
-                    "cpu%": metrics[0]["cpu%"],
-                    "gpu%": metrics[0]["gpu%"],
-                    "mem%": metrics[0]["mem%"]
+                    "cpu_percent": metrics[0]["cpu_percent"],
+                    "gpu_percent": metrics[0]["gpu_percent"],
+                    "mem_percent": metrics[0]["mem_percent"]
                 }
                 results.append(result_entry)
 

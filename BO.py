@@ -127,7 +127,7 @@ def calculate_reward(measured_metrics):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:

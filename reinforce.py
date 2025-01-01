@@ -155,7 +155,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu%', 'gpu%', 'mem%'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'reward', 'xaviernx_time_elapsed', 'reinforce_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -248,9 +248,9 @@ def reinforce_algorithm(actor_network, optimizer):
                 "cl": cl,
                 "throughput": measured_metrics[0]["throughput"],
                 "power_cons": measured_metrics[0]["power_cons"],
-                "cpu%": measured_metrics[0]["cpu%"],
-                "gpu%": measured_metrics[0]["gpu%"],
-                "mem%": measured_metrics[0]["mem%"]
+                "cpu_percent": measured_metrics[0]["cpu_percent"],
+                "gpu_percent": measured_metrics[0]["gpu_percent"],
+                "mem_percent": measured_metrics[0]["mem_percent"]
             }
             configs.append(config)
 
