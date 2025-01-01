@@ -51,7 +51,6 @@ epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 reward_threshold = 0.00001  # Threshold under which epsilon will increase
 num_episodes = 100  # Number of episodes to run
-max_saturated_count = 50
 
 # Define actions and step sizes
 ACTIONS = [0, 1, 2, 3, 4, 5, 6]
@@ -365,18 +364,6 @@ for episode in range(num_episodes):
     }
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"ql_{sys.argv[5]}_{sys.argv[4]}.csv")
-
-    # Check for saturation
-    if abs(reward - last_reward) < reward_threshold:
-        max_saturated_count -= 1
-        if max_saturated_count == 25:
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-        elif max_saturated_count == 0:
-            print("QL is saturated")
-            break
-    else:
-        max_saturated_count = 50
     
     # Update state and last reward
     last_reward = reward

@@ -165,7 +165,6 @@ best_power = POWER_BUDGET
 last_power = 0
 time_got = []
 best_config = None
-max_saturated_count = 10
 
 for episode in range(100):  # Example: run for 100 episodes
     # Get current metrics (throughput and power)
@@ -218,14 +217,6 @@ for episode in range(100):  # Example: run for 100 episodes
     save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
     # Log the results
     print(f"Configs: {configs}")
-
-    if abs(last_lag - lag) < 0.00001:
-        max_saturated_count -= 1
-        if max_saturated_count == 0:
-            print("NeuOS is saturated")
-            break
-    else:
-        max_saturated_count = 50
 
     # Check if the system meets the target and stop if it stabilizes
     if lag < best_lag and power_consumed <= best_power:

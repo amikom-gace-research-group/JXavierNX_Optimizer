@@ -148,7 +148,6 @@ class MOPSO:
         self.global_best_position = np.zeros(problem_size)
         self.global_best_fitness = -1
         self.best_config = None
-        self.no_improvement_count = 0
         self.best_throughput = -float('inf')
 
     def optimize(self):
@@ -192,9 +191,6 @@ class MOPSO:
                     self.best_config = config
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
-                    self.no_improvement_count = 0  # Reset count on improvement
-                if abs(fitness - self.global_best_fitness) <= 0.01:
-                    self.no_improvement_count += 1  # Increment count if no improvement
 
                 # Save results to CSV
                 result_entry = {
@@ -225,15 +221,6 @@ class MOPSO:
                 particle.update_position(self.bounds)
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
-
-            # Check for saturation
-            if self.no_improvement_count >= self.saturation_threshold:
-                print("Saturation detected. Restarting some particles.")
-                reset_fraction = 0.2
-                num_to_reset = int(reset_fraction * self.swarm_size)
-                particles_to_reset = np.random.choice(self.swarm, num_to_reset, replace=False)
-                for particle in particles_to_reset:
-                    particle.position = np.random.uniform(0, 1, self.problem_size)
             if metrics == "No Device":
                 break
         save_csv(results, f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization

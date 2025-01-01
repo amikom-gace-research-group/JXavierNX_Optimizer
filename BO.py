@@ -44,7 +44,7 @@ best_throughput = -float('inf')
 
 # Hyperparameters for Bayesian Optimization
 n_calls = 100  # Number of iterations for Bayesian Optimization
-n_initial_points = 10
+n_initial_points = 25
 
 time_got = []
 
@@ -171,11 +171,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     last_rewards.append(reward)
-    
-    # Check if optimization is saturated
-    if len(last_rewards) > MAX_SATURATION_CALLS and all(r == last_rewards[-1] for r in last_rewards[-MAX_SATURATION_CALLS:]):
-        print("Optimization is saturated. Stopping further iterations.")
-        raise RuntimeError("Optimization saturated.")  # Raising an exception to stop optimization
     
     if reward == 1e6:
         return reward  # Return penalty for invalid config
