@@ -116,8 +116,8 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # Reward function based on power and throughput metrics
 # Efficient reward calculation
 def calculate_reward(measured_metrics):
-    power = measured_metrics[0]["power_cons"]
-    throughput = measured_metrics[0]["throughput"]
+    power = int(measured_metrics[0]["power_cons"])
+    throughput = int(measured_metrics[0]["throughput"])
     
     if power > POWER_BUDGET:
         return 1e6
@@ -145,8 +145,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     elapsed = round(time.time() - t1, 3)
     time_got.append(elapsed)
 
-    if measured_metrics[0]["throughput"] > best_throughput:
-        best_throughput = measured_metrics[0]["throughput"]
+    if int(measured_metrics[0]["throughput"]) > best_throughput:
+        best_throughput = int(measured_metrics[0]["throughput"])
     
     if not measured_metrics or measured_metrics == "No Device":
         print("No device detected. Raising an exception to stop optimization.")
