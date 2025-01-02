@@ -99,7 +99,7 @@ def calculate_fitness(measured_metrics):
     if power > POWER_BUDGET:
         return 1e-6
     
-    return throughput / POWER_BUDGET
+    return (throughput / POWER_BUDGET) * 1e6
 
 class Particle:
     def __init__(self, problem_size):

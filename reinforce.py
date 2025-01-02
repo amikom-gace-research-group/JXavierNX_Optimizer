@@ -152,7 +152,7 @@ def calculate_reward(measured_metrics):
     if power > POWER_BUDGET:
         return 1e-6
     
-    return throughput / POWER_BUDGET
+    return (throughput / POWER_BUDGET) * 1e6
 
 # Main REINFORCE algorithm
 def reinforce_algorithm(actor_network, optimizer):
