@@ -120,7 +120,7 @@ def get_best_configuration():
             best_q_value = max_q_value
             best_state = state
 
-    best_state = tuple([conf[int(x)] for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+    best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
     return best_state
 
 # Retrieve Q-value for a state-action pair
@@ -279,6 +279,8 @@ for episode in range(num_episodes):
             epsilon_explore = 0.3
             epsilon_exploit = 0.5
             continue
+        else:
+            new_state_index = state_index
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
