@@ -24,18 +24,13 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
 
-sampled_configs = []
-
-# Stratified sampling: Select a subset of configurations
-for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
-    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
-        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
-            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
-                for cl in CL_RANGE:
-                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
-                    sampled_configs.append(config)
-
-sampled_configs = pd.DataFrame(sampled_configs)
+sampled_configs ={
+     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
+     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
+     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
+     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+     "cl": CL_RANGE
+}
 
 POWER_BUDGET = int(sys.argv[6])
 
@@ -73,7 +68,7 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Adjust configuration values based on action
 def adjust_value(value, action):
-    unique_values = sorted(value.unique())
+    unique_values = sorted(value)
     if len(unique_values) != 3:
         return min(unique_values)
     else:
