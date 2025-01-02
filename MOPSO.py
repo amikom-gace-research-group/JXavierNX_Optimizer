@@ -59,11 +59,11 @@ def get_result():
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     url = f"{sys.argv[1]}/api/cfg"
     data = {
-        "cpu_cores": cpu_cores,
-        "cpu_freq": cpu_freq,
-        "gpu_freq": gpu_freq,
-        "mem_freq": memory_freq,
-        "cl": cl
+        "cpu_cores": int(cpu_cores),
+        "cpu_freq": int(cpu_freq),
+        "gpu_freq": int(gpu_freq),
+        "mem_freq": int(memory_freq),
+        "cl": int(cl)
     }
     headers = {'Authorization': sys.argv[3], 'Content-Type': 'application/json'}
     
