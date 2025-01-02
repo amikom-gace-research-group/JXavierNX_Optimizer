@@ -51,7 +51,6 @@ epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 num_episodes = 100  # Number of episodes to run
-reward_threshold = 0.00001
 
 # Define actions and step sizes
 ACTIONS = [0, 1, 2]
@@ -74,12 +73,11 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Adjust configuration values based on action
 def adjust_value(value, action):
-    if action == 0:
-        return min(sorted(value.unique()))
-    elif action == 1:
-        return max(sorted(value.unique()))
-    elif action == 2:
-        return median(sorted(value.unique()))
+    unique_values = sorted(value.unique())
+    if len(unique_values) != 3:
+        return min(unique_values)
+    else:
+        return unique_values[action]
 
 def get_result():
     headers = {
@@ -144,46 +142,17 @@ def update_q_value(state_index, action_index, new_value):
         Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
     Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
 
-def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500):
-    """
-    Select a configuration for exploration based on diversity scores.
-
-    Args:
-        lhs_samples: List of LHS-sampled configurations.
-        state_key: Current state (for reference, though not directly used here).
-        tau: Temperature parameter for softmax scaling (higher = more uniform).
-        max_diversity_score: Maximum value for diversity scores to prevent overflow.
-
-    Returns:
-        selected_action: The selected action for exploration.
-    """
-    # Calculate diversity scores: Higher score for configurations far from each other
-    diversity_scores = []
-    for sample in lhs_samples:
-        diversity_score = sum(abs(np.array(sample) - np.array(state_key))) if state_key else 1
-        diversity_scores.append(diversity_score)
-
-    # Clip diversity scores to prevent overflow
+def calculate_diversity(lhs_samples, state_key, tau=1.0):
+    diversity_scores = [
+        sum(abs(np.array(sample) - np.array(state_key))) if state_key else 1
+        for sample in lhs_samples
+    ]
     diversity_scores = np.array(diversity_scores)
-    diversity_scores = np.clip(diversity_scores, None, max_diversity_score)
-
-    # Convert diversity scores to probabilities using softmax
+    max_score = max(diversity_scores) if diversity_scores.any() else 1
+    diversity_scores = np.clip(diversity_scores, None, max_score)
     exp_scores = np.exp(diversity_scores / tau)
-
-    # Prevent division by zero by adding a small epsilon value
-    exp_scores_sum = np.sum(exp_scores)
-    if exp_scores_sum == 0:
-        exp_scores_sum = 1e-6  # Small value to avoid division by zero
-
-    probabilities = exp_scores / exp_scores_sum
-
-    # Handle any potential NaN values in probabilities
-    if np.any(np.isnan(probabilities)):
-        probabilities = np.ones_like(probabilities) / len(lhs_samples)  # Default uniform distribution
-
-    # Select an action based on probabilities
+    probabilities = exp_scores / (np.sum(exp_scores) + 1e-6)
     selected_action = lhs_samples[np.random.choice(len(lhs_samples), p=probabilities)]
-    
     return selected_action
 
 def choose_action_adaptive(state_index, lhs_samples):
@@ -329,7 +298,7 @@ for episode in range(num_episodes):
         epsilon_explore = min(epsilon_explore * 1.05, 1)  # Increase epsilon if performance is bad
         epsilon_exploit = max(epsilon_exploit * 0.995, epsilon_min)
     else:
-        epsilon_explore = max(epsilon_explore * 0.995, epsilon_min)  # Decay epsilon if performance improves
+        epsilon_explore = max(epsilon_explore * 0.75, epsilon_min)  # Decay epsilon if performance improves
         epsilon_exploit = min(epsilon_exploit * 1.05, 1)
     
     configs = {
