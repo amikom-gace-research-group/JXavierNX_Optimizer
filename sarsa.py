@@ -321,7 +321,7 @@ for episode in range(num_episodes):
         epsilon_exploit = max(epsilon_exploit * 0.995, epsilon_min)
     else:
         epsilon_explore = max(epsilon_explore * 0.75, epsilon_min)  # Decay epsilon if performance improves
-        epsilon_exploit = min(epsilon_exploit * 1.5, 1)
+        epsilon_exploit = min(epsilon_exploit * 1.05, 1)
     
     configs = {
         "api_time": api_time,
