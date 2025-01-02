@@ -75,11 +75,11 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # Adjust configuration values based on action
 def adjust_value(value, action):
     if action == 0:
-        return min(value)
+        return min(sorted(value.unique()))
     elif action == 1:
-        return max(value)
+        return max(sorted(value.unique()))
     elif action == 2:
-        return median(value)
+        return median(sorted(value.unique()))
 
 def get_result():
     headers = {
