@@ -277,7 +277,7 @@ for episode in range(num_episodes):
         state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         if state_index in prohibited_configs:
             epsilon_explore = 0.3
-            epsilon_exploit = 0.7
+            epsilon_exploit = 0.5
             continue
 
     # Execute the chosen configuration and get metrics
