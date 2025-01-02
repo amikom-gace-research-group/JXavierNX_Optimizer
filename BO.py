@@ -49,7 +49,6 @@ n_initial_points = 25
 time_got = []
 
 last_rewards = []  # To store recent rewards for saturation check
-MAX_SATURATION_CALLS = 50  # Number of calls to check for saturation
 episode_counter = 0
 
 cores_space = (Categorical(sampled_configs['cpu_cores'], name='cpu_cores') if len(sampled_configs['cpu_cores']) == 1 else Integer(min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']), name='cpu_cores'))

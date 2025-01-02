@@ -5,6 +5,7 @@ import os
 import csv
 import requests
 import pandas as pd
+from statistics import median
 from pyDOE import lhs
 
 print("PID", os.getpid())
@@ -53,16 +54,9 @@ num_episodes = 100  # Number of episodes to run
 reward_threshold = 0.00001
 
 # Define actions and step sizes
-ACTIONS = [0, 1, 2, 3, 4, 5, 6]
+ACTIONS = [0, 1, 2]
 ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
 action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
-STEP_SIZES = {
-    'cpu_cores': (1, 3, 5),
-    'cpu_freq': (1, 10, 50),
-    'gpu_freq': (1, 10, 50),
-    'memory_freq': (1, 10, 50),
-    'cl': (1, 0, 2)
-}
 
 prohibited_configs = set()
 
@@ -79,21 +73,13 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     )
 
 # Adjust configuration values based on action
-def adjust_value(value, action, steps, min_val, max_val):
-    small_step, medium_step, large_step = steps
-    if action == 1:
-        return min(value + small_step, max_val)
+def adjust_value(value, action):
+    if action == 0:
+        return min(value)
+    elif action == 1:
+        return max(value)
     elif action == 2:
-        return max(value - small_step, min_val)
-    elif action == 3:
-        return min(value + medium_step, max_val)
-    elif action == 4:
-        return max(value - medium_step, min_val)
-    elif action == 5:
-        return min(value + large_step, max_val)
-    elif action == 6:
-        return max(value - large_step, min_val)
-    return value  # No change
+        return median(value)
 
 def get_result():
     headers = {
@@ -278,11 +264,11 @@ for episode in range(num_episodes):
     actions, phase = choose_action_adaptive(state_index, lhs_samples)
 
     # Adjust values for the chosen actions
-    cpu_cores = int(adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores'])))
-    cpu_freq = int(adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq'])))
-    gpu_freq = int(adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq'])))
-    memory_freq = int(adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq'])))
-    cl = int(adjust_value(cl, actions[4], STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl'])))
+    cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
+    cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
+    gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
+    memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
+    cl = int(adjust_value(sampled_configs['cl'], actions[4]))
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})

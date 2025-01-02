@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from statistics import median
 import torch.optim as optim
 import requests
 import time
@@ -36,15 +37,6 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
 sampled_configs = pd.DataFrame(sampled_configs)
 
 POWER_BUDGET = int(sys.argv[6])
-
-# Step sizes for adjustment
-STEP_SIZES = {
-    'cpu_cores': (1, 3, 5),
-    'cpu_freq': (1, 10, 50),
-    'gpu_freq': (1, 10, 50),
-    'memory_freq': (1, 10, 50),
-    'cl': (1, 2, 0)
-}
 
 # Hyperparameters
 gamma = 0.99
@@ -101,21 +93,13 @@ class CriticNetwork(nn.Module):
         return self.fc3(x)
 
 # Adjust configuration values based on action
-def adjust_value(value, action, steps, min_val, max_val):
-    small_step, medium_step, large_step = steps
-    if action == 1:
-        return min(value + small_step, max_val)
+def adjust_value(value, action):
+    if action == 0:
+        return min(value)
+    elif action == 1:
+        return max(value)
     elif action == 2:
-        return max(value - small_step, min_val)
-    elif action == 3:
-        return min(value + medium_step, max_val)
-    elif action == 4:
-        return max(value - medium_step, min_val)
-    elif action == 5:
-        return min(value + large_step, max_val)
-    elif action == 6:
-        return max(value - large_step, min_val)
-    return value
+        return median(value)
 
 def get_result():
     headers = {
@@ -218,11 +202,11 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             actions.append(actions_set)
             
             # Adjust configurations based on actions
-            cpu_cores = int(adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores'])))
-            cpu_freq = int(adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq'])))
-            gpu_freq = int(adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq'])))
-            memory_freq = int(adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq'])))
-            cl = int(adjust_value(cl, cl_action, STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl'])))
+            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], cpu_cores_action))
+            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], cpu_freq_action))
+            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], gpu_freq_action))
+            memory_freq = int(adjust_value(sampled_configs['memory_freq'], memory_freq_action))
+            cl = int(adjust_value(sampled_configs['cl'], cl_action))
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
@@ -336,11 +320,11 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 # Initialize the actor and critic networks
 input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 output_sizes = {
-    'cpu_cores': 7,   # Number of actions for cpu_cores
-    'cpu_freq': 7,    # Number of actions for cpu_freq
-    'gpu_freq': 7,    # Number of actions for gpu_freq
-    'memory_freq': 7, # Number of actions for memory_freq
-    'cl': 7           # Number of actions for cl
+    'cpu_cores': 3,   # Number of actions for cpu_cores
+    'cpu_freq': 3,    # Number of actions for cpu_freq
+    'gpu_freq': 3,    # Number of actions for gpu_freq
+    'memory_freq': 3, # Number of actions for memory_freq
+    'cl': 3           # Number of actions for cl
 }
 
 actor_network = ActorNetwork(input_size, output_sizes)
