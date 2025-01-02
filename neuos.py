@@ -33,17 +33,43 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
 
 sampled_configs = pd.DataFrame(sampled_configs)
 
+sampled_configs = sampled_configs.sort_values(
+    by=["cpu_cores", "cpu_freq", "gpu_freq", "memory_freq", "cl"]
+).reset_index(drop=True)
+
 POWER_BUDGET = int(sys.argv[6])
 best_throughput = -float('inf')
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = [
-    {"SpeedUp": 0.8, "PowerUp": 0.9},  # Speed down, less power
     {"SpeedUp": 1.0, "PowerUp": 1.0},  # Baseline (default DVFS configuration)
-    {"SpeedUp": 1.5, "PowerUp": 1.2},  # Moderate performance boost
-    {"SpeedUp": 2.0, "PowerUp": 1.5}   # High performance, higher power consumption
+    {"SpeedUp": 2.1, "PowerUp": 2},  # Moderate performance boost
+    {"SpeedUp": 2.8, "PowerUp": 1.5}   # High performance, higher power consumption
 ]
 
+# Function to find the row ID based on configuration values
+def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
+    row = sampled_configs[
+        (sampled_configs['cpu_cores'] == cpu_cores) &
+        (sampled_configs['cpu_freq'] == cpu_freq) &
+        (sampled_configs['gpu_freq'] == gpu_freq) &
+        (sampled_configs['memory_freq'] == memory_freq) &
+        (sampled_configs['cl'] == cl)
+    ]
+    return row.index[0] if not row.empty else None
+
+def speedup_powerup_dvfs_selector(value, sampled_configs, configs):
+    if lag < 0:
+        configs_id = int(get_row_id(configs) * value)
+        configs_id = min(configs_id, len(sampled_configs)-1)
+        updated_configs = sampled_configs.iloc[configs_id]
+        return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
+    else:
+        configs_id = int(get_row_id(configs) * value)
+        configs_id = max(get_row_id(configs) - abs(get_row_id(configs) - configs_id), 0)
+        updated_configs = sampled_configs.iloc[configs_id]
+        return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
+    
 def calculate_lag(power, power_budget):
     return (power - power_budget) / power_budget
 
@@ -75,24 +101,14 @@ def apply_dvfs(config, throughput):
     if lag < 0:
         if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
-            cpu_freq = min(int(cpu_freq * config["SpeedUp"]), max(sampled_configs['cpu_freq']))
-            gpu_freq = min(int(gpu_freq * config["SpeedUp"]), max(sampled_configs['gpu_freq']))
-            memory_freq = min(int(memory_freq * config["SpeedUp"]), max(sampled_configs['memory_freq']))
-            if cpu_cores < max(sampled_configs['cpu_cores']):
-                cpu_cores += 1
-            if cl < max(sampled_configs['cl']):
-                cl += 1
+            configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
         else:
             best_throughput = throughput
 
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
-        cpu_freq = max((int(cpu_freq) - abs(int(cpu_freq) - int(cpu_freq * config["PowerUp"]))), min(sampled_configs['cpu_freq']))
-        gpu_freq = max((int(gpu_freq) - abs(int(gpu_freq) - int(gpu_freq * config["PowerUp"]))), min(sampled_configs['gpu_freq']))
-        memory_freq = max((int(memory_freq) - abs(int(memory_freq) - int(memory_freq * config["PowerUp"]))), min(sampled_configs['memory_freq']))
-        if cpu_cores > min(sampled_configs['cpu_cores']):
-            cpu_cores -= 1
-        if cl > min(sampled_configs['cl']):
-            cl -= 1
+        configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
