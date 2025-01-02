@@ -97,7 +97,7 @@ def calculate_fitness(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return (POWER_BUDGET / power) * 1e-6
+        return 1e-6
     
     return throughput / POWER_BUDGET
 
@@ -178,7 +178,7 @@ class MOPSO:
 
                 fitness = calculate_fitness(metrics)
 
-                if fitness == -1:
+                if fitness == 1e-6:
                     print("Prohibited Configuration!")
                     prohibited_configs.add(tuple(config))
 

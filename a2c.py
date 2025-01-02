@@ -165,7 +165,7 @@ def calculate_reward(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return (POWER_BUDGET / power) * 1e-6
+        return  1e-6
     
     return throughput / POWER_BUDGET
 
@@ -230,7 +230,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             reward = calculate_reward(measured_metrics)
             rewards.append(reward)
 
-            if reward < 0:
+            if reward == 1e-6:
                 print("Prohibited Configuration!")
                 prohibited_configs.add(str(state))
 

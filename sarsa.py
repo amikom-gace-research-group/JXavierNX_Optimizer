@@ -238,7 +238,7 @@ def calculate_reward(measured_metrics):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return (POWER_BUDGET / power) * 1e-6
+        return 1e-6
     
     return throughput / POWER_BUDGET
 
@@ -296,7 +296,7 @@ for episode in range(num_episodes):
     # Calculate the reward for this configuration
     reward = calculate_reward(measured_metrics)
 
-    if reward < 0:
+    if reward == 1e-6:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(new_state_index)
 
@@ -323,7 +323,7 @@ for episode in range(num_episodes):
     elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward < 0:
+    if reward == 1e-6:
         epsilon_explore = min(epsilon_explore * 1.05, 1)  # Increase epsilon if performance is bad
         epsilon_exploit = max(epsilon_exploit * 0.995, epsilon_min)
     else:
