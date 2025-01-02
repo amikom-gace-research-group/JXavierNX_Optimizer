@@ -81,13 +81,12 @@ class ActorNetwork(nn.Module):
 
 # Adjust configuration values based on action
 def adjust_value(value, action):
-    if action == 0:
-        return min(value)
-    elif action == 1:
-        return max(value)
-    elif action == 2:
-        return median(value)
-
+    unique_values = sorted(value.unique())
+    if len(unique_values) != 3:
+        return min(unique_values)
+    else:
+        return unique_values[action]
+    
 def get_result():
     headers = {
         'Authorization': sys.argv[2],  # Use 'APIKey' if your service requires this
