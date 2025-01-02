@@ -204,11 +204,11 @@ def reinforce_algorithm(actor_network, optimizer):
             actions.append(actions_set)
 
             # Adjust configurations based on actions
-            cpu_cores = adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']))
-            cpu_freq = adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']))
-            gpu_freq = adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']))
-            memory_freq = adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']))
-            cl = adjust_value(cl, cl_action, STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl']))
+            cpu_cores = int(adjust_value(cpu_cores, cpu_cores_action, STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores'])))
+            cpu_freq = int(adjust_value(cpu_freq, cpu_freq_action, STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq'])))
+            gpu_freq = int(adjust_value(gpu_freq, gpu_freq_action, STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq'])))
+            memory_freq = int(adjust_value(memory_freq, memory_freq_action, STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq'])))
+            cl = int(adjust_value(cl, cl_action, STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl'])))
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 

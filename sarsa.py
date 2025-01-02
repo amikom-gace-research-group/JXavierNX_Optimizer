@@ -277,15 +277,15 @@ for episode in range(num_episodes):
     # Choose actions based on current state and LHS samples
     actions, phase = choose_action_adaptive(state_index, lhs_samples)
 
+    # Adjust values for the chosen actions
+    cpu_cores = int(adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores'])))
+    cpu_freq = int(adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq'])))
+    gpu_freq = int(adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq'])))
+    memory_freq = int(adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq'])))
+    cl = int(adjust_value(cl, actions[4], STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl'])))
+
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
-
-    # Adjust values for the chosen actions
-    cpu_cores = adjust_value(cpu_cores, actions[0], STEP_SIZES['cpu_cores'], min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']))
-    cpu_freq = adjust_value(cpu_freq, actions[1], STEP_SIZES['cpu_freq'], min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']))
-    gpu_freq = adjust_value(gpu_freq, actions[2], STEP_SIZES['gpu_freq'], min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']))
-    memory_freq = adjust_value(memory_freq, actions[3], STEP_SIZES['memory_freq'], min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']))
-    cl = adjust_value(cl, actions[4], STEP_SIZES['cl'], min(sampled_configs['cl']), max(sampled_configs['cl']))
 
     # Convert to new state index
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
