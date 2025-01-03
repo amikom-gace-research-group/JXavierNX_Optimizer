@@ -1,11 +1,9 @@
 import numpy as np
-import pandas as pd
 import sys
 import time
 import os
 import csv
 import requests
-from statistics import median
 from pyDOE import lhs
 
 print("PID", os.getpid())

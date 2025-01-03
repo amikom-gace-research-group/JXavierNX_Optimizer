@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import requests
 import csv
 import time
@@ -22,18 +21,15 @@ def set_device_ranges(device_type):
     else:
         raise ValueError("Invalid device type specified.")
     
-    sampled_configs = []
+    sampled_configs ={
+        "CPU_CORES_RANGE": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
+        "CPU_FREQ_RANGE": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
+        "GPU_FREQ_RANGE": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
+        "MEMORY_FREQ_RANGE": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+        "CL_RANGE": CL_RANGE
+    }
 
-    # Stratified sampling: Select a subset of configurations
-    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
-        for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
-            for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
-                for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
-                    for cl in CL_RANGE:
-                        config = {"CPU_CORES_RANGE": int(cpu_cores), "CPU_FREQ_RANGE": int(cpu_freq), "GPU_FREQ_RANGE": int(gpu_freq), "MEMORY_FREQ_RANGE": int(memory_freq), "CL_RANGE": cl}
-                        sampled_configs.append(config)
-
-    return pd.DataFrame(sampled_configs)
+    return sampled_configs
 
 
 POWER_BUDGET = int(sys.argv[6])
