@@ -102,13 +102,13 @@ def apply_dvfs(config, throughput):
         if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
             configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, *configs)
         else:
             best_throughput = throughput
 
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
         configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, *configs)
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
