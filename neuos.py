@@ -92,7 +92,7 @@ def delta_calculator(lag, power_consumed):
 def minmax(values, range):
     values = min(values, max(range))
     values = max(min(range), values)
-    return values
+    return int(values)
 
 # Function to apply the chosen DVFS configuration (adjust CPU, GPU, memory)
 def apply_dvfs(config, throughput):
