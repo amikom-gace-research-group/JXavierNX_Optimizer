@@ -60,12 +60,12 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 def speedup_powerup_dvfs_selector(lag, value, sampled_configs, configs):
     if lag < 0:
-        configs_id = int(get_row_id(*configs) * value)
+        configs_id = round(get_row_id(*configs) * value)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     else:
-        configs_id = int(get_row_id(*configs) * value)
+        configs_id = round(get_row_id(*configs) * value)
         configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
@@ -79,7 +79,7 @@ def delta_calculator(lag, power_consumed):
     if lag < 0:
         # Loop through configurations, looking for the one that provides at least the required speedup
         for config in SpeedUp_PowerUp:
-            if config["SpeedUp"] >= required_speedup and power_consumed // config["PowerUp"] <= POWER_BUDGET:
+            if config["SpeedUp"] >= required_speedup and power_consumed * config["PowerUp"] <= POWER_BUDGET:
                 return config
         return SpeedUp_PowerUp[-1]  # If no match, default to the highest performance config
     else:
