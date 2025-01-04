@@ -74,18 +74,16 @@ def calculate_lag(power, power_budget):
     return (power - power_budget) / power_budget
 
 def delta_calculator(lag, power_consumed):
-    required_speedup = 1 / (1 - lag)  # Calculate the required speedup to bring throughput closer to the target
-    
     if lag < 0:
         # Loop through configurations, looking for the one that provides at least the required speedup
         for config in SpeedUp_PowerUp:
-            if config["SpeedUp"] >= required_speedup and power_consumed * config["PowerUp"] <= POWER_BUDGET:
+            if power_consumed * config["PowerUp"] <= POWER_BUDGET:
                 return config
         return SpeedUp_PowerUp[-1]  # If no match, default to the highest performance config
     else:
         # Loop through configurations in reverse to find the one that slows down performance but stays within the budget
         for config in reversed(SpeedUp_PowerUp):
-            if config["SpeedUp"] <= required_speedup and power_consumed // config["PowerUp"] <= POWER_BUDGET:
+            if power_consumed // config["PowerUp"] <= POWER_BUDGET:
                 return config
         return SpeedUp_PowerUp[1]  # If no match, default to the lowest performance config
 
