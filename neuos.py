@@ -58,7 +58,7 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     ]
     return row.index[0] if not row.empty else None
 
-def speedup_powerup_dvfs_selector(value, sampled_configs, configs):
+def speedup_powerup_dvfs_selector(lag, value, sampled_configs, configs):
     if lag < 0:
         configs_id = int(get_row_id(*configs) * value)
         configs_id = min(configs_id, len(sampled_configs)-1)
@@ -95,20 +95,20 @@ def minmax(values, range):
     return int(values)
 
 # Function to apply the chosen DVFS configuration (adjust CPU, GPU, memory)
-def apply_dvfs(config, throughput):
+def apply_dvfs(lag, config, throughput):
     global cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, best_throughput
     # Dynamically adjust CPU cores and concurrency level (CL) based on throughput and power
     if lag < 0:
         if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
             configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(lag, config["SpeedUp"], sampled_configs, configs)
         else:
             best_throughput = throughput
 
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
         configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(lag, config["PowerUp"], sampled_configs, configs)
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
@@ -228,7 +228,7 @@ for episode in range(100):  # Example: run for 100 episodes
     }
     
     # Apply the DVFS configuration
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_dvfs(dvfs_config, throughput)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_dvfs(lag, dvfs_config, throughput)
     
     save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
     # Log the results
