@@ -60,13 +60,13 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 def speedup_powerup_dvfs_selector(value, sampled_configs, configs):
     if lag < 0:
-        configs_id = int(get_row_id(configs) * value)
+        configs_id = int(get_row_id(*configs) * value)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     else:
-        configs_id = int(get_row_id(configs) * value)
-        configs_id = max(get_row_id(configs) - abs(get_row_id(configs) - configs_id), 0)
+        configs_id = int(get_row_id(*configs) * value)
+        configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     
@@ -102,13 +102,13 @@ def apply_dvfs(config, throughput):
         if throughput < best_throughput:
             # Update frequencies based on SpeedUp configuration
             configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, *configs)
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
         else:
             best_throughput = throughput
 
     elif lag > 0:  # If system is ahead of throughput target, decrease resources to save power
         configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, *configs)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = speedup_powerup_dvfs_selector(config["SpeedUp"], sampled_configs, configs)
         
     return cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
