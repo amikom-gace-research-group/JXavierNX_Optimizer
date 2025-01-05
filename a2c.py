@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import requests
+import random
 import time
 import sys
 import os
@@ -204,6 +205,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
             if str(state) in prohibited_configs:
                 print("PROHIBITED CONFIG!")
+                cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = random.choice(sampled_configs['cpu_cores']), random.choice(sampled_configs['cpu_freq']), random.choice(sampled_configs['gpu_freq']), random.choice(sampled_configs['memory_freq']), random.choice(sampled_configs['cl'])
                 continue
 
             # Execute configuration and get metrics
