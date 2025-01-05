@@ -87,7 +87,7 @@ class CriticNetwork(nn.Module):
 
 # Adjust configuration values based on action
 def adjust_value(value, action):
-    unique_values = sorted(value.unique())
+    unique_values = sorted(value)
     if len(unique_values) != 3:
         return min(unique_values)
     else:
