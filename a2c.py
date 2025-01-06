@@ -160,7 +160,7 @@ def calculate_reward(measured_metrics):
     if power > POWER_BUDGET:
         return  1e-6
     
-    return (throughput / POWER_BUDGET) * 1e6
+    return (throughput / power) * 1e6
 
 # Main A2C algorithm
 def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimizer):

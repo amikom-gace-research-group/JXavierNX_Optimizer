@@ -113,7 +113,7 @@ def calculate_reward(measured_metrics):
     if power > POWER_BUDGET:
         return 1e6
     
-    return throughput / POWER_BUDGET
+    return throughput / power
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
