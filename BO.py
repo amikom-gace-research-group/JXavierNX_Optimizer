@@ -45,15 +45,13 @@ time_got = []
 last_rewards = []  # To store recent rewards for saturation check
 episode_counter = 0
 
-cores_space = (Categorical(sampled_configs['cpu_cores'], name='cpu_cores') if len(sampled_configs['cpu_cores']) == 1 else Integer(min(sampled_configs['cpu_cores']), max(sampled_configs['cpu_cores']), name='cpu_cores'))
-
 # Define the parameter space for Bayesian Optimization
 space = [
-    cores_space,
-    Integer(min(sampled_configs['cpu_freq']), max(sampled_configs['cpu_freq']), name='cpu_freq'),
-    Integer(min(sampled_configs['gpu_freq']), max(sampled_configs['gpu_freq']), name='gpu_freq'),
-    Integer(min(sampled_configs['memory_freq']), max(sampled_configs['memory_freq']), name='mem_freq'),
-    Integer(min(sampled_configs['cl']), max(sampled_configs['cl']), name='cl')
+    Categorical(sampled_configs['cpu_cores'], name='cpu_cores'),
+    Categorical(sampled_configs['cpu_freq'], name='cpu_freq'),
+    Categorical(sampled_configs['gpu_freq'], name='gpu_freq'),
+    Categorical(sampled_configs['memory_freq'], name='mem_freq'),
+    Categorical(sampled_configs['cl'], name='cl')
 ]
 
 # Function to get the result from the external system
