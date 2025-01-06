@@ -123,7 +123,7 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time', 'episode', 'iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
