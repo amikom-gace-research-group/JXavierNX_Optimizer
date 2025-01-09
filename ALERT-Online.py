@@ -23,6 +23,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 POWER_BUDGET = int(sys.argv[6])
+conf = 0
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
@@ -157,12 +158,13 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                               "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
                     sampled_configs.append(config)
 
-def select_best_configuration(conf, entries, power_budget, power_variance):
+def select_best_configuration(entries, power_budget, power_variance):
+    global conf
     # Step 1: Extract relevant data from entries
     power = np.array([float(entry['power']) for entry in entries])  # Mean power consumption
     throughput = np.array([float(entry['throughput']) for entry in entries])  # Throughput
     configurations = np.array(entries)
-
+    
     # Step 2: Create binary mask for valid configurations
     power_mask = (power <= power_budget).astype(int)  # 1 if within power budget, 0 otherwise
 
@@ -199,7 +201,6 @@ def execute_runtime(num_episodes=100):
     power_filter = KalmanFilterPower()
     best_config = None
     power_var = 0.01
-    conf = 0
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = sampled_configs[0]["cpu_cores"], sampled_configs[0]["cpu_freq"], sampled_configs[0]["gpu_freq"], sampled_configs[0]["memory_freq"], sampled_configs[0]["cl"]
 
     for episode in range(num_episodes):
@@ -245,7 +246,8 @@ def execute_runtime(num_episodes=100):
             sampled_configs[best_index]['mem'] = mem
 
         best = select_best_configuration(conf, sampled_configs, POWER_BUDGET, power_var)
-        
+        best_config, best_index = best
+
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
         configs = {
             "api_time": api_time,
@@ -268,7 +270,6 @@ def execute_runtime(num_episodes=100):
 
         print(f"[Runtime] Selected configuration {best_config}")
 
-        best_config, best_index = best
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_cores"], best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
 
     if best is None:
