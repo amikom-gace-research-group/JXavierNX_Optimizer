@@ -267,7 +267,7 @@ def execute_runtime(num_episodes=100):
             "gpu_percent": measured_metrics[0]["gpu_percent"],
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
-        save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv([configs], f"alert-online_{sys.argv[5]}_{sys.argv[4]}.csv")
 
         print(f"[Runtime] Selected configuration {best_config}")
 

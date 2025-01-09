@@ -228,7 +228,7 @@ for episode in range(100):  # Example: run for 100 episodes
     # Apply the DVFS configuration
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_dvfs(lag, dvfs_config, throughput)
     
-    save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
+    save_csv([configs], f"neuos-online_scaled_jxavier_{sys.argv[4]}.csv")
     # Log the results
     print(f"Configs: {configs}")
 

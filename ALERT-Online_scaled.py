@@ -287,7 +287,7 @@ for episode in range(num_episodes):
     configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, configs)
 
-    save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv([configs], f"alert-online_scaled_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     if power_probability > 0.8 and measured_metrics[0]["throughput"] > best_throughput:
         best_config = configs
