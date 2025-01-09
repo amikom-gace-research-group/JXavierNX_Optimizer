@@ -171,7 +171,7 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 # Main loop for NeuOS-based optimization (focus on throughput and power)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = min(sampled_configs['cpu_cores']), min(sampled_configs['cpu_freq']), min(sampled_configs['gpu_freq']), min(sampled_configs['memory_freq']), min(sampled_configs['cl'])
 
 last_lag = 0
 best_lag = 0

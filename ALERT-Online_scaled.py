@@ -219,7 +219,7 @@ throughput_filter = KalmanFilter()
 power_filter = KalmanFilterPower()
 
 # Initial configurations (starting in the middle of the range)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = min(sampled_configs['cpu_cores']), min(sampled_configs['cpu_freq']), min(sampled_configs['gpu_freq']), min(sampled_configs['memory_freq']), min(sampled_configs['cl'])
 last_probability = 0, 0
 
 value_matrixes = [0]
