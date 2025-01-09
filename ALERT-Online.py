@@ -157,9 +157,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                               "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
                     sampled_configs.append(config)
 
-conf = 0
-
-def select_best_configuration(entries, power_budget, power_variance):
+def select_best_configuration(conf, entries, power_budget, power_variance):
     # Step 1: Extract relevant data from entries
     power = np.array([float(entry['power']) for entry in entries])  # Mean power consumption
     throughput = np.array([float(entry['throughput']) for entry in entries])  # Throughput
@@ -200,8 +198,8 @@ def execute_runtime(num_episodes=100):
     throughput_filter = KalmanFilter()
     power_filter = KalmanFilterPower()
     best_config = None
-    entries = []
     power_var = 0.01
+    conf = 0
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = sampled_configs[0]["cpu_cores"], sampled_configs[0]["cpu_freq"], sampled_configs[0]["gpu_freq"], sampled_configs[0]["memory_freq"], sampled_configs[0]["cl"]
 
     for episode in range(num_episodes):
@@ -240,7 +238,7 @@ def execute_runtime(num_episodes=100):
             sampled_configs[0]['gpu'] = gpu
             sampled_configs[0]['mem'] = mem
 
-        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var)
+        best = select_best_configuration(conf, sampled_configs, POWER_BUDGET, power_var)
 
         if episode > 0:
             sampled_configs[best_index]['power'] = estimated_throughput
