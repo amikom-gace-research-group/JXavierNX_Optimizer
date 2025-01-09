@@ -245,7 +245,7 @@ def execute_runtime(num_episodes=100):
             sampled_configs[best_index]['gpu'] = gpu
             sampled_configs[best_index]['mem'] = mem
 
-        best = select_best_configuration(conf, sampled_configs, POWER_BUDGET, power_var)
+        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var)
         best_config, best_index = best
 
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
