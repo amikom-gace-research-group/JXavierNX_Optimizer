@@ -20,54 +20,17 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 3)
 
-# -----------------------
-# Profiling Configurations
-# -----------------------
+sampled_configs = []
 
-def profile_configurations():
-    """
-    Profiles a subset of configurations and returns profiling data.
-    """
-    if os.path.exists("profiling_alert.csv"):
-        print("[Profiling] profiling configurations was profiled.")
-        with open("profiling_alert.csv", mode='r', encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
-            # Convert each row into a dictionary and add it to a list
-            data = [dict(row) for row in csv_reader]
-        return data
-    else:
-        profiling_data = []
-        sampled_configs = []
-
-        # Stratified sampling: Select a subset of configurations
-        for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
-            for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
-                for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
-                    for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
-                        for cl in CL_RANGE:
-                            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
-                            sampled_configs.append(config)
-
-        # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
-        for config in sampled_configs:
-            t1 = time.time()
-            measured_metrics, _ = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
-            elapsed_exec = round(time.time() - t1, 3)
-            throughput = measured_metrics[0]['throughput']
-            power = measured_metrics[0]['power_cons']
-            cpu =  measured_metrics[0]["cpu_percent"]
-            gpu = measured_metrics[0]["gpu_percent"]
-            mem = measured_metrics[0]["mem_percent"]
-            data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
-            profiling_data.append(data)
-            with open("profiling_neuos.csv", 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
-                if os.path.getsize("profiling_neuos.csv") == 0:
-                    writer.writeheader()
-                writer.writerow(data)
-
-        print("[Profiling] Completed profiling configurations.")
-        return profiling_data
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, 
+                              "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
+                    sampled_configs.append(config)
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = [[1.0, 1.0], [2.1, 2], [2.8, 1.5]]
@@ -82,11 +45,13 @@ def select_dvfs(df_prof):
     baseline_troughput, baseline_power = baseline["throughput"], baseline["power"]
     chosen_dvfs[0] = list(baseline_dvfs)
     moderate = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp[1][0])) & (df_prof["power"] >= (baseline_power * SpeedUp_PowerUp[1][1]))]
-    moderate_dvfs = moderate["cpu_cores"].min(), moderate["cpu_freq"].min(), moderate["gpu_freq"].min(), moderate["memory_freq"].min(), moderate["cl"].min()
-    chosen_dvfs[1] = list(moderate_dvfs)
+    if moderate:
+        moderate_dvfs = moderate["cpu_cores"].min(), moderate["cpu_freq"].min(), moderate["gpu_freq"].min(), moderate["memory_freq"].min(), moderate["cl"].min()
+        chosen_dvfs[1] = list(moderate_dvfs)
     high = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp[2][0])) & (df_prof["power"] >= (baseline_power * SpeedUp_PowerUp[2][1]))]
-    high_dvfs = high["cpu_cores"].min(), high["cpu_freq"].min(), high["gpu_freq"].min(), high["memory_freq"].min(), high["cl"].min()
-    chosen_dvfs[2] = list(high_dvfs)
+    if high:
+        high_dvfs = high["cpu_cores"].min(), high["cpu_freq"].min(), high["gpu_freq"].min(), high["memory_freq"].min(), high["cl"].min()
+        chosen_dvfs[2] = list(high_dvfs)
 
 def update_output(throughput, power, configs, df_prof):
     df_prof["throughput"][(df_prof["cpu_cores"] == configs[0]) & (df_prof["cpu_freq"] == configs[1]) & (df_prof["gpu_freq"] == configs[2]) & (df_prof["memory_freq"] == configs[3]) & (df_prof["cl"] == configs[4])] = throughput
@@ -157,8 +122,7 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 def execute_runtime(num_episodes=100):
-    prof = profile_configurations()
-    df_prof = pd.DataFrame(prof)
+    df_prof = pd.DataFrame(sampled_configs)
     select_dvfs(df_prof)
    
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs[0]
@@ -166,6 +130,7 @@ def execute_runtime(num_episodes=100):
     best_power = POWER_BUDGET
     time_got = []
     best_config = None
+    conf = 0
 
     for episode in range(num_episodes):  # Example: run for 100 episodes
         # Get current metrics (throughput and power)
@@ -212,8 +177,12 @@ def execute_runtime(num_episodes=100):
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
 
-        # Apply the DVFS configuration
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = dvfs_config
+        if dvfs_config == ():
+            conf += 1
+            config = sampled_configs[conf]
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
+        else:
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = dvfs_config
         
         save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
         # Log the results

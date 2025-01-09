@@ -4,6 +4,7 @@ import time
 import os
 import csv
 import requests
+import pandas as pd
 from scipy.stats import norm
 
 print("PID", os.getpid())
@@ -144,76 +145,25 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
-# -----------------------
-# Profiling Configurations
-# -----------------------
+sampled_configs = []
 
-def profile_configurations():
-    """
-    Profiles a subset of configurations and returns profiling data.
-    """
-    if os.path.exists("profiling_alert.csv"):
-        print("[Profiling] profiling configurations was profiled.")
-        with open("profiling_alert.csv", mode='r', encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
-            # Convert each row into a dictionary and add it to a list
-            data = [dict(row) for row in csv_reader]
-        return data
-    else:
-        profiling_data = []
-        sampled_configs = []
+# Stratified sampling: Select a subset of configurations
+for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
+        for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
+            for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
+                for cl in CL_RANGE:
+                    config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, 
+                              "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
+                    sampled_configs.append(config)
 
-        # Stratified sampling: Select a subset of configurations
-        for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
-            for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
-                for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
-                    for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
-                        for cl in CL_RANGE:
-                            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
-                            sampled_configs.append(config)
+conf = 0
 
-        # Simulated profiling (replace with real measurements on the Jetson Xavier NX)
-        for config in sampled_configs:
-            t1 = time.time()
-            measured_metrics, _ = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
-            config["cpu_cores"] = config["cpu_cores"]
-            elapsed_exec = round(time.time() - t1, 3)
-            throughput = measured_metrics[0]['throughput']
-            power = measured_metrics[0]['power_cons']
-            cpu =  measured_metrics[0]["cpu_percent"]
-            gpu = measured_metrics[0]["gpu_percent"]
-            mem = measured_metrics[0]["mem_percent"]
-            data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
-            profiling_data.append(data)
-            with open("profiling_alert.csv", 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
-                if os.path.getsize("profiling_alert.csv") == 0:
-                    writer.writeheader()
-                writer.writerow(data)
-
-        print("[Profiling] Completed profiling configurations.")
-        return profiling_data
-
-
-# -----------------------
-# Dynamic Configuration Selection
-# -----------------------
-
-def select_best_configuration(profiling_data, power_budget, power_variance):
-    """
-    Selects the best configuration to maximize throughput under a power budget.
-
-    Args:
-        profiling_data: List of profiled configurations with throughput, power metrics, and variance.
-        power_budget: Power budget constraint (W).
-
-    Returns:
-        dict: The best configuration.
-    """
-    # Step 1: Extract relevant data from profiling_data
-    power = np.array([float(entry['power']) for entry in profiling_data])  # Mean power consumption
-    throughput = np.array([float(entry['throughput']) for entry in profiling_data])  # Throughput
-    configurations = np.array(profiling_data)
+def select_best_configuration(entries, power_budget, power_variance):
+    # Step 1: Extract relevant data from entries
+    power = np.array([float(entry['power']) for entry in entries])  # Mean power consumption
+    throughput = np.array([float(entry['throughput']) for entry in entries])  # Throughput
+    configurations = np.array(entries)
 
     # Step 2: Create binary mask for valid configurations
     power_mask = (power <= power_budget).astype(int)  # 1 if within power budget, 0 otherwise
@@ -228,45 +178,33 @@ def select_best_configuration(profiling_data, power_budget, power_variance):
     value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
 
     # Step 5: Select the best configuration
-    if np.sum(power_mask) == 0:
-        print("No valid configuration found within the power budget.")
-        return None
-
-    best_index = np.argmax(value_matrix)  # Find the index of the highest score
-    best_config = configurations[best_index]
-
-    return best_config, best_index
+    if power_mask[-1] == 0:
+        print("No valid configuration found within the power budget")
+        best_index = np.argmax(value_matrix)  # Find the index of the highest score
+        best_config = configurations[best_index]
+        return best_config, best_index
+    elif power_mask[-1] > 0:
+        conf += 1
+        next_config = configurations[conf]
+        return next_config, conf
 
 
 # -----------------------
 # Runtime Execution Loop
 # -----------------------
 
-def execute_runtime(profiling_data, num_episodes=100):
+def execute_runtime(num_episodes=100):
     """
     Executes the runtime learning and adjustment process.
     """
     throughput_filter = KalmanFilter()
     power_filter = KalmanFilterPower()
     best_config = None
+    entries = []
     power_var = 0.01
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = sampled_configs[0]["cpu_cores"], sampled_configs[0]["cpu_freq"], sampled_configs[0]["gpu_freq"], sampled_configs[0]["memory_freq"], sampled_configs[0]["cl"]
 
     for episode in range(num_episodes):
-        t1 = time.time()
-
-         # Select the best configuration dynamically
-        best = select_best_configuration(profiling_data, POWER_BUDGET, power_var)
-
-        if best is None:
-            print("[Runtime] No valid configuration found.")
-            os.remove("profiling_alert.csv")
-            break
-
-        best_config, best_index = best
-
-        # Adjust frequencies to the selected configuration
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_cores"], best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
-
         t1 = time.time()
         # Simulated runtime execution (replace with actual API call)
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -281,6 +219,9 @@ def execute_runtime(profiling_data, num_episodes=100):
 
         throughput = measured_metrics[0]['throughput']
         power = measured_metrics[0]['power_cons']
+        cpu =  measured_metrics[0]["cpu_percent"]
+        gpu = measured_metrics[0]["gpu_percent"]
+        mem = measured_metrics[0]["mem_percent"]
 
         # Update Kalman Filters
         predicted_throughput, _ = throughput_filter.update(throughput)
@@ -290,15 +231,28 @@ def execute_runtime(profiling_data, num_episodes=100):
         slowdown_factor = predicted_throughput / throughput
         estimated_throughput = slowdown_factor * throughput
         power_slowdown_factor = predicted_power / power
-        estimated_power= power_slowdown_factor * power
+        estimated_power = power_slowdown_factor * power
 
-        profiling_data[best_index]['power'] = estimated_power
-        profiling_data[best_index]['throughput'] = estimated_throughput
+        if episode == 0:
+            sampled_configs[0]['power'] = estimated_throughput
+            sampled_configs[0]['throughput'] = estimated_power
+            sampled_configs[0]['cpu'] = cpu
+            sampled_configs[0]['gpu'] = gpu
+            sampled_configs[0]['mem'] = mem
 
+        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var)
+
+        if episode > 0:
+            sampled_configs[best_index]['power'] = estimated_throughput
+            sampled_configs[best_index]['throughput'] = estimated_power
+            sampled_configs[best_index]['cpu'] = cpu
+            sampled_configs[best_index]['gpu'] = gpu
+            sampled_configs[best_index]['mem'] = mem
+        
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
         configs = {
             "api_time": api_time,
-            "episode": episode+1,
+            'episode': episode,
             "infer_overhead" : elapsed_exec,
             "alert_overhead" : elapsed,
             "power_budget": POWER_BUDGET,
@@ -315,7 +269,10 @@ def execute_runtime(profiling_data, num_episodes=100):
         }
         save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-        print(f"[Runtime] Episode {episode + 1}: Selected configuration {best_config}")
+        print(f"[Runtime] Selected configuration {best_config}")
+
+        best_config, best_index = best
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = best_config["cpu_cores"], best_config["cpu_freq"], best_config["gpu_freq"], best_config["memory_freq"], best_config["cl"]
 
     if best is None:
         return "No Best"
@@ -346,15 +303,5 @@ def save_csv(dict_list, filename):
 # -----------------------
 
 if __name__ == "__main__":
-    while True:
-        # Step 1: Profiling
-        profiling_data = profile_configurations()
-
-        # Step 2: Runtime execution
-        out = execute_runtime(profiling_data, num_episodes=100)
-        if out == "No Best":
-            continue
-        else:
-            break
-
+    execute_runtime(num_episodes=100)
 

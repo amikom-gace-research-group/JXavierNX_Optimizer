@@ -5,7 +5,8 @@ import os
 import csv
 import requests
 from skopt import gp_minimize
-from skopt.space import Integer, Categorical
+from skopt.space import Categorical
+from skopt.utils import cook_estimator
 from skopt.utils import use_named_args
 from skopt.acquisition import gaussian_ei, gaussian_pi, gaussian_lcb
 
@@ -178,7 +179,6 @@ class PhaseTracker:
         self.acquisition_type = []
         self.filename = filename
 
-        # Write header to CSV file if it doesn't exist
         with open(self.filename, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(["Iteration", "Point", "Acquisition Function", "Phase"])
@@ -187,21 +187,22 @@ class PhaseTracker:
         x = res.x_iters[-1]  # Get the last evaluated point
         self.points.append(x)
 
-        # If no model has been built yet, set default acquisition values
         if not res.models:
             phase = "Exploration (Initial Sampling)"
             acquisition_type = "Random"
         else:
-            # Compute acquisition function values for the current model
+            # Transform input into encoded format
+            transformer = cook_estimator(res.models[-1]).space.transform
+            x_encoded = transformer([x])  # Encode x to match model expectation
+            
+            # Compute acquisition function values
             model = res.models[-1]
-            x_array = np.array([x])
-            ei = gaussian_ei(x_array, model)
-            pi = gaussian_pi(x_array, model)
-            lcb = gaussian_lcb(x_array, model)
+            ei = gaussian_ei(x_encoded, model)
+            pi = gaussian_pi(x_encoded, model)
+            lcb = gaussian_lcb(x_encoded, model)
 
             self.acquisition_values.append((ei[0], pi[0], lcb[0]))
 
-            # Determine phase based on the acquisition function
             if np.argmax([ei[0], pi[0], lcb[0]]) == 0:
                 phase = "Exploration (EI)"
                 acquisition_type = "EI"
@@ -212,7 +213,6 @@ class PhaseTracker:
                 phase = "Exploitation (LCB)"
                 acquisition_type = "LCB"
 
-        # Write data to CSV
         iteration = len(self.points)
         with open(self.filename, mode="a", newline="") as file:
             writer = csv.writer(file)

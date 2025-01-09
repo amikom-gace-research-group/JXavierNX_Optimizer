@@ -42,8 +42,6 @@ sampled_configs = sampled_configs.sort_values(
 POWER_BUDGET = int(sys.argv[6])
 
 slowdown_factor = 1.0  # Global slowdown factor (initial)
-scaling_factor = 0.1  # Scaling factor for gradual frequency adjustments
-max_saturated_count = 10
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
@@ -178,19 +176,22 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     ]
     return row.index[0] if not row.empty else None
 
-def adjust_configuration(power_probability, sampled_configs, configs):
-    adjustment = int((1 - power_probability) * scaling_factor * 100)
-    if power_probability < 0.8:
-        # Decrease resources if power probability is low
+def adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, configs):
+    adjustment = int((1 - power_probability) * 10)
+    if power_probability > 0.75 and value_matrix > max(value_matrixes):
+        # increase resources if power probability is high
         configs_id = round(get_row_id(*configs) * adjustment)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
+        value_matrixes.append(value_matrix)
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
-    else:
+    elif power_probability < 0.75:
         configs_id = round(get_row_id(*configs) * adjustment)
         configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
+    else:
+        return configs
 
 def calculate_probability(goal, m, value_var):
     # Calculate the standard deviation from variance
@@ -221,6 +222,8 @@ power_filter = KalmanFilterPower()
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
 last_probability = 0, 0
 
+value_matrixes = [0]
+
 num_episodes = 100
 
 for episode in range(num_episodes):
@@ -248,11 +251,18 @@ for episode in range(num_episodes):
     slowdown_factor = predicted_throughput / throughput_measurement
     estimated_throughput = slowdown_factor * throughput_measurement
     power_slowdown_factor = predicted_power / power_measurement
-    estimated_power= power_slowdown_factor * power_measurement
+    estimated_power = power_slowdown_factor * power_measurement
 
     # Calculate probability of meeting throughput/power target
-    power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var, 0)
+    power_probability = calculate_probability(POWER_BUDGET, power_measurement, power_var, 0)
 
+    power_mask = (power_measurement <= POWER_BUDGET).astype(int)
+
+    k_throughput = 1.0  # Weight for throughput (primary objective)
+    k_power_probability = 0.5  # Weight for power probability (secondary objective)
+    B = 99999999  # Large constant to make valid scores positive
+    value_matrix = power_mask * (B + k_throughput * throughput_measurement + k_power_probability * power_probability)
+    
     print(f"power_probability {power_probability}")
     elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
     time_got.append(elapsed+elapsed_exec)
@@ -275,21 +285,13 @@ for episode in range(num_episodes):
 
     # Adjust configurations based on probabilities
     configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, sampled_configs, configs)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, configs)
 
     save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     if power_probability > 0.8 and measured_metrics[0]["throughput"] > best_throughput:
         best_config = configs
         best_throughput = measured_metrics[0]["throughput"]
-
-    if abs(last_probability[1] - power_probability) <= 0.01:
-        max_saturated_count -= 1
-        if max_saturated_count == 0:
-            print("ALERT is saturated")
-            break
-    else:
-        max_saturated_count = 10
 
     last_probability = power_probability
 
