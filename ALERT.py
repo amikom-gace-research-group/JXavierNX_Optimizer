@@ -176,7 +176,6 @@ def profile_configurations():
         for config in sampled_configs:
             t1 = time.time()
             measured_metrics, _ = execute_config(config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"])
-            config["cpu_cores"] = config["cpu_cores"]
             elapsed_exec = round(time.time() - t1, 3)
             throughput = measured_metrics[0]['throughput']
             power = measured_metrics[0]['power_cons']
