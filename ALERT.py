@@ -185,7 +185,7 @@ def profile_configurations():
             data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
             profiling_data.append(data)
             with open("profiling_alert.csv", 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+                writer = csv.DictWriter(f, fieldnames=['profiling_time (s)', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
                 if os.path.getsize("profiling_alert.csv") == 0:
                     writer.writeheader()
                 writer.writerow(data)
