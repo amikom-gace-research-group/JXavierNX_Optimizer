@@ -182,6 +182,7 @@ def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs,
         configs_id = round(get_row_id(*configs) + 1)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
+        value_matrixes.append(value_matrix)
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     elif value_matrix == 0:
         configs_id = round(get_row_id(*configs) + 1)
@@ -282,7 +283,6 @@ for episode in range(num_episodes):
 
     if value_matrix > max(value_matrixes):
         best_config = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-        value_matrixes.append(value_matrix)
 
     # Adjust configurations based on probabilities
     config = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
