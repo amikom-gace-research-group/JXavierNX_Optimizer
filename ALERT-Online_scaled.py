@@ -176,7 +176,7 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     ]
     return row.index[0] if not row.empty else None
 
-def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs):
+def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs, best_config):
     if value_matrix > max(value_matrixes):
         # increase resources if power probability is high
         configs_id = round(get_row_id(*configs) + 1)
@@ -190,7 +190,7 @@ def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     else:
-        return configs
+        return configs if not best_config else best_config
 
 def calculate_probability(goal, m, value_var):
     # Calculate the standard deviation from variance
@@ -219,7 +219,6 @@ power_filter = KalmanFilterPower()
 
 # Initial configurations (starting in the middle of the range)
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = min(sampled_configs['cpu_cores']), min(sampled_configs['cpu_freq']), min(sampled_configs['gpu_freq']), min(sampled_configs['memory_freq']), min(sampled_configs['cl'])
-last_probability = 0, 0
 
 value_matrixes = [0]
 
@@ -284,15 +283,12 @@ for episode in range(num_episodes):
 
     # Adjust configurations based on probabilities
     config = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(value_matrix, value_matrixes, sampled_configs, config)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(value_matrix, value_matrixes, sampled_configs, config, best_config)
 
     save_csv([configs], f"alert-online_scaled_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-    if power_probability > 0.8 and measured_metrics[0]["throughput"] > best_throughput:
-        best_config = configs
-        best_throughput = measured_metrics[0]["throughput"]
-
-    last_probability = power_probability
+    if value_matrix > max(value_matrixes):
+        best_config = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
 
     print(f"Configs: {configs}")
 
