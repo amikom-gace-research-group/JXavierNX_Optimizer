@@ -176,17 +176,16 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     ]
     return row.index[0] if not row.empty else None
 
-def adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, configs):
-    adjustment = int((1 - power_probability) * 10)
-    if power_probability > 0.75 and value_matrix > max(value_matrixes):
+def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs):
+    if value_matrix > max(value_matrixes):
         # increase resources if power probability is high
-        configs_id = round(get_row_id(*configs) * adjustment)
+        configs_id = round(get_row_id(*configs) + 1)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
         value_matrixes.append(value_matrix)
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
-    elif power_probability < 0.75:
-        configs_id = round(get_row_id(*configs) * adjustment)
+    elif value_matrix == 0:
+        configs_id = round(get_row_id(*configs) + 1)
         configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
