@@ -254,14 +254,14 @@ for episode in range(num_episodes):
     estimated_power = power_slowdown_factor * power_measurement
 
     # Calculate probability of meeting throughput/power target
-    power_probability = calculate_probability(POWER_BUDGET, power_measurement, power_var)
+    power_probability = calculate_probability(POWER_BUDGET, estimated_power, power_var)
 
-    power_mask = (power_measurement <= POWER_BUDGET).astype(int)
+    power_mask = (np.int64(estimated_power) <= np.int64(POWER_BUDGET)).astype(int)
 
     k_throughput = 1.0  # Weight for throughput (primary objective)
     k_power_probability = 0.5  # Weight for power probability (secondary objective)
     B = 99999999  # Large constant to make valid scores positive
-    value_matrix = power_mask * (B + k_throughput * throughput_measurement + k_power_probability * power_probability)
+    value_matrix = power_mask * (B + k_throughput * estimated_throughput + k_power_probability * power_probability)
     
     print(f"power_probability {power_probability}")
     elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
