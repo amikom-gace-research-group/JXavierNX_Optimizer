@@ -32,9 +32,20 @@ def profile_configurations():
         print("[Profiling] profiling configurations was profiled.")
         with open("profiling_neuos.csv", mode='r', encoding='utf-8') as file:
             csv_reader = csv.DictReader(file)
-            # Convert each row into a dictionary and add it to a list
-            data = [dict(row) for row in csv_reader]
-        return data
+            data = []
+            for row in csv_reader:
+                new_row = {}
+                for key, value in row.items():
+                    # Attempt to convert the value to float
+                    try:
+                        float_value = float(value)
+                        # Convert to integer by rounding
+                        new_row[key] = round(float_value)
+                    except ValueError:
+                        # Keep the original value if it's not a number
+                        new_row[key] = value
+                data.append(new_row)
+            return data
     else:
         profiling_data = []
         sampled_configs = []
@@ -79,9 +90,9 @@ best_throughput = -float('inf')
 def select_dvfs(df_prof):
     baseline_dvfs = df_prof["cpu_cores"].min(), df_prof["cpu_freq"].min(), df_prof["gpu_freq"].min(), df_prof["memory_freq"].min(), df_prof["cl"].min()
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
-    baseline_troughput, baseline_power = int(baseline["throughput"].iloc[0]), int(baseline["power"].iloc[0])
+    baseline_troughput, baseline_power = round(baseline["throughput"].iloc[0]), round(baseline["power"].iloc[0])
     chosen_dvfs[0] = list(baseline_dvfs)
-    moderate = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp[1][0])) & (df_prof["power"] >= (baseline_power * SpeedUp_PowerUp[1][1]))]
+    moderate = df_prof[(df_prof["throughput"] >= round(baseline_troughput * SpeedUp_PowerUp[1][0])) & (df_prof["power"] >= round(baseline_power * SpeedUp_PowerUp[1][1]))]
     if moderate:
         moderate_dvfs = moderate["cpu_cores"].min(), moderate["cpu_freq"].min(), moderate["gpu_freq"].min(), moderate["memory_freq"].min(), moderate["cl"].min()
         chosen_dvfs[1] = list(moderate_dvfs)
