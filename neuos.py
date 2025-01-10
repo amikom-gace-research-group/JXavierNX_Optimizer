@@ -28,9 +28,9 @@ def profile_configurations():
     """
     Profiles a subset of configurations and returns profiling data.
     """
-    if os.path.exists("profiling_alert.csv"):
+    if os.path.exists("profiling_neuos.csv"):
         print("[Profiling] profiling configurations was profiled.")
-        with open("profiling_alert.csv", mode='r', encoding='utf-8') as file:
+        with open("profiling_neuos.csv", mode='r', encoding='utf-8') as file:
             csv_reader = csv.DictReader(file)
             # Convert each row into a dictionary and add it to a list
             data = [dict(row) for row in csv_reader]
