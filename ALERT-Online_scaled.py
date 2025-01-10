@@ -204,7 +204,7 @@ def calculate_probability(goal, m, value_var):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_probability', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
+        writer = csv.DictWriter(f, fieldnames=['api_time', 'episode', 'infer_overhead', 'alert_overhead', 'power_probability', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -268,7 +268,7 @@ for episode in range(num_episodes):
     time_got.append(elapsed+elapsed_exec)
     #Save results to CSV
     configs = {
-    "api_time": api_time,
+        "api_time": api_time,
         "episode": episode,
         "infer_overhead" : elapsed_exec,
         "alert_overhead" : elapsed,
@@ -284,8 +284,8 @@ for episode in range(num_episodes):
     }
 
     # Adjust configurations based on probabilities
-    configs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, configs)
+    config = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = adjust_configuration(power_probability, value_matrix, value_matrixes, sampled_configs, config)
 
     save_csv([configs], f"alert-online_scaled_{sys.argv[5]}_{sys.argv[4]}.csv")
 
