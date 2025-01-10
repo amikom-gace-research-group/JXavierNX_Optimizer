@@ -254,7 +254,7 @@ for episode in range(num_episodes):
     estimated_power = power_slowdown_factor * power_measurement
 
     # Calculate probability of meeting throughput/power target
-    power_probability = calculate_probability(POWER_BUDGET, power_measurement, power_var, 0)
+    power_probability = calculate_probability(POWER_BUDGET, power_measurement, power_var)
 
     power_mask = (power_measurement <= POWER_BUDGET).astype(int)
 
