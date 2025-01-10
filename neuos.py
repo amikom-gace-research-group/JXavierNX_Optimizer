@@ -93,11 +93,11 @@ def select_dvfs(df_prof):
     baseline_troughput, baseline_power = round(baseline["throughput"].iloc[0]), round(baseline["power"].iloc[0])
     chosen_dvfs[0] = list(baseline_dvfs)
     moderate = df_prof[(df_prof["throughput"] >= round(baseline_troughput * SpeedUp_PowerUp[1][0])) & (df_prof["power"] >= round(baseline_power * SpeedUp_PowerUp[1][1]))]
-    if moderate:
+    if moderate.any():
         moderate_dvfs = moderate["cpu_cores"].min(), moderate["cpu_freq"].min(), moderate["gpu_freq"].min(), moderate["memory_freq"].min(), moderate["cl"].min()
         chosen_dvfs[1] = list(moderate_dvfs)
     high = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp[2][0])) & (df_prof["power"] >= (baseline_power * SpeedUp_PowerUp[2][1]))]
-    if high:
+    if high.any():
         high_dvfs = high["cpu_cores"].min(), high["cpu_freq"].min(), high["gpu_freq"].min(), high["memory_freq"].min(), high["cl"].min()
         chosen_dvfs[2] = list(high_dvfs)
 
