@@ -177,7 +177,7 @@ def execute_runtime(num_episodes=100):
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
 
-        if dvfs_config == ():
+        if not dvfs_config:
             conf += 1
             config = sampled_configs[conf]
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
