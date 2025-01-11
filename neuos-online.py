@@ -29,7 +29,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
             for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
                 for cl in CL_RANGE:
                     config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, 
-                              "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
+                              "throughput": 0, "power": 1e+10, "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
                     sampled_configs.append(config)
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
