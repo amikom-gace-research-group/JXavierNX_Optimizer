@@ -42,7 +42,7 @@ best_throughput = -float('inf')
 def select_dvfs(df_prof):
     baseline_dvfs = df_prof["cpu_cores"].min(), df_prof["cpu_freq"].min(), df_prof["gpu_freq"].min(), df_prof["memory_freq"].min(), df_prof["cl"].min()
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
-    baseline_troughput, baseline_power = baseline["throughput"], baseline["power"]
+    baseline_troughput, baseline_power = round(baseline["throughput"].iloc[0]), round(baseline["power"].iloc[0])
     chosen_dvfs[0] = list(baseline_dvfs)
     moderate = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp[1][0])) & (df_prof["power"] >= (baseline_power * SpeedUp_PowerUp[1][1]))]
     if not moderate.empty:
