@@ -173,7 +173,7 @@ def execute_runtime(num_episodes=100):
     df_prof = pd.DataFrame(prof)
     select_dvfs(df_prof)
    
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs[0]
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']
 
     best_power = POWER_BUDGET
     time_got = []
