@@ -59,13 +59,16 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return row.index[0] if not row.empty else None
 
 def speedup_powerup_dvfs_selector(lag, value, sampled_configs, configs):
+    global conf
     if lag < 0:
         configs_id = round(get_row_id(*configs) * value)
+        conf += configs_id
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     else:
         configs_id = round(get_row_id(*configs) * value)
+        conf -= configs_id
         configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
@@ -179,6 +182,7 @@ best_power = POWER_BUDGET
 last_power = 0
 time_got = []
 best_config = None
+conf = 0
 
 for episode in range(100):  # Example: run for 100 episodes
     # Get current metrics (throughput and power)
@@ -188,6 +192,9 @@ for episode in range(100):  # Example: run for 100 episodes
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
         print("EXECUTION PROBLEM!")
+        conf += 1
+        config = sampled_configs[conf]
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
         continue
     if measured_metrics == "No Device":
         print("No Device/No Inference Runtime")

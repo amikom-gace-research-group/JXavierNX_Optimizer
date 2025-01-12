@@ -177,17 +177,20 @@ def get_row_id(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return row.index[0] if not row.empty else None
 
 def adjust_configuration(value_matrix, value_matrixes, sampled_configs, configs, best_config):
+    global conf
     if value_matrix > max(value_matrixes):
         # increase resources if power probability is high
         configs_id = round(get_row_id(*configs) + 1)
         configs_id = min(configs_id, len(sampled_configs)-1)
         updated_configs = sampled_configs.iloc[configs_id]
         value_matrixes.append(value_matrix)
+        conf += 1
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     elif value_matrix == 0:
         configs_id = round(get_row_id(*configs) + 1)
         configs_id = max(get_row_id(*configs) - abs(get_row_id(*configs) - configs_id), 0)
         updated_configs = sampled_configs.iloc[configs_id]
+        conf -= 1
         return updated_configs['cpu_cores'], updated_configs['cpu_freq'], updated_configs['gpu_freq'], updated_configs['memory_freq'], updated_configs['cl']
     else:
         return configs if not best_config else best_config
@@ -223,6 +226,7 @@ cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = min(sampled_configs['cpu_cores'
 value_matrixes = [0]
 
 num_episodes = 100
+conf = 0
 
 for episode in range(num_episodes):
     t1 = time.time()
@@ -232,6 +236,9 @@ for episode in range(num_episodes):
     elapsed_exec = round(time.time() - t1, 3)
     if not measured_metrics:
         print("EXECUTION PROBLEM!")
+        conf += 1
+        config = sampled_configs[conf]
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
         continue
     if measured_metrics == "No Device":
         print("No Device/No Inference Runtime")

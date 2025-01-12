@@ -139,6 +139,9 @@ def execute_runtime(num_episodes=100):
         elapsed_exec = round(time.time() - t1, 3)
         if not measured_metrics:
             print("EXECUTION PROBLEM!")
+            conf += 1
+            config = sampled_configs[conf]
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
             continue
         if measured_metrics == "No Device":
             print("No Device/No Inference Runtime")
