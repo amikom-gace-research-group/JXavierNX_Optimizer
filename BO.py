@@ -35,7 +35,7 @@ sampled_configs ={
 
 POWER_BUDGET = int(sys.argv[6])
 
-best_throughput = -float('inf')
+best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
 n_calls = 100  # Number of iterations for Bayesian Optimization
