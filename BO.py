@@ -191,10 +191,9 @@ class PhaseTracker:
             phase = "Exploration (Initial Sampling)"
             acquisition_type = "Random"
         else:
-            # Transform input into encoded format
-            transformer = cook_estimator(res.models[-1]).space.transform
-            x_encoded = transformer([x])  # Encode x to match model expectation
-            
+            # Transform input using res.space
+            x_encoded = res.space.transform([x])
+
             # Compute acquisition function values
             model = res.models[-1]
             ei = gaussian_ei(x_encoded, model)
@@ -217,6 +216,7 @@ class PhaseTracker:
         with open(self.filename, mode="a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([iteration, x, acquisition_type, phase])
+
 
 
 # Initialize the tracker
