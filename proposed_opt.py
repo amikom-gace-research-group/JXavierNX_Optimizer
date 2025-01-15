@@ -159,7 +159,7 @@ for episode, ids in enumerate(initial_config_id):
 
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
-        prohibited_configs.add(list(apply_configs(ids)))
+        prohibited_configs.add(apply_configs(ids))
 
     configs = {
         "api_time": api_time,
@@ -188,11 +188,10 @@ for episode in range(len(initial_config_id), 100):
         best_id = initial_config_id[rewards.index(max(rewards))]
         sorted_reward_id = sorted([rewards.index(max(rewards)), rewards.index(sorted_rewards[1])], reverse=True)
         sorted_neighbor_id = sorted([best_id, second_best_id], reverse=True)
-        new_configs = []
-        for exist_config, neighbor_config in zip(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1])):
-            new_configs.append(generate_neighbor(exist_config, neighbor_config))
 
-        if tuple(new_configs) != apply_configs(best_id):
+        new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
+
+        if new_configs != apply_configs(best_id):
             if new_configs in prohibited_configs:
                 continue
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
