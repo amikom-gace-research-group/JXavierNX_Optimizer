@@ -186,6 +186,7 @@ for episode in range(len(initial_config_id), 100):
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
         best_id = initial_config_id[rewards.index(max(rewards))]
+        sorted_reward_id = sorted([rewards.index(max(rewards)), rewards.index(sorted_rewards[1])], reverse=True)
         sorted_neighbor_id = sorted([best_id, second_best_id], reverse=True)
         new_configs = []
         for exist_config, neighbor_config in zip(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1])):
@@ -213,7 +214,7 @@ for episode in range(len(initial_config_id), 100):
                 break
 
             reward = calculate_reward(measured_metrics)
-            rewards.insert(rewards.index(max(rewards)), reward)
+            rewards.insert(sorted_reward_id[0], reward)
 
             if reward == 1e-6:
                 print("PROHIBITED CONFIG!")
