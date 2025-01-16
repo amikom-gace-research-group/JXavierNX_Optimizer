@@ -188,7 +188,7 @@ final_reward = []
 final_configs_id = []
 
 for episode in range(len(initial_config_id), 100):
-    if max(rewards) != 1e-6 or len(rewards) < 2:
+    if max(rewards) != 1e-6 or len(rewards) >= 2:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
         best_id = initial_config_id[rewards.index(max(rewards))]
