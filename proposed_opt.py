@@ -185,7 +185,7 @@ for episode, ids in enumerate(initial_config_id):
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
 
 final_reward = []
-final_configs = []
+final_configs_id = []
 
 for episode in range(len(initial_config_id), 100):
     if max(rewards) != 1e-6 or len(rewards) < 2:
@@ -244,13 +244,13 @@ for episode in range(len(initial_config_id), 100):
             print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
         else:
             final_reward.append(max(rewards))
-            final_configs.append(best_id)
+            final_configs_id.append(best_id)
             rewards.pop(rewards.index(max(rewards)))
             initial_config_id.pop(rewards.index(max(rewards)))
         sampled_configs.insert(sorted_neighbor_id[0], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
     else:
         if final_reward:
-            best_id = initial_config_id[final_reward.index(max(final_reward))]
+            best_id = final_configs_id[final_reward.index(max(final_reward))]
             configs = apply_configs(best_id)
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
 
