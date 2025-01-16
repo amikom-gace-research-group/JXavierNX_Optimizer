@@ -45,7 +45,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
                 else:
                     av_dev += 1
                     print("Waiting for device...")
-                    if av_dev == 30:
+                    if av_dev == 60:
                         return "No Device", None
                     time.sleep(10)
         else:
