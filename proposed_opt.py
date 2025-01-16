@@ -79,8 +79,13 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
 def apply_configs(id):
-    return sampled_configs[id]["cpu_cores"], sampled_configs[id]["cpu_freq"], sampled_configs[id]["gpu_freq"], sampled_configs[id]["memory_freq"], sampled_configs[id]["cl"]
+    return minmax(sampled_configs[id]["cpu_cores"], CPU_CORES_RANGE), minmax(sampled_configs[id]["cpu_freq"], CPU_FREQ_RANGE), minmax(sampled_configs[id]["gpu_freq"], GPU_FREQ_RANGE), minmax(sampled_configs[id]["memory_freq"], MEMORY_FREQ_RANGE), minmax(sampled_configs[id]["cl"], CL_RANGE)
 
 print("PID", os.getpid())
 
