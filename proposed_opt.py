@@ -248,6 +248,7 @@ for episode in range(len(initial_config_id), 100):
             rewards.pop(rewards.index(max(rewards)))
             initial_config_id.pop(rewards.index(max(rewards)))
         sampled_configs.insert(sorted_neighbor_id[0], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
+        initial_config_id.insert(sorted_reward_id[0]+1, sorted_neighbor_id[0]+1)
     else:
         if final_reward:
             best_id = final_configs_id[final_reward.index(max(final_reward))]
