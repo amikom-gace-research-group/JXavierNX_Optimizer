@@ -182,7 +182,7 @@ for episode, ids in enumerate(initial_config_id):
 final_reward = []
 
 for episode in range(len(initial_config_id), 100):
-    if max(rewards) == 1e-6:
+    if max(rewards) != 1e-6:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
         best_id = initial_config_id[rewards.index(max(rewards))]
