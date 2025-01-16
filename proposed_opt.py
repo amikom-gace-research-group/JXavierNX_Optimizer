@@ -66,8 +66,8 @@ def calculate_reward(measured_metrics):
 
 def generate_neighbor(exist_configs, neighbor_configs):
     new_neighbor = []
-    for exist_config, neighbor_config in zip(exist_configs, neighbor_configs):
-        new_neighbor.append(round(exist_config - abs(exist_config - neighbor_config) / 2))
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbor.append(minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range))
     return tuple(new_neighbor)
 
 # CSV saving optimization
