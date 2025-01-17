@@ -187,9 +187,10 @@ for episode, ids in enumerate(initial_config_id):
 final_reward = []
 final_configs_id = []
 
+max_episode = 100
 exploration_eps = initial_config_id
 
-for episode in range(len(exploration_eps), 100):
+for episode in range(exploration_eps, max_episode):
     if max(rewards) != 1e-6 or len(rewards) >= 2 or episode < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
@@ -249,6 +250,7 @@ for episode in range(len(exploration_eps), 100):
             final_configs_id.append(best_id)
             rewards.pop(rewards.index(max(rewards)))
             initial_config_id.pop(rewards.index(max(rewards)))
+            max_episode += 1
         sampled_configs.insert(sorted_neighbor_id[1], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
         initial_config_id.insert(sorted_reward_id[1]+1, sorted_neighbor_id[1]+1)
     else:
@@ -279,7 +281,7 @@ for episode in range(len(exploration_eps), 100):
             configs = {
                 "api_time": api_time,
                 "reward": reward,
-                "phase":"exploitation",
+                "phase":"post-training",
                 "episode": episode+1,
                 "xaviernx_time_elapsed": elapsed_exec,
                 "cpu_cores": cpu_cores+1,
