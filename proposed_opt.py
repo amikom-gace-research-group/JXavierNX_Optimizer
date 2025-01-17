@@ -276,7 +276,7 @@ for episode in range(exploration_eps, max_episode):
                 break
 
             reward = calculate_reward(measured_metrics)
-            final_reward.insert(final_reward.index(max(final_reward)), reward)
+            final_reward[final_reward.index(max(final_reward))] =  reward
 
             configs = {
                 "api_time": api_time,
