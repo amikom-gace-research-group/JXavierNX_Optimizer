@@ -199,8 +199,9 @@ for episode in range(exploration_eps, max_episode):
         sorted_neighbor_id = sorted([best_id, second_best_id], reverse=True)
 
         new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
+        dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
 
-        if new_configs != apply_configs(best_id):
+        if dict_new_configs not in sampled_configs:
             if new_configs in prohibited_configs:
                 continue
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
@@ -224,7 +225,7 @@ for episode in range(exploration_eps, max_episode):
             reward = calculate_reward(measured_metrics)
             rewards.insert(sorted_reward_id[1], reward)
 
-            sampled_configs.insert(sorted_neighbor_id[1], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
+            sampled_configs.insert(sorted_neighbor_id[1], dict_new_configs)
             initial_config_id.insert(sorted_reward_id[1]+1, sorted_neighbor_id[1]+1)
 
             if reward == 1e-6:
