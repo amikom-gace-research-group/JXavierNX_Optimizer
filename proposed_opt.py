@@ -250,7 +250,7 @@ for episode in range(exploration_eps, max_episode):
             print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
         else:
             final_reward.append(max(rewards))
-            final_configs_id.append(best_id)
+            final_configs_id.append(initial_config_id[rewards.index(max(rewards))])
             rewards.pop(rewards.index(max(rewards)))
             initial_config_id.pop(rewards.index(max(rewards)))
             max_episode += 1
