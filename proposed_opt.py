@@ -219,7 +219,7 @@ for episode in range(len(initial_config_id), 100):
                 break
 
             reward = calculate_reward(measured_metrics)
-            rewards.insert(sorted_reward_id[0], reward)
+            rewards.insert(sorted_reward_id[1], reward)
 
             if reward == 1e-6:
                 print("PROHIBITED CONFIG!")
