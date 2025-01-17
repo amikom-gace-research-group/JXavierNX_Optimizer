@@ -224,6 +224,9 @@ for episode in range(exploration_eps, max_episode):
             reward = calculate_reward(measured_metrics)
             rewards.insert(sorted_reward_id[1], reward)
 
+            sampled_configs.insert(sorted_neighbor_id[1], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
+            initial_config_id.insert(sorted_reward_id[1]+1, sorted_neighbor_id[1]+1)
+
             if reward == 1e-6:
                 print("PROHIBITED CONFIG!")
                 prohibited_configs.add(new_configs)
@@ -251,8 +254,7 @@ for episode in range(exploration_eps, max_episode):
             rewards.pop(rewards.index(max(rewards)))
             initial_config_id.pop(rewards.index(max(rewards)))
             max_episode += 1
-        sampled_configs.insert(sorted_neighbor_id[1], {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]})
-        initial_config_id.insert(sorted_reward_id[1]+1, sorted_neighbor_id[1]+1)
+
     else:
         if final_reward:
             best_id = final_configs_id[final_reward.index(max(final_reward))]
