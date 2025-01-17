@@ -188,10 +188,10 @@ final_reward = []
 final_configs_id = []
 
 max_episode = 100
-exploration_eps = initial_config_id
+exploration_eps = len(initial_config_id)
 
 for episode in range(exploration_eps, max_episode):
-    if max(rewards) != 1e-6 or len(rewards) >= 2 or episode < 75:
+    if max(rewards) != 1e-6 and len(rewards) >= 2 and episode < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
         best_id = initial_config_id[rewards.index(max(rewards))]
