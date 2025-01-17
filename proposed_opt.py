@@ -201,7 +201,7 @@ for episode in range(exploration_eps, max_episode):
         new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
 
-        if dict_new_configs not in sampled_configs:
+        if (sorted_neighbor_id[1]+1) not in initial_config_id and (sampled_configs.index(dict_new_configs) not in initial_config_id if dict_new_configs in sampled_configs else True):
             if new_configs in prohibited_configs:
                 continue
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
