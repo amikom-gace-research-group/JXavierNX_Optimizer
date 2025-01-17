@@ -257,7 +257,9 @@ for episode in range(exploration_eps, max_episode):
             max_episode += 1
 
     else:
-        if final_reward:
+        final_reward.append(max(rewards))
+        final_configs_id.append(initial_config_id[rewards.index(max(rewards))])
+        if max(rewards) != 1e-6:
             best_id = final_configs_id[final_reward.index(max(final_reward))]
             configs = apply_configs(best_id)
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
