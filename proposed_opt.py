@@ -188,7 +188,7 @@ final_reward = []
 final_configs_id = []
 
 max_episode = 100
-exploration_eps = len(initial_config_id)
+exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
     if max(rewards) != 1e-6 and len(rewards) >= 2 and episode < 75:
@@ -236,7 +236,7 @@ while exploration_eps <= max_episode:
                 "api_time": api_time,
                 "reward": reward,
                 "phase":"exploitation",
-                "episode": episode+1,
+                "episode": exploration_eps,
                 "xaviernx_time_elapsed": elapsed_exec,
                 "cpu_cores": cpu_cores+1,
                 "cpu_freq": cpu_freq,
@@ -287,7 +287,7 @@ while exploration_eps <= max_episode:
                 "api_time": api_time,
                 "reward": reward,
                 "phase":"post-training",
-                "episode": episode+1,
+                "episode": exploration_eps,
                 "xaviernx_time_elapsed": elapsed_exec,
                 "cpu_cores": cpu_cores+1,
                 "cpu_freq": cpu_freq,
