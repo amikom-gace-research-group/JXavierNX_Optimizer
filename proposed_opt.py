@@ -191,7 +191,7 @@ max_episode = 100
 exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
-    if max(rewards) != 1e-6 and len(rewards) >= 2 and episode < 75:
+    if max(rewards) != 1e-6 and len(rewards) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
         best_id = initial_config_id[rewards.index(max(rewards))]
@@ -248,7 +248,7 @@ while exploration_eps <= max_episode:
             dict_record = [{**configs, **measured_metrics[0]}]
             save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-            print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
+            print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
         else:
             final_reward.append(max(rewards))
@@ -299,5 +299,5 @@ while exploration_eps <= max_episode:
             dict_record = [{**configs, **measured_metrics[0]}]
             save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-            print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(final_reward) if final_reward else None}")
+            print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(final_reward) if final_reward else None}")
             exploration_eps += 1
