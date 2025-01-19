@@ -158,7 +158,7 @@ for episode, ids in enumerate(initial_config_id):
         break
 
     reward = calculate_reward(measured_metrics)
-    ids[ids.keys()].append(reward)
+    ids[list(ids.keys())[0]].append(reward)
 
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
