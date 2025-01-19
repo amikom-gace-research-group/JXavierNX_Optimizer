@@ -179,7 +179,7 @@ for episode, ids in enumerate(initial_config_id):
 
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
-    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id))]
+    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
 
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
 
@@ -189,7 +189,7 @@ max_episode = 100
 exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
-    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id))]
+    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
     if max(rewards) != 1e-6 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = int(initial_config_id[next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0')])
@@ -255,7 +255,7 @@ while exploration_eps <= max_episode:
     else:
         if best_id not in [list(final_configs_id[i].keys())[0][0] for i in range(len(final_configs_id))]:
             final_configs_id.append({str(best_id):[max(rewards)]})
-        rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id))]
+        rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id)) if list(final_configs_id[i].values())[0]]
         if max(rewards) != 1e-6:
             best_id = int(final_configs_id[next((key for d in final_configs_id for key, value in d.items() if value[0] == max(rewards)), '0')])
             configs = apply_configs(best_id)
