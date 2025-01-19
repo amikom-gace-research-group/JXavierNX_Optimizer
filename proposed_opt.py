@@ -194,9 +194,8 @@ while exploration_eps <= max_episode:
         sorted_rewards = sorted(rewards, reverse=True)
         second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
         best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
-        sorted_neighbor_id = sorted([best_id, second_best_id], reverse=True)
 
-        new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
+        new_configs = generate_neighbor(apply_configs(best_id), apply_configs(second_best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
         if dict_new_configs not in sampled_configs:
             sampled_configs.append(dict_new_configs)
