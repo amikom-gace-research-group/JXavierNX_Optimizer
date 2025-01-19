@@ -130,18 +130,16 @@ initial_config_id = []
 for i, idx in enumerate(quartile_indices):
     if i < 2:
         for k in [0, 1, 2]:
-            initial_config_id.append(idx+k)
+            initial_config_id.append({str(idx+k):[]})
     elif 2 <= i <= 3:
         for k in [-1, 0, 1]:
-            initial_config_id.append(idx+k)
+            initial_config_id.append({str(idx+k):[]})
     else:
         for k in [-2, -1, 0]:
-            initial_config_id.append(idx+k)
-
-rewards = []
+            initial_config_id.append({str(idx+k):[]})
 
 for episode, ids in enumerate(initial_config_id):
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_configs(ids)
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_configs(int(list(ids.keys())[0]))
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
@@ -160,7 +158,7 @@ for episode, ids in enumerate(initial_config_id):
         break
 
     reward = calculate_reward(measured_metrics)
-    rewards.append(reward)
+    ids[ids.keys()].append(reward)
 
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
@@ -181,27 +179,28 @@ for episode, ids in enumerate(initial_config_id):
 
     dict_record = [{**configs, **measured_metrics[0]}]
     save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
+    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id))]
 
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
 
-final_reward = []
 final_configs_id = []
 
 max_episode = 100
 exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
-    if max(rewards) != 1e-6 and len(rewards) >= 2 and exploration_eps < 75:
+    rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id))]
+    if max(rewards) != 1e-6 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
-        second_best_id = initial_config_id[rewards.index(sorted_rewards[1])]
-        best_id = initial_config_id[rewards.index(max(rewards))]
-        sorted_reward_id = sorted([rewards.index(max(rewards)), rewards.index(sorted_rewards[1])], reverse=True)
+        second_best_id = int(initial_config_id[next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0')])
+        best_id = int(initial_config_id[next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0')])
         sorted_neighbor_id = sorted([best_id, second_best_id], reverse=True)
 
         new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
+        sampled_configs.append(dict_new_configs)
 
-        if (sorted_neighbor_id[1]+1) not in initial_config_id and (sampled_configs.index(dict_new_configs) not in initial_config_id if dict_new_configs in sampled_configs else True):
+        if sampled_configs.index(dict_new_configs) not in [list(initial_config_id[i].keys())[0][0] for i in range(len(initial_config_id))]:
             if new_configs in prohibited_configs:
                 continue
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
@@ -223,10 +222,7 @@ while exploration_eps <= max_episode:
                 break
 
             reward = calculate_reward(measured_metrics)
-            rewards.insert(sorted_reward_id[1], reward)
-
-            sampled_configs.insert(sorted_neighbor_id[1], dict_new_configs)
-            initial_config_id.insert(sorted_reward_id[1]+1, sorted_neighbor_id[1]+1)
+            initial_config_id.append({str(sampled_configs.index(dict_new_configs)):[reward]})
 
             if reward == 1e-6:
                 print("PROHIBITED CONFIG!")
@@ -251,16 +247,14 @@ while exploration_eps <= max_episode:
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
         else:
-            final_reward.append(max(rewards))
-            final_configs_id.append(best_id)
-            rewards.pop(rewards.index(max(rewards)))
-            initial_config_id.pop(rewards.index(max(rewards)))
+            final_configs_id.append({str(best_id):[max(rewards)]})
+            initial_config_id = [d for d in initial_config_id if str(best_id) not in d]
 
     else:
-        final_reward.append(max(rewards))
-        final_configs_id.append(initial_config_id[rewards.index(max(rewards))])
+        final_configs_id.append({str(best_id):[max(rewards)]})
+        rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id))]
         if max(rewards) != 1e-6:
-            best_id = final_configs_id[final_reward.index(max(final_reward))]
+            best_id = int(final_configs_id[next((key for d in final_configs_id for key, value in d.items() if value[0] == max(rewards)), '0')])
             configs = apply_configs(best_id)
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
 
@@ -281,7 +275,7 @@ while exploration_eps <= max_episode:
                 break
 
             reward = calculate_reward(measured_metrics)
-            final_reward[final_reward.index(max(final_reward))] =  reward
+            next((d.update({str(best_id): [reward]}) for d in final_configs_id if str(best_id) in d), None)
 
             configs = {
                 "api_time": api_time,
@@ -299,5 +293,5 @@ while exploration_eps <= max_episode:
             dict_record = [{**configs, **measured_metrics[0]}]
             save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-            print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(final_reward) if final_reward else None}")
+            print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
