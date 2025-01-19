@@ -162,7 +162,7 @@ for episode, ids in enumerate(initial_config_id):
 
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
-        prohibited_configs.add(apply_configs(int(list(ids.keys()))[0]))
+        prohibited_configs.add(apply_configs(int(list(ids.keys())[0])))
 
     configs = {
         "api_time": api_time,
