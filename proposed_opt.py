@@ -198,7 +198,8 @@ while exploration_eps <= max_episode:
 
         new_configs = generate_neighbor(apply_configs(sorted_neighbor_id[0]), apply_configs(sorted_neighbor_id[1]))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
-        sampled_configs.append(dict_new_configs)
+        if dict_new_configs not in sampled_configs:
+            sampled_configs.append(dict_new_configs)
 
         if sampled_configs.index(dict_new_configs) not in [list(initial_config_id[i].keys())[0][0] for i in range(len(initial_config_id))]:
             if new_configs in prohibited_configs:
@@ -247,11 +248,13 @@ while exploration_eps <= max_episode:
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
         else:
-            final_configs_id.append({str(best_id):[max(rewards)]})
+            if best_id not in [list(final_configs_id[i].keys())[0][0] for i in range(len(final_configs_id))]:
+                final_configs_id.append({str(best_id):[max(rewards)]})
             initial_config_id = [d for d in initial_config_id if str(best_id) not in d]
 
     else:
-        final_configs_id.append({str(best_id):[max(rewards)]})
+        if best_id not in [list(final_configs_id[i].keys())[0][0] for i in range(len(final_configs_id))]:
+            final_configs_id.append({str(best_id):[max(rewards)]})
         rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id))]
         if max(rewards) != 1e-6:
             best_id = int(final_configs_id[next((key for d in final_configs_id for key, value in d.items() if value[0] == max(rewards)), '0')])
