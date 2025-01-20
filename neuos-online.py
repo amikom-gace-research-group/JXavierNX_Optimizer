@@ -34,7 +34,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = {'1':[1.0, 1.0], '2':[2.1, 2], '3':[2.8, 1.5]}
-chosen_dvfs = []
+chosen_dvfs = [[], [], []]
 
 POWER_BUDGET = int(sys.argv[6])
 
