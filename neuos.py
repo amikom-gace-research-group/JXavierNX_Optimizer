@@ -82,7 +82,7 @@ def profile_configurations():
 
 # SpeedUp and PowerUp table from the NeuOS algorithm
 SpeedUp_PowerUp = {'1':[1.0, 1.0], '2':[2.1, 2], '3':[2.8, 1.5]}
-chosen_dvfs = {'1':[], '2':[], '3':[]}
+chosen_dvfs = []
 
 POWER_BUDGET = int(sys.argv[6])
 
@@ -90,15 +90,15 @@ def select_dvfs(df_prof):
     baseline_dvfs = df_prof["cpu_cores"].min(), df_prof["cpu_freq"].min(), df_prof["gpu_freq"].min(), df_prof["memory_freq"].min(), df_prof["cl"].min()
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
     baseline_troughput, baseline_power = round(baseline["throughput"].iloc[0]), round(baseline["power"].iloc[0])
-    chosen_dvfs['1'] = list(baseline_dvfs)
+    chosen_dvfs[0] = list(baseline_dvfs)
     moderate = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp['2'][0])) & (df_prof["power"] <= (baseline_power * SpeedUp_PowerUp['2'][1]))]
     if not moderate.empty:
         moderate_dvfs = moderate["cpu_cores"].max(), moderate["cpu_freq"].max(), moderate["gpu_freq"].max(), moderate["memory_freq"].max(), moderate["cl"].max()
-        chosen_dvfs['2'] = list(moderate_dvfs)
+        chosen_dvfs[1] = list(moderate_dvfs)
     high = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp['3'][0])) & (df_prof["power"] <= (baseline_power * SpeedUp_PowerUp['3'][1]))]
     if not high.empty:
         high_dvfs = high["cpu_cores"].max(), high["cpu_freq"].max(), high["gpu_freq"].max(), high["memory_freq"].max(), high["cl"].max()
-        chosen_dvfs['3'] = list(high_dvfs)
+        chosen_dvfs[2] = list(high_dvfs)
 
 def update_output(throughput, power, configs, df_prof):
     df_prof["throughput"][(df_prof["cpu_cores"] == configs[0]) & (df_prof["cpu_freq"] == configs[1]) & (df_prof["gpu_freq"] == configs[2]) & (df_prof["memory_freq"] == configs[3]) & (df_prof["cl"] == configs[4])] = throughput
@@ -106,7 +106,7 @@ def update_output(throughput, power, configs, df_prof):
 
 def delta_calculator(power_consumed):
     S_p = (POWER_BUDGET + (POWER_BUDGET - power_consumed)) / POWER_BUDGET
-    return chosen_dvfs[str(round(S_p))]
+    return chosen_dvfs[round(S_p)]
 
 # Retrieve the result from the system API
 def get_result():
