@@ -173,7 +173,8 @@ def execute_runtime(num_episodes=100):
     df_prof = pd.DataFrame(prof)
     select_dvfs(df_prof)
    
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']
+    dvfs_config = delta_calculator(float(df_prof['power'][df_prof["power"] <= POWER_BUDGET].max()))
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = dvfs_config
 
     best_power = POWER_BUDGET
     time_got = []
@@ -195,8 +196,7 @@ def execute_runtime(num_episodes=100):
         if measured_metrics == "No Device":
             print("No Device/No Inference Runtime")
             break
-        
-        # Update Kalman Filters with current metrics
+
         throughput = measured_metrics[0]['throughput']
         power_consumed = measured_metrics[0]['power_cons']
 
