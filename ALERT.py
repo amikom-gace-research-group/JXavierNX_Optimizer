@@ -356,7 +356,7 @@ if __name__ == "__main__":
         percentage = sys.argv[7]
 
         # Calculate the step size
-        step = int(100 / percentage)
+        step = round(100 / percentage)
 
         # Select elements using the step
         profiling_data = profiling_data[step - 1 :: step]

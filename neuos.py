@@ -174,7 +174,7 @@ def execute_runtime(num_episodes=100):
     percentage = sys.argv[7]
 
     # Calculate the step size
-    step = int(100 / percentage)
+    step = round(100 / percentage)
 
     # Select elements using the step
     prof = prof[step - 1 :: step]
