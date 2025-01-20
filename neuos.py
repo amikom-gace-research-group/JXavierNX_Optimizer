@@ -240,7 +240,7 @@ def execute_runtime(num_episodes=100):
         # Apply the DVFS configuration
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = dvfs_config
         
-        save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
+        save_csv([configs], f"neuos-{percentage}_jxavier_{sys.argv[4]}.csv")
         # Log the results
         print(f"Configs: {configs}")
 
