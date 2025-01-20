@@ -178,7 +178,7 @@ def select_best_configuration(entries, power_budget, power_variance, episode):
     value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
 
     # Step 5: Select the best configuration
-    if power_mask[conf] == 0 or episode > 74:
+    if power_mask[conf] == 0 or episode >= 74:
         if power_mask[conf] == 0:
             print("No valid configuration found within the power budget")
         best_index = np.argmax(value_matrix)  # Find the index of the highest score
