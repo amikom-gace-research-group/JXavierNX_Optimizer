@@ -158,7 +158,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                               "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
                     sampled_configs.append(config)
 
-def select_best_configuration(entries, power_budget, power_variance):
+def select_best_configuration(entries, power_budget, power_variance, episode):
     global conf
     # Step 1: Extract relevant data from entries
     power = np.array([float(entry['power']) for entry in entries])  # Mean power consumption
@@ -183,7 +183,7 @@ def select_best_configuration(entries, power_budget, power_variance):
         best_index = np.argmax(value_matrix)  # Find the index of the highest score
         best_config = configurations[best_index]
         return best_config, best_index
-    elif power_mask[conf] > 0:
+    elif power_mask[conf] > 0 and episode < 74:
         conf += 1
         next_config = configurations[conf]
         return next_config, conf
@@ -256,7 +256,7 @@ def execute_runtime(num_episodes=100):
             sampled_configs[best_index]['gpu'] = gpu
             sampled_configs[best_index]['mem'] = mem
 
-        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var)
+        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var, episode)
         best_config, best_index = best
 
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)

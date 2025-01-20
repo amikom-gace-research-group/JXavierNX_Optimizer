@@ -170,6 +170,15 @@ def save_csv(dict_list, filename):
 
 def execute_runtime(num_episodes=100):
     prof = profile_configurations()
+
+    percentage = sys.argv[7]
+
+    # Calculate the step size
+    step = int(100 / percentage)
+
+    # Select elements using the step
+    prof = prof[step - 1 :: step]
+
     df_prof = pd.DataFrame(prof)
     select_dvfs(df_prof)
    

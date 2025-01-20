@@ -353,6 +353,14 @@ if __name__ == "__main__":
         # Step 1: Profiling
         profiling_data = profile_configurations()
 
+        percentage = sys.argv[7]
+
+        # Calculate the step size
+        step = int(100 / percentage)
+
+        # Select elements using the step
+        profiling_data = profiling_data[step - 1 :: step]
+
         # Step 2: Runtime execution
         out = execute_runtime(profiling_data, num_episodes=100)
         if out == "No Best":
