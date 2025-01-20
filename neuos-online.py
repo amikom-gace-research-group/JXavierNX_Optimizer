@@ -45,11 +45,11 @@ def select_dvfs(df_prof):
     chosen_dvfs[0] = list(baseline_dvfs)
     moderate = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp['2'][0])) & (df_prof["power"] <= (baseline_power * SpeedUp_PowerUp['2'][1]))]
     if not moderate.empty:
-        moderate_dvfs = moderate["cpu_cores"].max(), moderate["cpu_freq"].max(), moderate["gpu_freq"].max(), moderate["memory_freq"].max(), moderate["cl"].max()
+        moderate_dvfs = moderate["cpu_cores"].min(), moderate["cpu_freq"].min(), moderate["gpu_freq"].min(), moderate["memory_freq"].min(), moderate["cl"].min()
         chosen_dvfs[1] = list(moderate_dvfs)
     high = df_prof[(df_prof["throughput"] >= (baseline_troughput * SpeedUp_PowerUp['3'][0])) & (df_prof["power"] <= (baseline_power * SpeedUp_PowerUp['3'][1]))]
     if not high.empty:
-        high_dvfs = high["cpu_cores"].max(), high["cpu_freq"].max(), high["gpu_freq"].max(), high["memory_freq"].max(), high["cl"].max()
+        high_dvfs = high["cpu_cores"].min(), high["cpu_freq"].min(), high["gpu_freq"].min(), high["memory_freq"].min(), high["cl"].min()
         chosen_dvfs[2] = list(high_dvfs)
 
 def update_output(throughput, power, configs, df_prof):
