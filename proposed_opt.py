@@ -55,14 +55,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, balanced=1):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
         return 1e-6
     
-    return (throughput / power) * 1e6
+    return (throughput / (power if balanced else 1)) * 1e6
 
 def generate_neighbor(exist_configs, neighbor_configs):
     new_neighbor = []
@@ -157,7 +157,7 @@ for episode, ids in enumerate(initial_config_id):
         print("No Device/No Inference Runtime")
         break
 
-    reward = calculate_reward(measured_metrics)
+    reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
     ids[list(ids.keys())[0]].append(reward)
 
     if reward == 1e-6:
@@ -177,8 +177,13 @@ for episode, ids in enumerate(initial_config_id):
         "cl": cl
     }
 
+    if int(sys.argv[7]):
+        mode = "balanced"
+    else:
+        mode = "max"
+
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
 
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -221,7 +226,7 @@ while exploration_eps <= max_episode:
                 print("No Device/No Inference Runtime")
                 break
 
-            reward = calculate_reward(measured_metrics)
+            reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
             initial_config_id.append({str(sampled_configs.index(dict_new_configs)):[reward]})
 
             if reward == 1e-6:
@@ -241,8 +246,13 @@ while exploration_eps <= max_episode:
                 "cl": cl
             }
 
+            if int(sys.argv[7]):
+                mode = "balanced"
+            else:
+                mode = "max"
+
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
@@ -276,7 +286,7 @@ while exploration_eps <= max_episode:
                 print("No Device/No Inference Runtime")
                 break
 
-            reward = calculate_reward(measured_metrics)
+            reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
             next((d.update({str(best_id): [reward]}) for d in final_configs_id if str(best_id) in d), None)
 
             configs = {
@@ -292,8 +302,13 @@ while exploration_eps <= max_episode:
                 "cl": cl
             }
 
+            if int(sys.argv[7]):
+                mode = "balanced"
+            else:
+                mode = "max"
+
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
