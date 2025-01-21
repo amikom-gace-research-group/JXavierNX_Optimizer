@@ -60,7 +60,7 @@ def calculate_reward(measured_metrics, balanced=1):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return power * 1e-6
+        return (power / throughput) * 1e-6
     
     return (throughput / (power if balanced else 1)) * 1e6
 
@@ -203,7 +203,7 @@ while exploration_eps <= max_episode:
         else:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
 
-        new_configs = generate_neighbor(apply_configs(best_id), apply_configs(second_best_id))
+        new_configs = generate_neighbor(apply_configs(second_best_id), apply_configs(best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
         if dict_new_configs not in sampled_configs:
             sampled_configs.append(dict_new_configs)
