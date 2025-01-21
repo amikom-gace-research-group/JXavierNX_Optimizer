@@ -128,10 +128,10 @@ initial_config_id = []
 
 # filter for initial config
 for i, idx in enumerate(quartile_indices):
-    if i < 2:
+    if i < 3:
         for k in [0, 1, 2]:
             initial_config_id.append({str(idx+k):[]})
-    elif 2 <= i <= 3:
+    elif 3 <= i <= 5:
         for k in [-1, 0, 1]:
             initial_config_id.append({str(idx+k):[]})
     else:
