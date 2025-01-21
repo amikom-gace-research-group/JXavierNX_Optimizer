@@ -60,7 +60,7 @@ def calculate_reward(measured_metrics, balanced=1):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return 1e-6
+        return power * 1e-6
     
     return (throughput / (power if balanced else 1)) * 1e6
 
@@ -195,12 +195,15 @@ exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
-    if max(rewards) != 1e-6 and len(initial_config_id) >= 2 and exploration_eps < 75:
+    if max(rewards) < 0 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
-        second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
+        if exploration_eps < 20:
+            second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
+        else:
+            second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
         best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
 
-        new_configs = generate_neighbor(apply_configs(best_id), apply_configs(second_best_id))
+        new_configs = generate_neighbor(apply_configs(second_best_id), apply_configs(best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
         if dict_new_configs not in sampled_configs:
             sampled_configs.append(dict_new_configs)
@@ -265,7 +268,7 @@ while exploration_eps <= max_episode:
         if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
             final_configs_id.append({str(best_id):[max(rewards)]})
         rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id)) if list(final_configs_id[i].values())[0]]
-        if max(rewards) != 1e-6:
+        if max(rewards) < 0:
             best_id = int(next((key for d in final_configs_id for key, value in d.items() if value[0] == max(rewards)), '0'))
             configs = apply_configs(best_id)
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
