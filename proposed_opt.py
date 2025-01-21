@@ -119,7 +119,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     sampled_configs.append(config)
 
 # Calculate the indices for the quartiles
-indices = np.percentile(range(len(sampled_configs)), [0, 25, 50, 75, 100])
+indices = np.percentile(range(len(sampled_configs)), [0, 15, 35, 50, 75, 85, 100])
 
 # Convert indices to integers (since they represent positions in the list)
 quartile_indices = [int(idx) for idx in indices]
