@@ -195,13 +195,13 @@ exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
+    best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
     if max(rewards) < 1 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         if exploration_eps < 20:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
         else:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
-        best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
 
         new_configs = generate_neighbor(apply_configs(second_best_id), apply_configs(best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
