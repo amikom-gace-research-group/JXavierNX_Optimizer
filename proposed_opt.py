@@ -260,9 +260,12 @@ while exploration_eps <= max_episode:
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
         else:
-            if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
-                final_configs_id.append({str(best_id):[max(rewards)]})
-            initial_config_id = [d for d in initial_config_id if str(best_id) not in d]
+            if exploration_eps > 29:
+                if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
+                    final_configs_id.append({str(best_id):[max(rewards)]})
+                initial_config_id = [d for d in initial_config_id if str(best_id) not in d]
+            else:
+                continue
 
     else:
         if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
