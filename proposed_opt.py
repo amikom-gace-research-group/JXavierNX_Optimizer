@@ -195,7 +195,7 @@ exploration_eps = len(initial_config_id) + 1
 
 while exploration_eps <= max_episode:
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
-    if max(rewards) < 0 and len(initial_config_id) >= 2 and exploration_eps < 75:
+    if max(rewards) < 1 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
         if exploration_eps < 20:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
@@ -268,7 +268,7 @@ while exploration_eps <= max_episode:
         if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
             final_configs_id.append({str(best_id):[max(rewards)]})
         rewards = [list(final_configs_id[i].values())[0][0] for i in range(len(final_configs_id)) if list(final_configs_id[i].values())[0]]
-        if max(rewards) < 0:
+        if max(rewards) < 1:
             best_id = int(next((key for d in final_configs_id for key, value in d.items() if value[0] == max(rewards)), '0'))
             configs = apply_configs(best_id)
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
