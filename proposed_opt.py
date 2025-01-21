@@ -160,7 +160,7 @@ for episode, ids in enumerate(initial_config_id):
     reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
     ids[list(ids.keys())[0]].append(reward)
 
-    if reward == 1e-6:
+    if reward < 1:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(apply_configs(int(list(ids.keys())[0])))
 
@@ -202,7 +202,7 @@ while exploration_eps <= max_episode:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
         else:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
-        
+
         new_configs = generate_neighbor(apply_configs(best_id), apply_configs(second_best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
         if dict_new_configs not in sampled_configs:
@@ -232,7 +232,7 @@ while exploration_eps <= max_episode:
             reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
             initial_config_id.append({str(sampled_configs.index(dict_new_configs)):[reward]})
 
-            if reward == 1e-6:
+            if reward < 1:
                 print("PROHIBITED CONFIG!")
                 prohibited_configs.add(new_configs)
 
