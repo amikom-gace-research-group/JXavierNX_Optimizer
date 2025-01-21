@@ -119,7 +119,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     sampled_configs.append(config)
 
 # Calculate the indices for the quartiles
-indices = np.percentile(range(len(sampled_configs)), [0, 15, 35, 50, 75, 85, 100])
+indices = np.percentile(range(len(sampled_configs)), [0, 20, 30, 50, 70, 80, 100])
 
 # Convert indices to integers (since they represent positions in the list)
 quartile_indices = [int(idx) for idx in indices]
@@ -198,12 +198,12 @@ while exploration_eps <= max_episode:
     best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
     if max(rewards) > 1 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
-        if exploration_eps < 20:
+        if exploration_eps < 30:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
         else:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
 
-        new_configs = generate_neighbor(apply_configs(second_best_id), apply_configs(best_id))
+        new_configs = generate_neighbor(apply_configs(best_id), apply_configs(second_best_id))
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4]}
         if dict_new_configs not in sampled_configs:
             sampled_configs.append(dict_new_configs)
