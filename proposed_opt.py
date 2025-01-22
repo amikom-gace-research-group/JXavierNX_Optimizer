@@ -199,7 +199,7 @@ while exploration_eps <= max_episode:
     best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == max(rewards)), '0'))
     if max(rewards) > 1 and len(initial_config_id) >= 2 and exploration_eps < 75:
         sorted_rewards = sorted(rewards, reverse=True)
-        if exploration_eps < 30:
+        if exploration_eps < 50:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == min(rewards)), '0'))
         else:
             second_best_id = int(next((key for d in initial_config_id for key, value in d.items() if value[0] == sorted_rewards[1]), '0'))
@@ -261,7 +261,7 @@ while exploration_eps <= max_episode:
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
         else:
-            if exploration_eps < 30:
+            if exploration_eps < 50:
                 initial_config_id = [d for d in initial_config_id if str(second_best_id) not in d]
             else:
                 if str(best_id) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id))]:
