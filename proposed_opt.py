@@ -119,7 +119,7 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     sampled_configs.append(config)
 
 # Calculate the indices for the quartiles
-indices = np.percentile(range(len(sampled_configs)), [0, 20, 30, 50, 70, 80, 100])
+indices = np.percentile(range(len(sampled_configs)), [0, 17, 33, 34, 50, 66, 67, 83, 100]) # 1, 3, 3, 3, 3, 2, 2, 2, 3
 
 # Convert indices to integers (since they represent positions in the list)
 quartile_indices = [int(idx) for idx in indices]
@@ -128,15 +128,16 @@ initial_config_id = []
 
 # filter for initial config
 for i, idx in enumerate(quartile_indices):
-    if i < 3:
+    if i == 0:
         for k in [0, 1, 2]:
             initial_config_id.append({str(idx+k):[]})
-    elif 3 <= i <= 5:
-        for k in [-1, 0, 1]:
-            initial_config_id.append({str(idx+k):[]})
-    else:
+    elif 1 <= i <= 4 or i == 8:
         for k in [-2, -1, 0]:
             initial_config_id.append({str(idx+k):[]})
+    else:
+        for k in [-1, 0, 1]:
+            initial_config_id.append({str(idx+k):[]})
+   
 
 for episode, ids in enumerate(initial_config_id):
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_configs(int(list(ids.keys())[0]))
