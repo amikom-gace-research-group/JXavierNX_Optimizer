@@ -39,9 +39,9 @@ def profile_configurations():
     """
     Profiles a subset of configurations and returns profiling data.
     """
-    if os.path.exists("profiling_neuos.csv"):
+    if os.path.exists(f"profiling_neuos_{sys.argv[4]}.csv"):
         print("[Profiling] profiling configurations was profiled.")
-        with open("profiling_neuos.csv", mode='r', encoding='utf-8') as file:
+        with open(f"profiling_neuos_{sys.argv[4]}.csv", mode='r', encoding='utf-8') as file:
             csv_reader = csv.DictReader(file)
             data = []
             for row in csv_reader:
@@ -82,9 +82,9 @@ def profile_configurations():
             mem = measured_metrics[0]["mem_percent"]
             data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
             profiling_data.append(data)
-            with open("profiling_neuos.csv", 'a', newline='') as f:
+            with open(f"profiling_neuos_{sys.argv[4]}.csv", 'a', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=['profiling_time (s)', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
-                if os.path.getsize("profiling_neuos.csv") == 0:
+                if os.path.getsize(f"profiling_neuos_{sys.argv[4]}.csv") == 0:
                     writer.writeheader()
                 writer.writerow(data)
 
