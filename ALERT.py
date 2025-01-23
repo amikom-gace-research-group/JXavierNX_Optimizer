@@ -23,6 +23,21 @@ elif sys.argv[5] == 'jorin-nano':
 
 POWER_BUDGET = int(sys.argv[6])
 
+def apply_configs(config):
+    return config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
+
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
+def generate_neighbor(exist_configs, neighbor_configs):
+    new_neighbors = []
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbors.append(minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range))
+    new_neighbor  = {"cpu_cores": int(new_neighbors[0]), "cpu_freq": int(new_neighbors[1]), "gpu_freq": int(new_neighbors[2]), "memory_freq": int(new_neighbors[3]), "cl": new_neighbors[4]}
+    return new_neighbor
+
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
     def __init__(self):
@@ -198,7 +213,7 @@ def profile_configurations():
 # Dynamic Configuration Selection
 # -----------------------
 
-def select_best_configuration(profiling_data, power_budget, power_variance):
+def select_best_configuration(profiling_data, power_budget, power_variance, episode, proposed=0):
     """
     Selects the best configuration to maximize throughput under a power budget.
 
@@ -234,8 +249,20 @@ def select_best_configuration(profiling_data, power_budget, power_variance):
     best_index = np.argmax(value_matrix)  # Find the index of the highest score
     best_config = configurations[best_index]
 
-    return best_config, best_index
+    if not proposed or episode > 74:
+        return best_config, best_index
 
+    # Set the value at the first maximum index to -infinity
+    value_matrix[best_index] = -np.inf
+
+    # Find the index of the second maximum value
+    second_best_index = np.argmax(value_matrix)
+    second_best_config = apply_configs(configurations[second_best_index])
+    best_config = apply_configs(best_config)
+    new_config = generate_neighbor(best_config, second_best_config)
+    profiling_data.append(new_config)
+
+    return new_config, -1
 
 # -----------------------
 # Runtime Execution Loop
@@ -254,7 +281,7 @@ def execute_runtime(profiling_data, num_episodes=100):
         t1 = time.time()
 
          # Select the best configuration dynamically
-        best = select_best_configuration(profiling_data, POWER_BUDGET, power_var)
+        best = select_best_configuration(profiling_data, POWER_BUDGET, power_var, episode, proposed=int(sys.argv[7]))
 
         if best is None:
             print("[Runtime] No valid configuration found.")
@@ -316,7 +343,12 @@ def execute_runtime(profiling_data, num_episodes=100):
             "gpu_percent": measured_metrics[0]["gpu_percent"],
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
-        save_csv([configs], f"alert_{sys.argv[5]}_{sys.argv[4]}.csv")
+        if int(sys.argv[7]):
+            file = f"alert-proposed_jxavier_{sys.argv[4]}.csv"
+        else:
+            file = f"alert_jxavier_{sys.argv[4]}.csv"
+        
+        save_csv([configs], file)
 
         print(f"[Runtime] Episode {episode + 1}: Selected configuration {best_config}")
 
@@ -352,14 +384,6 @@ if __name__ == "__main__":
     while True:
         # Step 1: Profiling
         profiling_data = profile_configurations()
-
-        percentage = sys.argv[7]
-
-        # Calculate the step size
-        step = round(100 / percentage)
-
-        # Select elements using the step
-        profiling_data = profiling_data[step - 1 :: step]
 
         # Step 2: Runtime execution
         out = execute_runtime(profiling_data, num_episodes=100)

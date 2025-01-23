@@ -118,8 +118,17 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
                     sampled_configs.append(config)
 
+if int(sys.argv[8]) == 4:
+    q = [0, 50, 100]
+elif int(sys.argv[8]) == 6:
+    q = [0, 33, 50, 67, 100]
+elif int(sys.argv[8]) == 9:
+    q = [0, 17, 33, 50, 67, 83, 100]
+else:
+    q = [0, 17, 33, 34, 50, 66, 67, 83, 100]
+    
 # Calculate the indices for the quartiles
-indices = np.percentile(range(len(sampled_configs)), [0, 17, 33, 34, 50, 66, 67, 83, 100]) # 1, 3, 3, 3, 3, 2, 2, 2, 3
+indices = np.percentile(range(len(sampled_configs)), q) # 1, 3, 3, 3, 3, 2, 2, 2, 3
 
 # Convert indices to integers (since they represent positions in the list)
 quartile_indices = [int(idx) for idx in indices]
@@ -137,7 +146,6 @@ for i, idx in enumerate(quartile_indices):
     else:
         for k in [-1, 0, 1]:
             initial_config_id.append({str(idx+k):[]})
-   
 
 for episode, ids in enumerate(initial_config_id):
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_configs(int(list(ids.keys())[0]))
@@ -184,7 +192,7 @@ for episode, ids in enumerate(initial_config_id):
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
 
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -256,7 +264,7 @@ while exploration_eps <= max_episode:
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
@@ -315,7 +323,7 @@ while exploration_eps <= max_episode:
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1

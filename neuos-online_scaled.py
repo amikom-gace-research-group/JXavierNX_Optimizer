@@ -178,14 +178,14 @@ def execute_runtime(num_episodes=100):
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
 
-        if power_consumed < POWER_BUDGET and episode < 74:
+        if power_consumed < POWER_BUDGET and episode < round((int(sys.argv[7])/100)*len(sampled_configs))-1:
             conf += 1
             config = sampled_configs[conf]
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
         else:
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs["D"]
         
-        save_csv([configs], f"neuos-online_scaled_jxavier_{sys.argv[4]}.csv")
+        save_csv([configs], f"neuos-online-{sys.argv[7]}_scaled_jxavier_{sys.argv[4]}.csv")
         # Log the results
         print(f"Configs: {configs}")
 

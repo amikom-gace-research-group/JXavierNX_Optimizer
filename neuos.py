@@ -171,14 +171,6 @@ def save_csv(dict_list, filename):
 def execute_runtime(num_episodes=100):
     prof = profile_configurations()
 
-    percentage = sys.argv[7]
-
-    # Calculate the step size
-    step = round(100 / percentage)
-
-    # Select elements using the step
-    prof = prof[step - 1 :: step]
-
     df_prof = pd.DataFrame(prof)
     select_dvfs(df_prof)
    
@@ -240,7 +232,7 @@ def execute_runtime(num_episodes=100):
         # Apply the DVFS configuration
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = dvfs_config
         
-        save_csv([configs], f"neuos-{percentage}_jxavier_{sys.argv[4]}.csv")
+        save_csv([configs], f"neuos_jxavier_{sys.argv[4]}.csv")
         # Log the results
         print(f"Configs: {configs}")
 
