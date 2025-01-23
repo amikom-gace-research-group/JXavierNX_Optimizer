@@ -253,10 +253,11 @@ def select_best_configuration(profiling_data, power_budget, power_variance, epis
         return best_config, best_index
 
     # Set the value at the first maximum index to -infinity
-    value_matrix[best_index] = -np.inf
-
-    # Find the index of the second maximum value
-    second_best_index = np.argmax(value_matrix)
+    if episode < 10:
+        second_best_index = np.argmin(value_matrix)
+    else:
+        value_matrix[best_index] = -np.inf
+        second_best_index = np.argmax(value_matrix)
     second_best_config = apply_configs(configurations[second_best_index])
     best_config = apply_configs(best_config)
     new_config = generate_neighbor(best_config, second_best_config)

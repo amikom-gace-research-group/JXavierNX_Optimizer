@@ -106,11 +106,20 @@ def select_dvfs(df_prof, episode, proposed=0):
         dynamic_dvfs = dynamic_best["cpu_cores"].min(), dynamic_best["cpu_freq"].min(), dynamic_best["gpu_freq"].min(), dynamic_best["memory_freq"].min(), dynamic_best["cl"].min()
         chosen_dvfs['D'] = list(dynamic_dvfs)
         if proposed or episode < 75:
-            throughput_sec = dynamic['throughput'].nlargest(2).iloc[-1]
-            dynamic_sec = dynamic[dynamic["throughput"] >= throughput_sec]
-            dynamic_sec_dvfs = dynamic_sec["cpu_cores"].min(), dynamic_sec["cpu_freq"].min(), dynamic_sec["gpu_freq"].min(), dynamic_sec["memory_freq"].min(), dynamic_sec["cl"].min()
-            new_dynamic = generate_neighbor(dynamic_dvfs, dynamic_sec_dvfs)
-            chosen_dvfs['D'] = new_dynamic
+            if episode < 10:
+                dynamic_sec = df_prof[df_prof["power"] >= (baseline_power * dynamic_powerup(baseline_power))]
+                if not dynamic_sec.empty:
+                    throughput_sec = dynamic_sec["throughput"].max()
+                    dynamic_sec = dynamic_sec[dynamic_sec["throughput"] >= throughput_sec]
+                    dynamic_sec_dvfs = dynamic_sec["cpu_cores"].min(), dynamic_sec["cpu_freq"].min(), dynamic_sec["gpu_freq"].min(), dynamic_sec["memory_freq"].min(), dynamic_sec["cl"].min()
+                    new_dynamic = generate_neighbor(dynamic_dvfs, dynamic_sec_dvfs)
+                    chosen_dvfs['D'] = new_dynamic
+            else:
+                throughput_sec = dynamic['throughput'].nlargest(2).iloc[-1]
+                dynamic_sec = dynamic[dynamic["throughput"] >= throughput_sec]
+                dynamic_sec_dvfs = dynamic_sec["cpu_cores"].min(), dynamic_sec["cpu_freq"].min(), dynamic_sec["gpu_freq"].min(), dynamic_sec["memory_freq"].min(), dynamic_sec["cl"].min()
+                new_dynamic = generate_neighbor(dynamic_dvfs, dynamic_sec_dvfs)
+                chosen_dvfs['D'] = new_dynamic
 
 def check_config(configs, df_prof):
     cpu_cores = configs[0] in df_prof["cpu_cores"].tolist()
