@@ -260,7 +260,8 @@ def select_best_configuration(profiling_data, power_budget, power_variance, epis
     second_best_config = apply_configs(configurations[second_best_index])
     best_config = apply_configs(best_config)
     new_config = generate_neighbor(best_config, second_best_config)
-    profiling_data.append(new_config)
+    if new_config not in profiling_data:
+        profiling_data.append(new_config)
 
     return new_config, -1
 
