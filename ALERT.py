@@ -264,7 +264,7 @@ def select_best_configuration(profiling_data, power_budget, power_variance, epis
     if new_config not in profiling_data:
         profiling_data.append(new_config)
 
-    return new_config, -1
+    return new_config, profiling_data.index(new_config)
 
 # -----------------------
 # Runtime Execution Loop
