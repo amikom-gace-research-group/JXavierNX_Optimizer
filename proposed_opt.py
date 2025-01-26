@@ -118,13 +118,13 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
                     sampled_configs.append(config)
 
-if int(sys.argv[9]) == 4:
+if int(sys.argv[8]) == 4:
     q = [0, 50, 100]
-elif int(sys.argv[9]) == 6:
+elif int(sys.argv[8]) == 6:
     q = [0, 33, 50, 67, 100]
-elif int(sys.argv[9]) == 9:
+elif int(sys.argv[8]) == 9:
     q = [0, 17, 33, 50, 67, 83, 100]
-elif int(sys.argv[9]) == 10:
+elif int(sys.argv[8]) == 10:
     q = [0, 17, 33, 34, 50, 66, 67, 83, 100]
     
 # Calculate the indices for the quartiles
