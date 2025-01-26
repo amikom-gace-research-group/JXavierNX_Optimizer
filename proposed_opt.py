@@ -144,7 +144,7 @@ for i, idx in enumerate(quartile_indices):
     if (i < 2 if k > 3 else False) or k <= i <= (k+1 if k > 3 else k):
         for k in [0, 1, 2]:
             initial_config_id.append({str(idx+k):[]})
-    elif (i == 1 if k > 3 else False) or i == len(quartile_indices)-1:
+    elif i == len(quartile_indices)-1:
         for k in [-2, -1, 0]:
             initial_config_id.append({str(idx+k):[]})
     else:
