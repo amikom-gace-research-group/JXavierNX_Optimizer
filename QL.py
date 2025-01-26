@@ -23,10 +23,10 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 sampled_configs ={
-     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
-     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+     "cpu_cores": CPU_CORES_RANGE, 
+     "cpu_freq": CPU_FREQ_RANGE, 
+     "gpu_freq": GPU_FREQ_RANGE, 
+     "memory_freq": MEMORY_FREQ_RANGE, 
      "cl": CL_RANGE
 }
 
@@ -85,6 +85,17 @@ def get_result():
         print(f"Error fetching result: {e}")
     return False
 
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
+def generate_neighbor(exist_configs, neighbor_configs):
+    new_neighbor = []
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbor.append(minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range))
+    return tuple(new_neighbor)
+
 # Latin Hypercube Sampling to explore new states
 def lhs_sampling(num_samples, ranges):
     lhs_samples = lhs(len(ranges), samples=num_samples)
@@ -120,6 +131,37 @@ def get_best_configuration():
 
     best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
     return best_state
+
+def get_second_best_configuration(action_index, action_shape):
+    best_q_value = float('-inf')
+    best_state = None
+    second_q_value = float('-inf')
+    second_best_state = None
+
+    for state, q_values in Q_table.items():
+        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+        max_q_value = q_values[max_q_index]
+        
+        if max_q_value > best_q_value:
+            best_q_value = max_q_value
+            best_state = state
+
+    best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+    if best_state:
+        Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
+    
+    for state, q_values in Q_table.items():
+        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+        max_q_value = q_values[max_q_index]
+        
+        if max_q_value > second_q_value:
+            second_q_value = max_q_value
+            second_best_state = state
+
+    second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+    Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = best_q_value
+
+    return second_best_state
 
 # Retrieve Q-value for a state-action pair
 def get_q_value(state_index, action_index):
@@ -187,7 +229,7 @@ def choose_action_adaptive(state_index, lhs_samples):
         # Exploitation: choose best known action
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
-        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"  # Exploit best known action
+        return None, "exploitation"  # Exploit best known action
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -226,14 +268,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, balanced=1):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
         return 1e-6
     
-    return (throughput / power) * 1e6
+    return (throughput / (power if balanced else 1)) * 1e6
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -255,12 +297,18 @@ for episode in range(num_episodes):
     # Choose actions based on current state and LHS samples
     actions, phase = choose_action_adaptive(state_index, lhs_samples)
 
-    # Adjust values for the chosen actions
-    cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
-    cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
-    gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
-    memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
-    cl = int(adjust_value(sampled_configs['cl'], actions[4]))
+    if actions:
+        # Adjust values for the chosen actions
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4]))
+    else:
+        best_config = get_best_configuration()
+        second_config = get_second_best_configuration()
+
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
@@ -290,7 +338,7 @@ for episode in range(num_episodes):
         continue
 
     # Calculate the reward for this configuration
-    reward = calculate_reward(measured_metrics)
+    reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
 
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
@@ -341,8 +389,13 @@ for episode in range(num_episodes):
         "memory_freq": memory_freq,
         "cl": cl
     }
+    if int(sys.argv[7]):
+        mode = "balanced"
+    else:
+        mode = "max"
+
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"ql_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"ql={mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
     
     # Update state and last reward
     last_reward = reward

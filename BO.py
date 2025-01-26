@@ -5,8 +5,7 @@ import os
 import csv
 import requests
 from skopt import gp_minimize
-from skopt.space import Categorical
-from skopt.utils import cook_estimator
+from skopt.space import Categorical, Integer
 from skopt.utils import use_named_args
 from skopt.acquisition import gaussian_ei, gaussian_pi, gaussian_lcb
 
@@ -26,10 +25,10 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 sampled_configs ={
-     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
-     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+     "cpu_cores": CPU_CORES_RANGE, 
+     "cpu_freq": CPU_FREQ_RANGE, 
+     "gpu_freq": GPU_FREQ_RANGE, 
+     "memory_freq": MEMORY_FREQ_RANGE, 
      "cl": CL_RANGE
 }
 
@@ -46,13 +45,15 @@ time_got = []
 last_rewards = []  # To store recent rewards for saturation check
 episode_counter = 0
 
+cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
+
 # Define the parameter space for Bayesian Optimization
 space = [
-    Categorical(sampled_configs['cpu_cores'], name='cpu_cores'),
-    Categorical(sampled_configs['cpu_freq'], name='cpu_freq'),
-    Categorical(sampled_configs['gpu_freq'], name='gpu_freq'),
-    Categorical(sampled_configs['memory_freq'], name='mem_freq'),
-    Categorical(sampled_configs['cl'], name='cl')
+    cores_space,
+    Integer(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), name='cpu_freq'),
+    Integer(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), name='gpu_freq'),
+    Integer(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), name='mem_freq'),
+    Integer(min(CL_RANGE), max(CL_RANGE), name='cl')
 ]
 
 # Function to get the result from the external system

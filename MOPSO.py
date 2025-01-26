@@ -22,10 +22,10 @@ def set_device_ranges(device_type):
         raise ValueError("Invalid device type specified.")
     
     sampled_configs ={
-        "CPU_CORES_RANGE": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
-        "CPU_FREQ_RANGE": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-        "GPU_FREQ_RANGE": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-        "MEMORY_FREQ_RANGE": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+        "CPU_CORES_RANGE": CPU_CORES_RANGE, 
+        "CPU_FREQ_RANGE": CPU_FREQ_RANGE, 
+        "GPU_FREQ_RANGE": GPU_FREQ_RANGE, 
+        "MEMORY_FREQ_RANGE": MEMORY_FREQ_RANGE, 
         "CL_RANGE": CL_RANGE
     }
 

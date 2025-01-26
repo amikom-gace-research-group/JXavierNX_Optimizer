@@ -72,6 +72,17 @@ def adjust_value(value, action):
     else:
         return unique_values[action]
 
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
+def generate_neighbor(exist_configs, neighbor_configs):
+    new_neighbor = []
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbor.append(minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range))
+    return tuple(new_neighbor)
+
 def get_result():
     headers = {
         'Authorization': sys.argv[2],
@@ -120,6 +131,37 @@ def get_best_configuration():
 
     best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
     return best_state
+
+def get_second_best_configuration(action_index, action_shape):
+    best_q_value = float('-inf')
+    best_state = None
+    second_q_value = float('-inf')
+    second_best_state = None
+
+    for state, q_values in Q_table.items():
+        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+        max_q_value = q_values[max_q_index]
+        
+        if max_q_value > best_q_value:
+            best_q_value = max_q_value
+            best_state = state
+
+    best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+    if best_state:
+        Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
+    
+    for state, q_values in Q_table.items():
+        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+        max_q_value = q_values[max_q_index]
+        
+        if max_q_value > second_q_value:
+            second_q_value = max_q_value
+            second_best_state = state
+
+    second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+    Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = best_q_value
+
+    return second_best_state
 
 # Retrieve Q-value for a state-action pair
 def get_q_value(state_index, action_index):
@@ -226,14 +268,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, balanced=1):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
         return 1e-6
     
-    return (throughput / power) * 1e6
+    return (throughput / (power if balanced else 1)) * 1e6
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -255,12 +297,18 @@ for episode in range(num_episodes):
     # Choose actions based on current state and LHS samples
     actions, phase = choose_action_adaptive(state_index, lhs_samples)
 
-    # Adjust values for the chosen actions
-    cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
-    cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
-    gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
-    memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
-    cl = int(adjust_value(sampled_configs['cl'], actions[4]))
+    if actions:
+        # Adjust values for the chosen actions
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4]))
+    else:
+        best_config = get_best_configuration()
+        second_config = get_second_best_configuration()
+
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
@@ -339,8 +387,13 @@ for episode in range(num_episodes):
         "memory_freq": memory_freq,
         "cl": cl
     }
+    if int(sys.argv[7]):
+        mode = "balanced"
+    else:
+        mode = "max"
+
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"sarsa_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"sarsa-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
     
     last_reward = reward
     state_index = new_state_index
