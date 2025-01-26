@@ -119,17 +119,17 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     sampled_configs.append(config)
 
 if int(sys.argv[8]) == 4:
-    q = [0, 49.8, 100] # 1, 2, 3
-    k = 0
+    q = [0, 49.8, 100] # 1, 1, 3
+    K = 1
 elif int(sys.argv[8]) == 6:
-    q = [0, 32.5, 49.8, 66.7, 100] # 1, 2, 2, 1, 3
-    k = 3
+    q = [0, 32.5, 49.8, 66.7, 100] # 1, 1, 1, 2, 3
+    K = 2
 elif int(sys.argv[8]) == 9:
-    q = [0, 16.9, 32.5, 49.8, 66.7, 82.7, 100] # 1, 1, 2, 2, 1, 1, 3
-    k = 4
+    q = [0, 16.9, 32.5, 49.8, 66.7, 82.7, 100] # 1, 1, 1, 1, 2, 2, 3
+    K = 3
 elif int(sys.argv[8]) == 10:
-    q = [0, 16.9, 32.5, 33.7, 49.8, 65.8, 66.7, 82.7, 100] # 1, 1, 2, 2, 2, 2, 1, 1, 3
-    k = 6
+    q = [0, 16.9, 32.5, 33.7, 49.8, 65.8, 66.7, 82.7, 100] # 1, 1, 1, 1, 1, 1, 2, 2, 3
+    K = 5
     
 # Calculate the indices for the quartiles
 indices = np.percentile(range(len(sampled_configs)), q)
@@ -141,7 +141,7 @@ initial_config_id = []
 
 # filter for initial config
 for i, idx in enumerate(quartile_indices):
-    if (i < 2 if k > 3 else False) or k <= i <= (k+1 if k > 3 else k):
+    if 0 <= i <= K:
         for k in [0, 1, 2]:
             initial_config_id.append({str(idx+k):[]})
     elif i == len(quartile_indices)-1:
