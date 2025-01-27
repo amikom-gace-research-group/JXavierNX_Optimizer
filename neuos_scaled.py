@@ -105,7 +105,7 @@ def select_dvfs(df_prof, episode, proposed=0):
         dynamic_best = dynamic[dynamic["throughput"] >= throughput_max]
         dynamic_dvfs = dynamic_best["cpu_cores"].min(), dynamic_best["cpu_freq"].min(), dynamic_best["gpu_freq"].min(), dynamic_best["memory_freq"].min(), dynamic_best["cl"].min()
         chosen_dvfs['D'] = list(dynamic_dvfs)
-        if proposed or episode < 75:
+        if proposed and episode < 75:
             if episode < 10:
                 dynamic_sec = df_prof[df_prof["power"] >= (baseline_power * dynamic_powerup(baseline_power))]
                 if not dynamic_sec.empty:
