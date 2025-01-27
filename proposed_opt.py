@@ -122,13 +122,13 @@ if int(sys.argv[8]) == 4:
     q = [0, 49.8, 100] # 1, 1, 3
     K = 1
 elif int(sys.argv[8]) == 6:
-    q = [0, 32.5, 49.8, 66.7, 100] # 1, 1, 1, 3, 3
+    q = [0, 32.5, 49.8, 66.3, 100] # 1, 1, 1, 3, 3
     K = 2
 elif int(sys.argv[8]) == 9:
-    q = [0, 16.9, 32.5, 49.8, 66.7, 82.7, 100] # 1, 2, 1, 1, 3, 3, 3
+    q = [0, 16.9, 32.5, 49.8, 66.3, 82.7, 100] # 1, 2, 1, 1, 3, 1, 3
     K = 3
 elif int(sys.argv[8]) == 10:
-    q = [0, 16.9, 32.5, 33.7, 49.8, 65.8, 66.7, 82.7, 100] # 1, 2, 1, 1, 1, 1, 3, 3, 3
+    q = [0, 16.9, 32.5, 33.7, 49.8, 65.8, 66.3, 82.7, 100] # 1, 2, 1, 1, 1, 1, 3, 1, 3
     K = 5
     
 # Calculate the indices for the quartiles
@@ -141,10 +141,10 @@ initial_config_id = []
 
 # filter for initial config
 for i, idx in enumerate(quartile_indices):
-    if 0 <= i <= K and (i != 1 if K > 2 else True):
+    if 0 <= i <= K and (i != 1 or i == 7 if K > 2 else True):
         for k in [0, 1, 2]:
             initial_config_id.append({str(idx+k):[]})
-    elif K+1 <= i == len(quartile_indices)-1:
+    elif K+1 <= i == len(quartile_indices)-1 and (i != 7 if K > 2 else True):
         for k in [-2, -1, 0]:
             initial_config_id.append({str(idx+k):[]})
     else:
