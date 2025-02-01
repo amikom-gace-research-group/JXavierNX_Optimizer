@@ -23,10 +23,10 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 sampled_configs ={
-     "cpu_cores": CPU_CORES_RANGE, 
-     "cpu_freq": CPU_FREQ_RANGE, 
-     "gpu_freq": GPU_FREQ_RANGE, 
-     "memory_freq": MEMORY_FREQ_RANGE, 
+     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
+     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
+     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
+     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
      "cl": CL_RANGE
 }
 
@@ -219,7 +219,7 @@ def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500
     
     return selected_action
 
-def choose_action_adaptive(state_index, lhs_samples):
+def choose_action_adaptive(state_index, lhs_samples, proposed=0):
     global epsilon_explore, epsilon_exploit
     state_key = tuple(state_index)
     # Select action based on epsilon
@@ -229,7 +229,10 @@ def choose_action_adaptive(state_index, lhs_samples):
         # Exploitation: choose best known action
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
-        return None, "exploitation"  # Exploit best known action
+        if proposed:
+            return None, "exploitation"  # Exploit best known action
+        else:
+            return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -295,7 +298,7 @@ for episode in range(num_episodes):
     lhs_samples = generate_lhs_samples()
 
     # Choose actions based on current state and LHS samples
-    actions, phase = choose_action_adaptive(state_index, lhs_samples)
+    actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
 
     if actions:
         # Adjust values for the chosen actions

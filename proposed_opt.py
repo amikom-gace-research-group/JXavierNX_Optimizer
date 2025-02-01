@@ -64,6 +64,7 @@ def calculate_reward(measured_metrics, balanced=1):
     
     return (throughput / (power if balanced else 1)) * 1e6
 
+# exploitation
 def generate_neighbor(exist_configs, neighbor_configs):
     new_neighbor = []
     for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):

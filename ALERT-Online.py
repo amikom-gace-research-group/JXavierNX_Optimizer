@@ -158,7 +158,22 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                               "throughput": 0, "power": float('inf'), "cpu_percent": 0, "gpu_percent": 0, "mem_percent": 0}
                     sampled_configs.append(config)
 
-def select_best_configuration(entries, power_budget, power_variance, episode):
+def apply_configs(config):
+    return config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
+
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
+def generate_neighbor(exist_configs, neighbor_configs):
+    new_neighbors = []
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbors.append(minmax(round(int(exist_config) - abs(int(exist_config) - int(neighbor_config)) / 2), range))
+    new_neighbor  = {"cpu_cores": int(new_neighbors[0]), "cpu_freq": int(new_neighbors[1]), "gpu_freq": int(new_neighbors[2]), "memory_freq": int(new_neighbors[3]), "cl": new_neighbors[4]}
+    return new_neighbor
+
+def select_best_configuration(entries, power_budget, power_variance, episode, proposed=0):
     global conf
     # Step 1: Extract relevant data from entries
     power = np.array([float(entry['power']) for entry in entries])  # Mean power consumption
@@ -176,19 +191,29 @@ def select_best_configuration(entries, power_budget, power_variance, episode):
     k_power_probability = 0.5  # Weight for power probability (secondary objective)
     B = 99999999  # Large constant to make valid scores positive
     value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
-
-    # Step 5: Select the best configuration
-    if power_mask[conf] == 0 or episode >= round((int(sys.argv[7])/100)*len(sampled_configs))-1-1:
+    
+    if power_mask[conf] == 0 or (episode >= round((int(sys.argv[7])/100)*len(sampled_configs)) if not proposed else True):
         if power_mask[conf] == 0:
             print("No valid configuration found within the power budget")
         best_index = np.argmax(value_matrix)  # Find the index of the highest score
         best_config = configurations[best_index]
         return best_config, best_index
-    elif power_mask[conf] > 0 and episode < round((int(sys.argv[7])/100)*len(sampled_configs))-1-1:
+    elif power_mask[conf] > 0 and episode < round((int(sys.argv[7])/100)*len(sampled_configs)):
         conf += 1
         next_config = configurations[conf]
         return next_config, conf
-
+    if proposed and round((int(sys.argv[7])/100)*len(sampled_configs)) < episode < 75:
+        if episode < 10:
+            second_best_index = np.argmin(value_matrix)
+        else:
+            value_matrix[best_index] = -np.inf
+            second_best_index = np.argmax(value_matrix)
+        second_best_config = apply_configs(configurations[second_best_index])
+        best_config = apply_configs(best_config)
+        new_config = generate_neighbor(best_config, second_best_config)
+        if new_config not in entries:
+            entries.append(new_config)
+        return new_config, entries.index(new_config)
 
 # -----------------------
 # Runtime Execution Loop
@@ -257,7 +282,7 @@ def execute_runtime(num_episodes=100):
             sampled_configs[best_index]['gpu'] = gpu
             sampled_configs[best_index]['mem'] = mem
 
-        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var, episode)
+        best = select_best_configuration(sampled_configs, POWER_BUDGET, power_var, episode, proposed=int(sys.argv[8]))
         best_config, best_index = best
 
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)

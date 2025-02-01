@@ -23,10 +23,10 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 3)
 
 sampled_configs ={
-     "cpu_cores": CPU_CORES_RANGE, 
-     "cpu_freq": CPU_FREQ_RANGE, 
-     "gpu_freq": GPU_FREQ_RANGE, 
-     "memory_freq": MEMORY_FREQ_RANGE, 
+     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
+     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
+     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
+     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
      "cl": CL_RANGE
 }
 

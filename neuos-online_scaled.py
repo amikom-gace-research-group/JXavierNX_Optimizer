@@ -36,19 +36,58 @@ chosen_dvfs = {'1': [], 'D':[]}
 
 POWER_BUDGET = int(sys.argv[6])
 
-def select_dvfs(df_prof):
+def minmax(values, range):
+    values = min(values, max(range))
+    values = max(min(range), values)
+    return int(values)
+
+def generate_neighbor(exist_configs, neighbor_configs):
+    new_neighbors = []
+    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
+        new_neighbors.append(minmax(round(int(exist_config) - abs(int(exist_config) - int(neighbor_config)) / 2), range))
+    return new_neighbors
+
+def select_dvfs(df_prof, episode, proposed=0):
     baseline_dvfs = df_prof["cpu_cores"].min(), df_prof["cpu_freq"].min(), df_prof["gpu_freq"].min(), df_prof["memory_freq"].min(), df_prof["cl"].min()
-    chosen_dvfs['1'] = list(baseline_dvfs)
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
     baseline_power = round(baseline["power"].iloc[0])
     dynamic = df_prof[(df_prof["power"] <= (baseline_power * dynamic_powerup(baseline_power))) & (df_prof["power"] > baseline_power)]
     if not dynamic.empty:
         throughput_max = dynamic["throughput"].max()
-        dynamic = dynamic[dynamic["throughput"] >= throughput_max]
-        dynamic_dvfs = dynamic["cpu_cores"].min(), dynamic["cpu_freq"].min(), dynamic["gpu_freq"].min(), dynamic["memory_freq"].min(), dynamic["cl"].min()
+        dynamic_best = dynamic[dynamic["throughput"] >= throughput_max]
+        dynamic_dvfs = dynamic_best["cpu_cores"].min(), dynamic_best["cpu_freq"].min(), dynamic_best["gpu_freq"].min(), dynamic_best["memory_freq"].min(), dynamic_best["cl"].min()
         chosen_dvfs['D'] = list(dynamic_dvfs)
+        if proposed and episode < 75:
+            if episode < 10:
+                dynamic_sec = df_prof[df_prof["power"] >= (baseline_power * dynamic_powerup(baseline_power))]
+                if not dynamic_sec.empty:
+                    throughput_sec = dynamic_sec["throughput"].max()
+                    dynamic_sec = dynamic_sec[dynamic_sec["throughput"] >= throughput_sec]
+                    dynamic_sec_dvfs = dynamic_sec["cpu_cores"].min(), dynamic_sec["cpu_freq"].min(), dynamic_sec["gpu_freq"].min(), dynamic_sec["memory_freq"].min(), dynamic_sec["cl"].min()
+                    new_dynamic = generate_neighbor(dynamic_dvfs, dynamic_sec_dvfs)
+                    chosen_dvfs['D'] = new_dynamic
+            else:
+                throughput_sec = dynamic['throughput'].nlargest(2).iloc[-1]
+                dynamic_sec = dynamic[dynamic["throughput"] >= throughput_sec]
+                dynamic_sec_dvfs = dynamic_sec["cpu_cores"].min(), dynamic_sec["cpu_freq"].min(), dynamic_sec["gpu_freq"].min(), dynamic_sec["memory_freq"].min(), dynamic_sec["cl"].min()
+                new_dynamic = generate_neighbor(dynamic_dvfs, dynamic_sec_dvfs)
+                chosen_dvfs['D'] = new_dynamic
 
-def update_output(throughput, power, configs, df_prof):
+def check_config(configs, df_prof):
+    cpu_cores = configs[0] in df_prof["cpu_cores"].tolist()
+    cpu_freq = configs[1] in df_prof["cpu_freq"].tolist()
+    gpu_freq = configs[2] in df_prof["gpu_freq"].tolist()
+    memory_freq = configs[3] in df_prof["memory_freq"].tolist()
+    cl = configs[4] in df_prof["cl"].tolist()
+    return (cpu_cores and cpu_freq and gpu_freq and memory_freq and cl)
+
+def update_output(throughput, power, configs, df_prof, proposed=0):
+    if proposed and not check_config(configs, df_prof):
+        df_prof["cpu_cores"] = configs[0]
+        df_prof["cpu_freq"] = configs[1]
+        df_prof["gpu_freq"] = configs[2]
+        df_prof["memory_freq"] = configs[3]
+        df_prof["cl"] = configs[4]
     df_prof["throughput"][(df_prof["cpu_cores"] == configs[0]) & (df_prof["cpu_freq"] == configs[1]) & (df_prof["gpu_freq"] == configs[2]) & (df_prof["memory_freq"] == configs[3]) & (df_prof["cl"] == configs[4])] = throughput
     df_prof["power"][(df_prof["cpu_cores"] == configs[0]) & (df_prof["cpu_freq"] == configs[1]) & (df_prof["gpu_freq"] == configs[2]) & (df_prof["memory_freq"] == configs[3]) & (df_prof["cl"] == configs[4])] = power
 
@@ -117,7 +156,7 @@ def save_csv(dict_list, filename):
 
 def execute_runtime(num_episodes=100):
     df_prof = pd.DataFrame(sampled_configs)
-    select_dvfs(df_prof)
+    select_dvfs(df_prof, 0, proposed=int(sys.argv[7]))
    
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']
 
