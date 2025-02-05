@@ -49,6 +49,7 @@ def generate_neighbor(exist_configs, neighbor_configs):
 
 def select_dvfs(df_prof, episode, proposed=0):
     baseline_dvfs = df_prof["cpu_cores"].min(), df_prof["cpu_freq"].min(), df_prof["gpu_freq"].min(), df_prof["memory_freq"].min(), df_prof["cl"].min()
+    chosen_dvfs['1'] = list(baseline_dvfs)
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
     baseline_power = round(baseline["power"].iloc[0])
     dynamic = df_prof[(df_prof["power"] <= (baseline_power * dynamic_powerup(baseline_power))) & (df_prof["power"] > baseline_power)]
