@@ -195,7 +195,7 @@ def execute_runtime(num_episodes=100):
 
         confs = cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
         update_output(throughput, power_consumed, confs, df_prof)
-        select_dvfs(df_prof)
+        select_dvfs(df_prof, episode, proposed=int(sys.argv[8]))
 
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
         time_got.append(elapsed+elapsed_exec)
