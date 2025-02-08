@@ -192,7 +192,7 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
     B = 99999999  # Large constant to make valid scores positive
     value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
     
-    if power_mask[conf] > 0 and episode < round((int(sys.argv[7])/100)*len(sampled_configs)):
+    if power_mask[conf] > 0 and episode <= round((int(sys.argv[7])/100)*len(sampled_configs)):
         conf += 1
         next_config = configurations[conf]
         return next_config, conf
