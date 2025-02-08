@@ -192,12 +192,6 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
     B = 99999999  # Large constant to make valid scores positive
     value_matrix = power_mask * (B + k_throughput * throughput + k_power_probability * power_probabilities)
     
-    if power_mask[conf] == 0 or (episode >= round((int(sys.argv[7])/100)*len(sampled_configs)) if not proposed else False):
-        if power_mask[conf] == 0:
-            print("No valid configuration found within the power budget")
-        best_index = np.argmax(value_matrix)  # Find the index of the highest score
-        best_config = configurations[best_index]
-        return best_config, best_index
     if power_mask[conf] > 0 and episode < round((int(sys.argv[7])/100)*len(sampled_configs)):
         conf += 1
         next_config = configurations[conf]
@@ -206,6 +200,7 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
         if episode < 50:
             second_best_index = np.argmin(value_matrix)
         else:
+            best_index = np.argmax(value_matrix)
             value_matrix[best_index] = -np.inf
             second_best_index = np.argmax(value_matrix)
         second_best_config = apply_configs(configurations[second_best_index])
@@ -214,6 +209,12 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
         if new_config not in entries:
             entries.append(new_config)
         return new_config, entries.index(new_config)
+    if power_mask[conf] == 0 or (episode >= round((int(sys.argv[7])/100)*len(sampled_configs)) if not proposed else False):
+        if power_mask[conf] == 0:
+            print("No valid configuration found within the power budget")
+        best_index = np.argmax(value_matrix)  # Find the index of the highest score
+        best_config = configurations[best_index]
+        return best_config, best_index
 
 # -----------------------
 # Runtime Execution Loop
