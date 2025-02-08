@@ -211,7 +211,7 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
         if new_config not in entries:
             entries.append(new_config)
         return new_config, entries.index(new_config)
-    if power_mask[conf] == 0 or (episode >= round((int(sys.argv[7])/100)*len(sampled_configs)) if not proposed else False):
+    if power_mask[conf] == 0 or episode >= 75:
         if power_mask[conf] == 0:
             print("No valid configuration found within the power budget")
         best_index = np.argmax(value_matrix)  # Find the index of the highest score
