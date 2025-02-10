@@ -197,8 +197,8 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
         next_config = configurations[conf]
         return next_config, conf
     if proposed and round((int(sys.argv[7])/100)*len(sampled_configs)) < episode < 75 and power_mask[conf] > 0:
-        best_value = value_matrix[best_index]
         best_index = np.argmax(value_matrix)
+        best_value = value_matrix[best_index]
         best_config = configurations[best_index]
         if episode < 50:
             second_best_index = np.argmin(value_matrix)
