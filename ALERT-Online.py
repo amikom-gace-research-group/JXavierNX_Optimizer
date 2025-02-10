@@ -202,12 +202,14 @@ def select_best_configuration(entries, power_budget, power_variance, episode, pr
         if episode < 50:
             second_best_index = np.argmin(value_matrix)
         else:
+            best_value = value_matrix[best_index]
             best_index = np.argmax(value_matrix)
             value_matrix[best_index] = -np.inf
             second_best_index = np.argmax(value_matrix)
         second_best_config = apply_configs(configurations[second_best_index])
         best_config = apply_configs(best_config)
         new_config = generate_neighbor(best_config, second_best_config)
+        value_matrix[best_index] = best_value
         if new_config not in entries:
             entries.append(new_config)
         return new_config, entries.index(new_config)
@@ -273,14 +275,14 @@ def execute_runtime(num_episodes=100):
         estimated_power = power_slowdown_factor * power
 
         if episode == 0:
-            sampled_configs[0]['power'] = estimated_throughput
-            sampled_configs[0]['throughput'] = estimated_power
+            sampled_configs[0]['power'] = estimated_power
+            sampled_configs[0]['throughput'] = estimated_throughput
             sampled_configs[0]['cpu'] = cpu
             sampled_configs[0]['gpu'] = gpu
             sampled_configs[0]['mem'] = mem
         else:
-            sampled_configs[best_index]['power'] = estimated_throughput
-            sampled_configs[best_index]['throughput'] = estimated_power
+            sampled_configs[best_index]['power'] = estimated_power
+            sampled_configs[best_index]['throughput'] = estimated_throughput
             sampled_configs[best_index]['cpu'] = cpu
             sampled_configs[best_index]['gpu'] = gpu
             sampled_configs[best_index]['mem'] = mem
