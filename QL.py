@@ -132,7 +132,7 @@ def get_best_configuration():
     best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
     return best_state
 
-def get_second_best_configuration(action_index, action_shape):
+def get_second_best_configuration(action_index, action_shape, episode):
     best_q_value = float('-inf')
     best_state = None
     second_q_value = float('-inf')
@@ -147,21 +147,34 @@ def get_second_best_configuration(action_index, action_shape):
             best_state = state
 
     best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
-    if best_state:
-        Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
-    
-    for state, q_values in Q_table.items():
-        max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
-        max_q_value = q_values[max_q_index]
+    if episode < 50:
+        if best_state:
+            Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
         
-        if max_q_value > second_q_value:
-            second_q_value = max_q_value
-            second_best_state = state
+        for state, q_values in Q_table.items():
+            max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+            max_q_value = q_values[max_q_index]
+            
+            if max_q_value > second_q_value:
+                second_q_value = max_q_value
+                second_best_state = state
 
-    second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
-    Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = best_q_value
+        second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+        Q_table[best_state][np.ravel_multi_index(action_index, action_shape)] = best_q_value
 
-    return second_best_state
+        return second_best_state
+    else:
+        for state, q_values in Q_table.items():
+            min_q_index = np.argmin(q_values)  # Find the index of the max Q-value
+            min_q_value = q_values[min_q_index]
+            
+            if min_q_value > second_q_value:
+                second_q_value = min_q_value
+                second_best_state = state
+
+        second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
+
+        return second_best_state
 
 # Retrieve Q-value for a state-action pair
 def get_q_value(state_index, action_index):
@@ -309,7 +322,7 @@ for episode in range(num_episodes):
         cl = int(adjust_value(sampled_configs['cl'], actions[4]))
     else:
         best_config = get_best_configuration()
-        second_config = get_second_best_configuration()
+        second_config = get_second_best_configuration(actions, action_shape, episode)
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
 
