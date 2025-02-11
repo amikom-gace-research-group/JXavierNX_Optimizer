@@ -264,9 +264,9 @@ def execute_runtime(num_episodes=100):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['D']
 
         if int(sys.argv[7]):
-            file = f"neuos-proposed_scaled_jxavier_{sys.argv[4]}.csv"
+            file = f"neuos-proposed_scaled_{sys.argv[5]}_{sys.argv[4]}.csv"
         else:
-            file = f"neuos_scaled_jxavier_{sys.argv[4]}.csv"
+            file = f"neuos_scaled_{sys.argv[5]}_{sys.argv[4]}.csv"
         
         save_csv([configs], file)
         # Log the results

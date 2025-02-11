@@ -167,9 +167,9 @@ def profile_configurations():
     """
     Profiles a subset of configurations and returns profiling data.
     """
-    if os.path.exists(f"profiling_alert_{sys.argv[4]}.csv"):
+    if os.path.exists(f"profiling_alert_{sys.argv[5]}_{sys.argv[4]}.csv"):
         print("[Profiling] profiling configurations was profiled.")
-        with open(f"profiling_alert_{sys.argv[4]}.csv", mode='r', encoding='utf-8') as file:
+        with open(f"profiling_alert_{sys.argv[5]}_{sys.argv[4]}.csv", mode='r', encoding='utf-8') as file:
             csv_reader = csv.DictReader(file)
             # Convert each row into a dictionary and add it to a list
             data = [dict(row) for row in csv_reader]
@@ -199,9 +199,9 @@ def profile_configurations():
             mem = measured_metrics[0]["mem_percent"]
             data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
             profiling_data.append(data)
-            with open(f"profiling_alert_{sys.argv[4]}.csv", 'a', newline='') as f:
+            with open(f"profiling_alert_{sys.argv[5]}_{sys.argv[4]}.csv", 'a', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=['profiling_time (s)', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
-                if os.path.getsize(f"profiling_alert_{sys.argv[4]}.csv") == 0:
+                if os.path.getsize(f"profiling_alert_{sys.argv[5]}_{sys.argv[4]}.csv") == 0:
                     writer.writeheader()
                 writer.writerow(data)
 
@@ -287,7 +287,7 @@ def execute_runtime(profiling_data, num_episodes=100):
 
         if best is None:
             print("[Runtime] No valid configuration found.")
-            os.remove(f"profiling_alert_{sys.argv[4]}.csv")
+            os.remove(f"profiling_alert_{sys.argv[5]}_{sys.argv[4]}.csv")
             break
 
         best_config, best_index = best
@@ -346,9 +346,9 @@ def execute_runtime(profiling_data, num_episodes=100):
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
         if int(sys.argv[7]):
-            file = f"alert-proposed_jxavier_{sys.argv[4]}.csv"
+            file = f"alert-proposed_{sys.argv[5]}_{sys.argv[4]}.csv"
         else:
-            file = f"alert_jxavier_{sys.argv[4]}.csv"
+            file = f"alert_{sys.argv[5]}_{sys.argv[4]}.csv"
         
         save_csv([configs], file)
 
