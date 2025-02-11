@@ -7,7 +7,7 @@ import os
 from itertools import product
 
 if sys.argv[5] == 'jxavier':
-    CPU_CORES_RANGE = range(1, 6)
+    CPU_CORES_RANGE = np.linspace(1, 6, 3)
     CPU_FREQ_RANGE = range(1190, 1909)
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
@@ -81,7 +81,7 @@ def calibrate():
     sampled_configs = []
 
     # Stratified sampling: Select a subset of configurations
-    for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+    for cpu_cores in CPU_CORES_RANGE:
         for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):  # Example: 3 CPU frequency strata
             for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
                 for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):

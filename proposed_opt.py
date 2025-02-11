@@ -92,7 +92,7 @@ print("PID", os.getpid())
 
 # Configuration ranges for CPU, GPU, and memory
 if sys.argv[5] == 'jxavier':
-    CPU_CORES_RANGE = range(1, 6)
+    CPU_CORES_RANGE = np.linspace(1, 6, 3)
     CPU_FREQ_RANGE = range(1190, 1909)
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
@@ -111,7 +111,7 @@ prohibited_configs = set()
 sampled_configs = []
 
 # Stratified sampling: Select a subset of configurations
-for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
+for cpu_cores in CPU_CORES_RANGE:
     for cpu_freq in np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3):
         for gpu_freq in np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3):
             for memory_freq in np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3):
@@ -119,38 +119,14 @@ for cpu_cores in np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3):
                     config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
                     sampled_configs.append(config)
 
-if int(sys.argv[8]) == 4:
-    q = [0, 49.8, 100] # 1, 1, 3
-    K = 1
-elif int(sys.argv[8]) == 6:
-    q = [0, 32.5, 49.8, 67.1, 100] # 1, 1, 1, 1, 3
-    K = 3
-elif int(sys.argv[8]) == 9:
-    q = [0, 16.9, 32.5, 49.8, 67.1, 83.1, 100] # 1, 2, 1, 1, 1, 1, 3
-    K = 5
-elif int(sys.argv[8]) == 10:
-    q = [0, 16.9, 32.5, 33.7, 49.8, 65.8, 67.1, 83.1, 100] # 1, 2, 1, 1, 1, 1, 1, 1, 3
-    K = 7
-    
-# Calculate the indices for the quartiles
-indices = np.percentile(range(len(sampled_configs)), q)
-
-# Convert indices to integers (since they represent positions in the list)
-quartile_indices = [int(idx) for idx in indices]
-
 initial_config_id = []
 
-# filter for initial config
-for i, idx in enumerate(quartile_indices):
-    if 0 <= i <= K and (i != 1 if K > 3 else True):
-        for k in [0, 1, 2]:
-            initial_config_id.append({str(idx+k):[]})
-    elif i == len(quartile_indices)-1:
-        for k in [-2, -1, 0]:
-            initial_config_id.append({str(idx+k):[]})
-    else:
-        for k in [-1, 0, 1]:
-            initial_config_id.append({str(idx+k):[]})
+for cpu_cores in CPU_CORES_RANGE:
+    for cpu_freq, gpu_freq, memory_freq in zip(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3),  np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)):
+        for cl in CL_RANGE:
+            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl}
+            idx = sampled_configs.index(config)
+            initial_config_id.append({str(idx):[]})
 
 for episode, ids in enumerate(initial_config_id):
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = apply_configs(int(list(ids.keys())[0]))

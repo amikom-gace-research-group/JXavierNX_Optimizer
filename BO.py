@@ -12,7 +12,7 @@ from skopt.acquisition import gaussian_ei, gaussian_pi, gaussian_lcb
 print("PID", os.getpid())
 
 if sys.argv[5] == 'jxavier':
-    CPU_CORES_RANGE = range(1, 6)
+    CPU_CORES_RANGE = np.linspace(1, 6, 3)
     CPU_FREQ_RANGE = range(1190, 1909)
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
@@ -25,7 +25,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 4)
 
 sampled_configs ={
-     "cpu_cores": np.linspace(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), 3), 
+     "cpu_cores": CPU_CORES_RANGE, 
      "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
      "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
      "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
