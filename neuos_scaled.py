@@ -18,7 +18,7 @@ elif sys.argv[5] == 'jorin-nano':
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
-    CL_RANGE = range(1, 3)
+    CL_RANGE = range(1, 4)
 
 def minmax(values, range):
     values = min(values, max(range))
