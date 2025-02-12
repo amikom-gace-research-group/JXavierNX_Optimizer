@@ -28,7 +28,11 @@ def minmax(values, range):
 def generate_neighbor(exist_configs, neighbor_configs):
     new_neighbors = []
     for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
-        new_neighbors.append(minmax(round(int(exist_config) - abs(int(exist_config) - int(neighbor_config)) / 2), range))
+        if exist_config > neighbor_config:
+            new_neighbor = minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range)
+        else:
+            new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
+        new_neighbor.append(new_neighbor)
     return new_neighbors
 
 # -----------------------
