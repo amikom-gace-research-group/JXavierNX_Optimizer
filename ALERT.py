@@ -38,9 +38,9 @@ def generate_neighbor(exist_configs, neighbor_configs):
             new_neighbor = minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range)
         else:
             new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
-        new_neighbor.append(new_neighbor)
+        new_neighbors.append(new_neighbor)
     new_neighbor  = {"cpu_cores": int(new_neighbors[0]), "cpu_freq": int(new_neighbors[1]), "gpu_freq": int(new_neighbors[2]), "memory_freq": int(new_neighbors[3]), "cl": new_neighbors[4]}
-    return new_neighbor
+    return new_neighbors
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:

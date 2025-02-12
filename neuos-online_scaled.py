@@ -48,7 +48,7 @@ def generate_neighbor(exist_configs, neighbor_configs):
             new_neighbor = minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range)
         else:
             new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
-        new_neighbor.append(new_neighbor)
+        new_neighbors.append(new_neighbor)
     return new_neighbors
 
 def select_dvfs(df_prof, episode, proposed=0):

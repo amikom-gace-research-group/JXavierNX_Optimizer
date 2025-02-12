@@ -66,13 +66,13 @@ def calculate_reward(measured_metrics, balanced=1):
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs):
-    new_neighbor = []
+    new_neighbors = []
     for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
         if exist_config > neighbor_config:
             new_neighbor = minmax(round(exist_config - abs(exist_config - neighbor_config) / 2), range)
         else:
             new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
-        new_neighbor.append(new_neighbor)
+        new_neighbors.append(new_neighbor)
     return tuple(new_neighbor)
 
 # CSV saving optimization
