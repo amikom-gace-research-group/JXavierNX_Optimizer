@@ -73,7 +73,7 @@ def generate_neighbor(exist_configs, neighbor_configs):
         else:
             new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
         new_neighbors.append(new_neighbor)
-    return tuple(new_neighbor)
+    return tuple(new_neighbors)
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
