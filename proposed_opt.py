@@ -177,7 +177,7 @@ for episode, ids in enumerate(initial_config_id):
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
     rewards = [list(initial_config_id[i].values())[0][0] for i in range(len(initial_config_id)) if list(initial_config_id[i].values())[0]]
 
     print(f"Episode: {episode+1}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -249,7 +249,7 @@ while exploration_eps <= max_episode:
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
@@ -308,7 +308,7 @@ while exploration_eps <= max_episode:
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {exploration_eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             exploration_eps += 1
