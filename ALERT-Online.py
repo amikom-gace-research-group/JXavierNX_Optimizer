@@ -235,7 +235,6 @@ def execute_runtime(num_episodes=100):
     throughput_filter = KalmanFilter()
     power_filter = KalmanFilterPower()
     best_config = None
-    best_index = 0
     power_var = 0.01
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = sampled_configs[0]["cpu_cores"], sampled_configs[0]["cpu_freq"], sampled_configs[0]["gpu_freq"], sampled_configs[0]["memory_freq"], sampled_configs[0]["cl"]
 
