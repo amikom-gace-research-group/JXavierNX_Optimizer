@@ -128,6 +128,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
             print(f"Error executing config: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error executing config: {e}")
+    return None, None
 
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
