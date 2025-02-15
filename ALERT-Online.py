@@ -236,6 +236,7 @@ def execute_runtime(num_episodes=100):
     throughput_filter = KalmanFilter()
     power_filter = KalmanFilterPower()
     best_config = None
+    best_index = 0
     power_var = 0.01
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = sampled_configs[0]["cpu_cores"], sampled_configs[0]["cpu_freq"], sampled_configs[0]["gpu_freq"], sampled_configs[0]["memory_freq"], sampled_configs[0]["cl"]
 
@@ -247,13 +248,13 @@ def execute_runtime(num_episodes=100):
         elapsed_exec = round(time.time() - t1, 3)
         if isinstance(measured_metrics, list) or not measured_metrics:
             if not measured_metrics:
-                print("EXECUTION PROBLEM!")
+                print(f"EXECUTION PROBLEM! {measured_metrics}")
                 conf += 1
                 config = sampled_configs[conf]
                 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
                 continue
             elif measured_metrics[0]['power_cons'] == 0:
-                print("EXECUTION PROBLEM!")
+                print("EXECUTION PROBLEM! Power Zero")
                 conf += 1
                 config = sampled_configs[conf]
                 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
