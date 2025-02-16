@@ -204,6 +204,8 @@ while exploration_eps <= max_episode:
 
         if str(sampled_configs.index(dict_new_configs)) not in [list(initial_config_id[i].keys())[0] for i in range(len(initial_config_id))] and str(sampled_configs.index(dict_new_configs)) not in [list(final_configs_id[i].keys())[0] for i in range(len(final_configs_id)) if final_configs_id]:
             if new_configs in prohibited_configs:
+                if exploration_eps < 50:
+                    initial_config_id = [d for d in initial_config_id if str(second_best_id) not in d]
                 continue
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
 
