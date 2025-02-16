@@ -9,7 +9,7 @@ from scipy.stats import norm
 print("PID", os.getpid())
 
 if sys.argv[5] == 'jxavier':
-    CPU_CORES_RANGE = np.linspace(1, 6, 3)
+    CPU_CORES_RANGE = np.linspace(1, 5, 3)
     CPU_FREQ_RANGE = range(1190, 1909)
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
