@@ -8,6 +8,11 @@ from pyDOE import lhs
 
 print("PID", os.getpid())
 
+CORES_ACTIONS = [0, 1, 2]
+CPU_ACTIONS = [0, 1, 2]
+GPU_ACTIONS = [0, 1, 2]
+MEM_ACTIONS = [0, 1, 2]
+CL_ACTIONS = [0, 1, 2]
 # Configuration ranges for CPU, GPU, and memory
 if sys.argv[5] == 'jxavier':
     CPU_CORES_RANGE = np.linspace(1, 5, 3)
@@ -15,12 +20,30 @@ if sys.argv[5] == 'jxavier':
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
+    ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
+    ranges = [
+        (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
+        (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+        (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+        (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+        (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+    ]
+    action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1510)
     GPU_FREQ_RANGE = range(306, 624)
     MEMORY_FREQ_RANGE = range(1500, 2133)
     CL_RANGE = range(1, 4)
+    ACTION_MAPPING = ['cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
+    ranges = [
+        (0, 0),
+        (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+        (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+        (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+        (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+    ]
+    action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
 
 sampled_configs ={
      "cpu_cores": list(CPU_CORES_RANGE), 
@@ -44,11 +67,6 @@ epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
 num_episodes = 100  # Number of episodes to run
-
-# Define actions and step sizes
-ACTIONS = [0, 1, 2]
-ACTION_MAPPING = ['cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
-action_shape = [len(ACTIONS)] * len(ACTION_MAPPING)
 
 prohibited_configs = set()
 
@@ -111,13 +129,6 @@ def lhs_sampling(num_samples, ranges):
 # Generate LHS samples for the exploration phase
 def generate_lhs_samples():
     num_samples = 10  # Number of samples per episode
-    ranges = [
-        (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1)
-    ]
     samples = lhs_sampling(num_samples, ranges)
     return [tuple(map(int, sample)) for sample in samples]
 
@@ -332,12 +343,16 @@ for episode in range(num_episodes):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
         if cpu_cores not in sampled_configs['cpu_cores']:
             sampled_configs['cpu_cores'].append(cpu_cores)
+            CORES_ACTIONS.append(len(CORES_ACTIONS)+1)
         elif cpu_freq not in sampled_configs['cpu_freq']:
             sampled_configs['cpu_freq'].append(cpu_freq)
+            CPU_ACTIONS.append(len(CPU_ACTIONS)+1)
         elif gpu_freq not in sampled_configs['gpu_freq']:
             sampled_configs['gpu_freq'].append(gpu_freq)
+            GPU_ACTIONS.append(len(GPU_ACTIONS)+1)
         elif memory_freq not in sampled_configs['memory_freq']:
             sampled_configs['memory_freq'].append(memory_freq)
+            MEM_ACTIONS.append(len(MEM_ACTIONS)+1)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
