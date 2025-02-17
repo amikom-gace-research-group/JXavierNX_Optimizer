@@ -354,16 +354,16 @@ for episode in range(num_episodes):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
         if sys.argv[5] == 'jxavier':
             if cpu_cores not in sampled_configs['cpu_cores']:
-                np.concatenate(sampled_configs['cpu_cores'], np.array(cpu_cores))
+                np.append(sampled_configs['cpu_cores'], np.array(cpu_cores))
                 CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
         if cpu_freq not in sampled_configs['cpu_freq']:
-            np.concatenate(sampled_configs['cpu_freq'], np.array(cpu_freq))
+            np.append(sampled_configs['cpu_freq'], np.array(cpu_freq))
             CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
         elif gpu_freq not in sampled_configs['gpu_freq']:
-            np.concatenate(sampled_configs['gpu_freq'], np.array(gpu_freq))
+            np.append(sampled_configs['gpu_freq'], np.array(gpu_freq))
             GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
         elif memory_freq not in sampled_configs['memory_freq']:
-            np.concatenate(sampled_configs['memory_freq'], np.array(memory_freq))
+            np.append(sampled_configs['memory_freq'], np.array(memory_freq))
             MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
         if sys.argv[5] == 'jxavier':
             actions = (CORES_ACTIONS[-1]+1, CPU_ACTIONS[-1]+1, GPU_ACTIONS[-1]+1, MEM_ACTIONS[-1]+1)
