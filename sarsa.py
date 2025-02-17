@@ -345,15 +345,15 @@ for episode in range(num_episodes):
             if cpu_cores not in sampled_configs['cpu_cores']:
                 sampled_configs['cpu_cores'].append(cpu_cores)
                 CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-        elif cpu_freq not in sampled_configs['cpu_freq']:
+        if cpu_freq not in sampled_configs['cpu_freq']:
             sampled_configs['cpu_freq'].append(cpu_freq)
-            CPU_ACTIONS.append(len(CPU_ACTIONS)+1)
+            CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
         elif gpu_freq not in sampled_configs['gpu_freq']:
             sampled_configs['gpu_freq'].append(gpu_freq)
-            GPU_ACTIONS.append(len(GPU_ACTIONS)+1)
+            GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
         elif memory_freq not in sampled_configs['memory_freq']:
             sampled_configs['memory_freq'].append(memory_freq)
-            MEM_ACTIONS.append(len(MEM_ACTIONS)+1)
+            MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
