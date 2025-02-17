@@ -365,6 +365,10 @@ for episode in range(num_episodes):
         elif memory_freq not in sampled_configs['memory_freq']:
             np.concatenate(sampled_configs['memory_freq'], np.array(memory_freq))
             MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
+        if sys.argv[5] == 'jxavier':
+            actions = (CORES_ACTIONS[-1]+1, CPU_ACTIONS[-1]+1, GPU_ACTIONS[-1]+1, MEM_ACTIONS[-1]+1)
+        elif sys.argv[5] == 'jorin-nano':
+            actions = (0, CPU_ACTIONS[-1]+1, GPU_ACTIONS[-1]+1, MEM_ACTIONS[-1]+1)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
