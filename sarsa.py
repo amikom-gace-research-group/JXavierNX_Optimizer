@@ -341,9 +341,10 @@ for episode in range(num_episodes):
         second_config = get_second_best_configuration(actions, action_shape, episode)
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
-        if cpu_cores not in sampled_configs['cpu_cores']:
-            sampled_configs['cpu_cores'].append(cpu_cores)
-            CORES_ACTIONS.append(len(CORES_ACTIONS)+1)
+        if sys.argv[5] == 'jxavier':
+            if cpu_cores not in sampled_configs['cpu_cores']:
+                sampled_configs['cpu_cores'].append(cpu_cores)
+                CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
         elif cpu_freq not in sampled_configs['cpu_freq']:
             sampled_configs['cpu_freq'].append(cpu_freq)
             CPU_ACTIONS.append(len(CPU_ACTIONS)+1)
