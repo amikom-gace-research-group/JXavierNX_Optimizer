@@ -23,11 +23,11 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 4)
 
 sampled_configs ={
-     "cpu_cores": CPU_CORES_RANGE, 
-     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
-     "cl": CL_RANGE
+     "cpu_cores": list(CPU_CORES_RANGE), 
+     "cpu_freq": list(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3)), 
+     "gpu_freq": list(np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3)), 
+     "memory_freq": list(np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)), 
+     "cl": list(CL_RANGE)
 }
 
 POWER_BUDGET = int(sys.argv[6])
@@ -65,9 +65,9 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     )
 
 # Adjust configuration values based on action
-def adjust_value(value, action):
+def adjust_value(value, action, proposed=0):
     unique_values = sorted(value)
-    if len(unique_values) != 3:
+    if len(unique_values) != 3 and not int(proposed):
         return min(unique_values)
     else:
         return unique_values[action]
@@ -151,7 +151,7 @@ def get_second_best_configuration(action_index, action_shape, episode):
             best_state = state
 
     best_state = tuple([int(conf[int(x)]) for x, conf in zip(best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
-    best_state_index = state_to_index(*best_state)
+    best_state_index = tuple(state_to_index(*best_state))
     if episode < 50:
         if best_state:
             Q_table[best_state_index][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
@@ -320,16 +320,24 @@ for episode in range(num_episodes):
 
     if actions:
         # Adjust values for the chosen actions
-        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
-        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
-        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
-        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
-        cl = int(adjust_value(sampled_configs['cl'], actions[4]))
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
     else:
         best_config = get_best_configuration()
         second_config = get_second_best_configuration(actions, action_shape, episode)
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
+        if cpu_cores not in sampled_configs['cpu_cores']:
+            sampled_configs['cpu_cores'].append(cpu_cores)
+        elif cpu_freq not in sampled_configs['cpu_freq']:
+            sampled_configs['cpu_freq'].append(cpu_freq)
+        elif gpu_freq not in sampled_configs['gpu_freq']:
+            sampled_configs['gpu_freq'].append(gpu_freq)
+        elif memory_freq not in sampled_configs['memory_freq']:
+            sampled_configs['memory_freq'].append(memory_freq)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
