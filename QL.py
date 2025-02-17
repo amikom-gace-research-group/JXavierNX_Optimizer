@@ -165,7 +165,7 @@ def get_second_best_configuration(action_index, action_shape, episode):
     best_state_index = tuple(state_to_index(*best_state))
     if episode < 50:
         if best_state:
-            Q_table[best_state_index][np.ravel_multi_index(action_index, action_shape)] = float('-inf')
+            Q_table[best_state_index][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = float('-inf')
         
         for state, q_values in Q_table.items():
             max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
@@ -176,7 +176,7 @@ def get_second_best_configuration(action_index, action_shape, episode):
                 second_best_state = state
 
         second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
-        Q_table[best_state_index][np.ravel_multi_index(action_index, action_shape)] = best_q_value
+        Q_table[best_state_index][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = best_q_value
 
         return second_best_state
     else:
@@ -197,14 +197,14 @@ def get_q_value(state_index, action_index):
     state_key = tuple(state_index)
     if state_key not in Q_table:
         Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
-    return Q_table[state_key][np.ravel_multi_index(action_index, action_shape)]
+    return Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))]
 
 # Update Q-value for a state-action pair
 def update_q_value(state_index, action_index, new_value):
     state_key = tuple(state_index)
     if state_key not in Q_table:
         Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
-    Q_table[state_key][np.ravel_multi_index(action_index, action_shape)] = new_value
+    Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = new_value
 
 def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500):
     """
