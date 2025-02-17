@@ -46,11 +46,11 @@ elif sys.argv[5] == 'jorin-nano':
     action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
 
 sampled_configs ={
-     "cpu_cores": list(CPU_CORES_RANGE), 
-     "cpu_freq": list(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3)), 
-     "gpu_freq": list(np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3)), 
-     "memory_freq": list(np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)), 
-     "cl": list(CL_RANGE)
+     "cpu_cores": np.array(CPU_CORES_RANGE), 
+     "cpu_freq": np.array(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3)), 
+     "gpu_freq": np.array(np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3)), 
+     "memory_freq": np.array(np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)), 
+     "cl": np.array(CL_RANGE)
 }
 
 POWER_BUDGET = int(sys.argv[6])
@@ -321,6 +321,8 @@ def save_csv(dict_list, filename):
 # Initial configuration (starting in the middle of the range)
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+best_action = None
+best_q = 0
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
     # Generate LHS samples for this episode
@@ -328,7 +330,7 @@ for episode in range(num_episodes):
 
     # Choose actions based on current state and LHS samples
     actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
-
+    
     if actions:
         # Adjust values for the chosen actions
         cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
@@ -338,21 +340,31 @@ for episode in range(num_episodes):
         cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
     else:
         best_config = get_best_configuration()
-        second_config = get_second_best_configuration(actions, action_shape, episode)
+
+        if best_action:
+            second_config = get_second_best_configuration(best_action, action_shape, episode)
+        else:
+            actions = calculate_diversity(lhs_samples, tuple(state_index))
+            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
+            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
+            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
+            memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
+            cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
+            second_config = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
         if sys.argv[5] == 'jxavier':
             if cpu_cores not in sampled_configs['cpu_cores']:
-                sampled_configs['cpu_cores'].append(cpu_cores)
+                np.concatenate(sampled_configs['cpu_cores'], np.array(cpu_cores))
                 CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
         if cpu_freq not in sampled_configs['cpu_freq']:
-            sampled_configs['cpu_freq'].append(cpu_freq)
+            np.concatenate(sampled_configs['cpu_freq'], np.array(cpu_freq))
             CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
         elif gpu_freq not in sampled_configs['gpu_freq']:
-            sampled_configs['gpu_freq'].append(gpu_freq)
+            np.concatenate(sampled_configs['gpu_freq'], np.array(gpu_freq))
             GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
         elif memory_freq not in sampled_configs['memory_freq']:
-            sampled_configs['memory_freq'].append(memory_freq)
+            np.concatenate(sampled_configs['memory_freq'], np.array(memory_freq))
             MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
 
     # Print the chosen configuration for tracking
@@ -397,7 +409,7 @@ for episode in range(num_episodes):
     update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
-    if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput:
+    if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput and new_q_value > best_q:
         max_reward = reward
         best_config = {
             "api_time": api_time,
@@ -408,6 +420,8 @@ for episode in range(num_episodes):
             "cl": cl
         }
         best_throughput = measured_metrics[0]["throughput"]
+        best_q = new_q_value
+        best_action = actions
 
     elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
