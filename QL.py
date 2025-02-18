@@ -37,7 +37,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 4)
     ACTION_MAPPING = ['cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
     ranges = [
-        (0, 0),
+        (0, 1),
         (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
         (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
         (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
