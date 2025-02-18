@@ -207,6 +207,7 @@ def update_q_table(state_index, action_index):
     else:
         for state, q_values in Q_table.items():
             if state == state_key:
+                Q_table[state_key] = np.zeros(np.prod(action_shape))
                 Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = q_values
 
 # Update Q-value for a state-action pair
@@ -401,7 +402,7 @@ for episode in range(num_episodes):
             update_q_table(state_key, actions)
             if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
-                    print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
+                    print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
                     epsilon_explore = 0.5
                     epsilon_exploit = 0.5
                     continue
