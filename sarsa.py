@@ -401,7 +401,7 @@ for episode in range(num_episodes):
                     (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
-            state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
+            state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
             update_q_table(state_key, actions)
             if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
@@ -454,7 +454,7 @@ for episode in range(num_episodes):
         prohibited_configs.add(new_state_index)
 
     new_actions, _ = choose_action_adaptive(new_state_index, lhs_samples)
-
+    update_q_table(state_index, actions)
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
     new_q_value = old_q_value + alpha * (reward + gamma * get_q_value(new_state_index, new_actions) - old_q_value)  # SARSA update

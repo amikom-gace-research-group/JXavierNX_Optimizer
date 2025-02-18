@@ -400,7 +400,7 @@ for episode in range(num_episodes):
                     (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
-            state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
+            state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
             update_q_table(state_key, actions)
             if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
@@ -453,7 +453,7 @@ for episode in range(num_episodes):
         prohibited_configs.add(new_state_index)
 
     new_actions, _ = choose_action_adaptive(new_state_index, lhs_samples)
-
+    update_q_table(state_index, actions)
     # Update Q-value using the Bellman equation
     old_q_value = get_q_value(state_index, actions)
     max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))))
