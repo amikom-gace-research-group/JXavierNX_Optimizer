@@ -391,9 +391,9 @@ for episode in range(num_episodes):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
         if sys.argv[5] == 'jxavier':
-            actions = (CORES_ACTIONS.index(cpu_cores), CPU_ACTIONS.index(cpu_freq), GPU_ACTIONS.index(gpu_freq), MEM_ACTIONS.index(memory_freq), CL_RANGE.index(cl))
+            actions = (int(np.where(sampled_configs['cpu_cores'] == cpu_cores)[0][0]), int(np.where(sampled_configs['cpu_freq'] == cpu_freq)[0][0]), int(np.where(sampled_configs['gpu_freq'] == gpu_freq)[0][0]), int(np.where(sampled_configs['memory_freq'] == memory_freq)[0][0]), CL_RANGE.index(cl))
         elif sys.argv[5] == 'jorin-nano':
-            actions = (0, CPU_ACTIONS.index(cpu_freq), GPU_ACTIONS.index(gpu_freq), MEM_ACTIONS.index(memory_freq), CL_RANGE.index(cl))
+            actions = (0, int(np.where(sampled_configs['cpu_freq'] == cpu_freq)[0][0]), int(np.where(sampled_configs['gpu_freq'] == gpu_freq)[0][0]), int(np.where(sampled_configs['memory_freq'] == memory_freq)[0][0]), CL_RANGE.index(cl))
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
