@@ -380,7 +380,7 @@ for episode in range(num_episodes):
                 actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
                 action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
                 ranges = [
-                    (0, 0),
+                    (0, 1),
                     (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
                     (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
                     (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
