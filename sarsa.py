@@ -37,7 +37,7 @@ elif sys.argv[5] == 'jorin-nano':
     CL_RANGE = range(1, 4)
     ACTION_MAPPING = ['cpu_freq', 'gpu_freq', 'memory_freq', 'cl']
     ranges = [
-        (0, 0),
+        (0, 1),
         (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
         (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
         (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
@@ -354,24 +354,38 @@ for episode in range(num_episodes):
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
         if sys.argv[5] == 'jxavier':
-            if cpu_cores not in sampled_configs['cpu_cores']:
+            if np.array(cpu_cores) not in sampled_configs['cpu_cores']:
                 np.append(sampled_configs['cpu_cores'], np.array(cpu_cores))
                 CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-        if cpu_freq not in sampled_configs['cpu_freq']:
+        if np.array(cpu_freq) not in sampled_configs['cpu_freq']:
             np.append(sampled_configs['cpu_freq'], np.array(cpu_freq))
             CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
-        elif gpu_freq not in sampled_configs['gpu_freq']:
+        elif np.array(gpu_freq) not in sampled_configs['gpu_freq']:
             np.append(sampled_configs['gpu_freq'], np.array(gpu_freq))
             GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
-        elif memory_freq not in sampled_configs['memory_freq']:
+        elif np.array(memory_freq) not in sampled_configs['memory_freq']:
             np.append(sampled_configs['memory_freq'], np.array(memory_freq))
             MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
         if sys.argv[5] == 'jxavier':
             actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
             action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+            ranges = [
+                (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
+                (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+            ]
         elif sys.argv[5] == 'jorin-nano':
             actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
             action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+            ranges = [
+                (0, 1),
+                (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+            ]
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
