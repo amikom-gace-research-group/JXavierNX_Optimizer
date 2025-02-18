@@ -252,7 +252,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
     global epsilon_explore, epsilon_exploit
     state_key = tuple(state_index)
     # Select action based on epsilon
-    if (epsilon_explore/epsilon_exploit) > 0.75:
+    if (epsilon_explore/epsilon_exploit) > 0.55:
         return calculate_diversity(lhs_samples, state_key), "exploration"
     else:
         # Exploitation: choose best known action
@@ -406,7 +406,8 @@ for episode in range(num_episodes):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         if state_index in prohibited_configs:
-            epsilon_explore = 0.3
+            print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
+            epsilon_explore = 0.5
             epsilon_exploit = 0.5
             continue
         else:
