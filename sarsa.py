@@ -345,6 +345,7 @@ for episode in range(num_episodes):
             if best_action:
                 second_config = get_second_best_configuration(best_action, action_shape, episode)
             else:
+                phase = "exploration"
                 actions = calculate_diversity(lhs_samples, tuple(state_index))
                 cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
                 cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
@@ -390,6 +391,12 @@ for episode in range(num_episodes):
             state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
             if state_key not in Q_table:
                 Q_table[state_key] = np.zeros(np.prod(action_shape))
+            else:
+                if phase == "exploitation" and actions == None:
+                    print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
+                    epsilon_explore = 0.5
+                    epsilon_exploit = 0.5
+                    continue
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
