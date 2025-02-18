@@ -46,11 +46,11 @@ elif sys.argv[5] == 'jorin-nano':
     action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
 
 sampled_configs ={
-     "cpu_cores": list(CPU_CORES_RANGE), 
-     "cpu_freq": list(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3)), 
-     "gpu_freq": list(np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3)), 
-     "memory_freq": list(np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)), 
-     "cl": list(CL_RANGE)
+     "cpu_cores": np.array(CPU_CORES_RANGE), 
+     "cpu_freq": np.array(np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3)), 
+     "gpu_freq": np.array(np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3)), 
+     "memory_freq": np.array(np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3)), 
+     "cl": np.array(CL_RANGE)
 }
 
 POWER_BUDGET = int(sys.argv[6])
@@ -368,17 +368,17 @@ for episode in range(num_episodes):
 
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
             if sys.argv[5] == 'jxavier':
-                if np.array(cpu_cores) not in sampled_configs['cpu_cores']:
-                    np.append(sampled_configs['cpu_cores'], np.array(cpu_cores))
+                if cpu_cores not in sampled_configs['cpu_cores']:
+                    np.append(sampled_configs['cpu_cores'], cpu_cores)
                     CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-            if np.array(cpu_freq) not in sampled_configs['cpu_freq']:
-                np.append(sampled_configs['cpu_freq'], np.array(cpu_freq))
+            if cpu_freq not in sampled_configs['cpu_freq']:
+                np.append(sampled_configs['cpu_freq'], cpu_freq)
                 CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
-            elif np.array(gpu_freq) not in sampled_configs['gpu_freq']:
-                np.append(sampled_configs['gpu_freq'], np.array(gpu_freq))
+            elif gpu_freq not in sampled_configs['gpu_freq']:
+                np.append(sampled_configs['gpu_freq'], gpu_freq)
                 GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
-            elif np.array(memory_freq) not in sampled_configs['memory_freq']:
-                np.append(sampled_configs['memory_freq'], np.array(memory_freq))
+            elif memory_freq not in sampled_configs['memory_freq']:
+                np.append(sampled_configs['memory_freq'], memory_freq)
                 MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
             if sys.argv[5] == 'jxavier':
                 actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
