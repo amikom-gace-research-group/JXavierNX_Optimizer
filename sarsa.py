@@ -367,10 +367,10 @@ for episode in range(num_episodes):
             np.append(sampled_configs['memory_freq'], np.array(memory_freq))
             MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
         if sys.argv[5] == 'jxavier':
-            actions = (CORES_ACTIONS[-1]+1, CPU_ACTIONS[-1]+1, GPU_ACTIONS[-1]+1, MEM_ACTIONS[-1]+1, CL_RANGE.index(cl))
+            actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
             action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
         elif sys.argv[5] == 'jorin-nano':
-            actions = (0, CPU_ACTIONS[-1]+1, GPU_ACTIONS[-1]+1, MEM_ACTIONS[-1]+1, CL_RANGE.index(cl))
+            actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
             action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
 
     # Print the chosen configuration for tracking
