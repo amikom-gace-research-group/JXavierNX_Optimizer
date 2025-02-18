@@ -207,8 +207,10 @@ def update_q_table(state_index, action_index):
     else:
         for state, q_values in Q_table.items():
             if state == state_key:
+                max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
+                max_q_value = q_values[max_q_index]
                 Q_table[state_key] = np.zeros(np.prod(action_shape))
-                Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = q_values
+                Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = max_q_value
 
 # Update Q-value for a state-action pair
 def update_q_value(state_index, action_index, new_value):
@@ -379,7 +381,7 @@ for episode in range(num_episodes):
                 np.append(sampled_configs['memory_freq'], np.array(memory_freq))
                 MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
             if sys.argv[5] == 'jxavier':
-                actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                actions = [(CORES_ACTIONS[-1],), (CPU_ACTIONS[-1],), (GPU_ACTIONS[-1],), (MEM_ACTIONS[-1],), (CL_RANGE.index(cl),)]
                 action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
                 ranges = [
                     (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
@@ -389,7 +391,7 @@ for episode in range(num_episodes):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             elif sys.argv[5] == 'jorin-nano':
-                actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                actions = [(0,), (CPU_ACTIONS[-1],), (GPU_ACTIONS[-1],), (MEM_ACTIONS[-1],), (CL_RANGE.index(cl),)]
                 action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
                 ranges = [
                     (0, 1),
@@ -411,9 +413,9 @@ for episode in range(num_episodes):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
         if sys.argv[5] == 'jxavier':
-            actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            actions = [(int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]),), (int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]),), (int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]),), (int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]),), (CL_RANGE.index(cl),)]
         elif sys.argv[5] == 'jorin-nano':
-            actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            actions = [(0,), (int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]),), (int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]),), (int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]),), (CL_RANGE.index(cl),)]
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
