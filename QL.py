@@ -388,13 +388,14 @@ for episode in range(num_episodes):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
-            Q_table[state_key] = np.zeros(np.prod(action_shape))
             if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
                     print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
                     epsilon_explore = 0.5
                     epsilon_exploit = 0.5
                     continue
+            else:
+                update_q_value(state_key, actions, 0)
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
