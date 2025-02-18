@@ -403,7 +403,7 @@ for episode in range(num_episodes):
             state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
             update_q_table(state_key, actions)
             if state_key in Q_table:
-                if phase == "exploitation" and actions == None:
+                if phase == "exploitation":
                     print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
                     epsilon_explore = 0.5
                     epsilon_exploit = 0.5
