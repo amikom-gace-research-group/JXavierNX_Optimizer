@@ -389,9 +389,8 @@ for episode in range(num_episodes):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
-            if state_key not in Q_table:
-                Q_table[state_key] = np.zeros(np.prod(action_shape))
-            else:
+            Q_table[state_key] = np.zeros(np.prod(action_shape))
+            if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
                     print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
                     epsilon_explore = 0.5
