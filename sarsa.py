@@ -325,67 +325,75 @@ best_action = None
 best_q = 0
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
-    # Generate LHS samples for this episode
-    lhs_samples = generate_lhs_samples()
+    if episode < 75:
+        # Generate LHS samples for this episode
+        lhs_samples = generate_lhs_samples()
 
-    # Choose actions based on current state and LHS samples
-    actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
-    
-    if actions:
-        # Adjust values for the chosen actions
-        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
-        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
-        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
-        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
-        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
-    else:
-        best_config = get_best_configuration()
-
-        if best_action:
-            second_config = get_second_best_configuration(best_action, action_shape, episode)
-        else:
-            actions = calculate_diversity(lhs_samples, tuple(state_index))
+        # Choose actions based on current state and LHS samples
+        actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
+        
+        if actions:
+            # Adjust values for the chosen actions
             cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
             cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
             gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
             memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
             cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
-            second_config = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+        else:
+            best_config = get_best_configuration()
 
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
+            if best_action:
+                second_config = get_second_best_configuration(best_action, action_shape, episode)
+            else:
+                actions = calculate_diversity(lhs_samples, tuple(state_index))
+                cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
+                cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
+                gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
+                memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
+                cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
+                second_config = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
+            if sys.argv[5] == 'jxavier':
+                if np.array(cpu_cores) not in sampled_configs['cpu_cores']:
+                    np.append(sampled_configs['cpu_cores'], np.array(cpu_cores))
+                    CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
+            if np.array(cpu_freq) not in sampled_configs['cpu_freq']:
+                np.append(sampled_configs['cpu_freq'], np.array(cpu_freq))
+                CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
+            elif np.array(gpu_freq) not in sampled_configs['gpu_freq']:
+                np.append(sampled_configs['gpu_freq'], np.array(gpu_freq))
+                GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
+            elif np.array(memory_freq) not in sampled_configs['memory_freq']:
+                np.append(sampled_configs['memory_freq'], np.array(memory_freq))
+                MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
+            if sys.argv[5] == 'jxavier':
+                actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+                ranges = [
+                    (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
+                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+                ]
+            elif sys.argv[5] == 'jorin-nano':
+                actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+                ranges = [
+                    (0, 1),
+                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+                ]
+    else:
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
+        phase = "post-training"
         if sys.argv[5] == 'jxavier':
-            if np.array(cpu_cores) not in sampled_configs['cpu_cores']:
-                np.append(sampled_configs['cpu_cores'], np.array(cpu_cores))
-                CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-        if np.array(cpu_freq) not in sampled_configs['cpu_freq']:
-            np.append(sampled_configs['cpu_freq'], np.array(cpu_freq))
-            CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
-        elif np.array(gpu_freq) not in sampled_configs['gpu_freq']:
-            np.append(sampled_configs['gpu_freq'], np.array(gpu_freq))
-            GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
-        elif np.array(memory_freq) not in sampled_configs['memory_freq']:
-            np.append(sampled_configs['memory_freq'], np.array(memory_freq))
-            MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
-        if sys.argv[5] == 'jxavier':
-            actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
-            action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-            ranges = [
-                (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
-                (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-            ]
+            actions = (CORES_ACTIONS.index(cpu_cores), CPU_ACTIONS.index(cpu_freq), GPU_ACTIONS.index(gpu_freq), MEM_ACTIONS.index(memory_freq), CL_RANGE.index(cl))
         elif sys.argv[5] == 'jorin-nano':
-            actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
-            action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-            ranges = [
-                (0, 1),
-                (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-            ]
+            actions = (0, CPU_ACTIONS.index(cpu_freq), GPU_ACTIONS.index(gpu_freq), MEM_ACTIONS.index(memory_freq), CL_RANGE.index(cl))
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
