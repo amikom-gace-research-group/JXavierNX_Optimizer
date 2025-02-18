@@ -199,6 +199,16 @@ def get_q_value(state_index, action_index):
         Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
     return Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))]
 
+def update_q_table(state_index, action_index):
+    state_key = tuple(state_index)
+    if state_key not in Q_table:
+        Q_table[state_key] = np.zeros(np.prod(action_shape))  # Initialize if not present
+        Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = 0
+    else:
+        for state, q_values in Q_table.items():
+            if state == state_key:
+                Q_table[state_key][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = q_values
+
 # Update Q-value for a state-action pair
 def update_q_value(state_index, action_index, new_value):
     state_key = tuple(state_index)
@@ -388,14 +398,14 @@ for episode in range(num_episodes):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             state_key = tuple(state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl))
+            update_q_table(state_key, actions)
             if state_key in Q_table:
                 if phase == "exploitation" and actions == None:
                     print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
                     epsilon_explore = 0.5
                     epsilon_exploit = 0.5
                     continue
-            else:
-                update_q_value(state_key, actions, 0)
+
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
