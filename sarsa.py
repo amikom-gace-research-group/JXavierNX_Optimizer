@@ -456,11 +456,8 @@ for episode in range(num_episodes):
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward == 1e-6:
         epsilon_explore = min(epsilon_explore * 1.05, 1)  # Increase epsilon if performance is bad
-        epsilon_exploit = max(epsilon_exploit * 0.995, epsilon_min)
     else:
-        epsilon_explore = max(epsilon_explore * 0.995, epsilon_min)  # Decay epsilon if performance improves
         epsilon_exploit = min(epsilon_exploit * 1.05, 1)
-    
     configs = {
         "api_time": api_time,
         "reward": reward,
