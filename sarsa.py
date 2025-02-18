@@ -387,6 +387,8 @@ for episode in range(num_episodes):
                     (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
+            state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+            Q_table[tuple(state_index)] = np.zeros(np.prod(action_shape))
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
