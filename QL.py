@@ -252,7 +252,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
     global epsilon_explore, epsilon_exploit
     state_key = tuple(state_index)
     # Select action based on epsilon
-    if (epsilon_explore/epsilon_exploit) > 0.65:
+    if (epsilon_explore/epsilon_exploit) > 0.75:
         return calculate_diversity(lhs_samples, state_key), "exploration"
     else:
         # Exploitation: choose best known action
