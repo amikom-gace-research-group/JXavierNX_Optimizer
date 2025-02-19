@@ -292,8 +292,6 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
             if memory_freq not in sampled_configs['memory_freq']:
                 sampled_configs['memory_freq'] = np.append(sampled_configs['memory_freq'], memory_freq)
                 MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
-            else:
-                return calculate_diversity(lhs_samples, state_key), "exploration"
             if sys.argv[5] == 'jxavier':
                 actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
                 action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
