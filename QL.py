@@ -362,7 +362,7 @@ def calculate_reward(measured_metrics, balanced=1):
     if power > POWER_BUDGET:
         return (power * 1e-6) / throughput
     
-    return (throughput / (power if balanced else 1)) * 1e6
+    return (throughput / (power if balanced else 1))
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -408,9 +408,18 @@ while episode <= num_episodes:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         phase = "post-training"
         if sys.argv[5] == 'jxavier':
-            actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            if cpu_cores in sampled_configs['cpu_cores'] and cpu_freq in sampled_configs['cpu_freq'] and gpu_freq in sampled_configs['gpu_freq'] and memory_freq in sampled_configs['memory_freq'] and cl in CL_RANGE:
+                actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            else:
+                state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+                actions, phase = np.unravel_index(np.argmax(Q_table[state_index]), action_shape), "exploitation"
+
         elif sys.argv[5] == 'jorin-nano':
-            actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            if cpu_freq in sampled_configs['cpu_freq'] and gpu_freq in sampled_configs['gpu_freq'] and memory_freq in sampled_configs['memory_freq'] and cl in CL_RANGE:
+                actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
+            else:
+                state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+                actions, phase = np.unravel_index(np.argmax(Q_table[state_index]), action_shape), "exploitation"
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
