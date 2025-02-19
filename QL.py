@@ -359,7 +359,7 @@ def calculate_reward(measured_metrics, balanced=1):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return 1e-6
+        return (power * 1e-6) / throughput
     
     return (throughput / (power if balanced else 1)) * 1e6
 
