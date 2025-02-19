@@ -378,8 +378,10 @@ cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores'
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
 best_q = -float('inf')
+episode = 0
+
 # Execution loop with adaptive epsilon strategy
-for episode in range(num_episodes):
+while episode <= num_episodes:
     if episode < 75:
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
@@ -502,6 +504,8 @@ for episode in range(num_episodes):
     # Update state and last reward
     last_reward = reward
     state_index = new_state_index
+
+    episode += 1
 
     print(f"Episode: {episode}, Q-Value: {new_q_value}, Max Q-Value: {best_q}")
 
