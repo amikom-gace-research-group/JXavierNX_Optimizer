@@ -275,6 +275,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
             phase = "exploitation"
             best_config = get_best_configuration()
             if best_action:
+                update_q_table(state_key, best_action)
                 second_config = get_second_best_configuration(best_action, action_shape, episode)
             else:
                 return calculate_diversity(lhs_samples, state_key), "exploration"
