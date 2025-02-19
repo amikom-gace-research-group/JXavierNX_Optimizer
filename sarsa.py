@@ -360,7 +360,7 @@ def calculate_reward(measured_metrics, balanced=1):
     throughput = measured_metrics[0]["throughput"]
     
     if power > POWER_BUDGET:
-        return (power * 1e-6) / throughput
+        return -(power)
     
     return (throughput / (power if balanced else 1))
 
@@ -452,7 +452,7 @@ while episode <= num_episodes:
     # Calculate the reward for this configuration
     reward = calculate_reward(measured_metrics)
 
-    if reward == 1e-6:
+    if reward < 0:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(new_state_index)
 
