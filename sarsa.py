@@ -397,11 +397,10 @@ for episode in range(num_episodes):
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         update_q_table(state_key, actions)
         if state_key in Q_table and bool(get_q_value(state_key, actions)) == True:
-            if phase == "exploitation":
-                print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
-                epsilon_explore = 0.5
-                epsilon_exploit = 0.5
-                continue
+            print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
+            epsilon_explore = 0.5
+            epsilon_exploit = 0.5
+            continue
 
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
