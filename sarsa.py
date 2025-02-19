@@ -428,17 +428,11 @@ while episode <= num_episodes:
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     # Check for prohibited configurations
-    if new_state_index in prohibited_configs and episode > 0:
-        print("PROHIBITED CONFIG, RESET TO BEST CONFIG!")
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
-        state_index = state_to_index(int(cpu_cores), int(cpu_freq), int(gpu_freq), int(memory_freq), int(cl))
-        if state_index in prohibited_configs:
-            print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-            continue
-        else:
-            new_state_index = state_index
+    if new_state_index in prohibited_configs:
+        print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
+        epsilon_explore = 0.5
+        epsilon_exploit = 0.5
+        continue
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
