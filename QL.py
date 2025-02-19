@@ -502,6 +502,6 @@ for episode in range(num_episodes):
     last_reward = reward
     state_index = new_state_index
 
-    print(f"Episode: {episode}, Reward: {reward}, Max Reward: {max_reward}")
+    print(f"Episode: {episode}, Q-Value: {new_q_value}, Max Q-Value: {best_q}")
 
-print(f"Best Config: {best_config} with Reward: {max_reward}")
+print(f"Best Config: {best_config} with Q-Value: {best_q}")
