@@ -376,7 +376,7 @@ def save_csv(dict_list, filename):
 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
-best_q = 0
+best_q = -float('inf')
 # Execution loop with adaptive epsilon strategy
 for episode in range(num_episodes):
     if episode < 75:
@@ -453,7 +453,7 @@ for episode in range(num_episodes):
     update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
-    if reward > max_reward and measured_metrics[0]["throughput"] > best_throughput and new_q_value > best_q:
+    if new_q_value > best_q:
         max_reward = reward
         best_config = {
             "api_time": api_time,
