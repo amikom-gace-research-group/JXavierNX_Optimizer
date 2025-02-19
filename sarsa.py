@@ -272,6 +272,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
         if proposed:
+            phase = "exploitation"
             best_config = get_best_configuration()
             if best_action:
                 second_config = get_second_best_configuration(best_action, action_shape, episode)
@@ -317,7 +318,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             update_q_table(state_key, actions)
-            return actions, "exploitation"  # Exploit best known action
+            return actions, phase  # Exploit best known action
         else:
             return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"
         
