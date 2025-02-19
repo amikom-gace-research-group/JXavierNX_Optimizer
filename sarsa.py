@@ -454,6 +454,7 @@ for episode in range(num_episodes):
     # Update Q-values using the old Q-value and the reward
     old_q_value = get_q_value(state_index, actions)
     new_q_value = old_q_value + alpha * (reward + gamma * get_q_value(new_state_index, new_actions) - old_q_value)  # SARSA update
+    update_q_table(new_state_index, new_actions)
     update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration

@@ -456,6 +456,7 @@ for episode in range(num_episodes):
     max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))))
 
     new_q_value = old_q_value + alpha * (reward + gamma * max_next_q_value - old_q_value)
+    update_q_table(new_state_index, new_actions)
     update_q_value(new_state_index, new_actions, new_q_value)
 
     # Track the best configuration
