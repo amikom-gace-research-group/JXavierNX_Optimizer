@@ -262,7 +262,7 @@ def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500
     return selected_action
 
 def choose_action_adaptive(state_index, lhs_samples, proposed=0):
-    global epsilon_explore, epsilon_exploit
+    global epsilon_explore, epsilon_exploit, best_action, episode, sampled_configs, CORES_ACTIONS, CPU_ACTIONS, GPU_ACTIONS, MEM_ACTIONS, action_shape, ranges
     state_key = tuple(state_index)
     # Select action based on epsilon
     if (epsilon_explore/epsilon_exploit) > 0.75:
@@ -272,7 +272,47 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
         if proposed:
-            return None, "exploitation"  # Exploit best known action
+            best_config = get_best_configuration()
+            if best_action:
+                second_config = get_second_best_configuration(best_action, action_shape, episode)
+            else:
+                return calculate_diversity(lhs_samples, state_key), "exploration"
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
+            if sys.argv[5] == 'jxavier':
+                if cpu_cores not in sampled_configs['cpu_cores']:
+                    sampled_configs['cpu_cores'] = np.append(sampled_configs['cpu_cores'], cpu_cores)
+                    CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
+            if cpu_freq not in sampled_configs['cpu_freq']:
+                sampled_configs['cpu_freq'] = np.append(sampled_configs['cpu_freq'], cpu_freq)
+                CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
+            elif gpu_freq not in sampled_configs['gpu_freq']:
+                sampled_configs['gpu_freq'] = np.append(sampled_configs['gpu_freq'], gpu_freq)
+                GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
+            elif memory_freq not in sampled_configs['memory_freq']:
+                sampled_configs['memory_freq'] = np.append(sampled_configs['memory_freq'], memory_freq)
+                MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
+            if sys.argv[5] == 'jxavier':
+                actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+                ranges = [
+                    (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
+                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+                ]
+            elif sys.argv[5] == 'jorin-nano':
+                actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
+                ranges = [
+                    (0, 1),
+                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
+                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
+                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
+                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
+                ]
+            update_q_table(state_key, actions)
+            return actions, "exploitation"  # Exploit best known action
         else:
             return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"
 
@@ -345,69 +385,20 @@ for episode in range(num_episodes):
         # Choose actions based on current state and LHS samples
         actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
         
-        if actions:
-            # Adjust values for the chosen actions
-            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
-            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
-            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
-            memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
-            cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
-        else:
-            best_config = get_best_configuration()
-            if best_action:
-                second_config = get_second_best_configuration(best_action, action_shape, episode)
-            else:
-                phase = "exploration"
-                actions = calculate_diversity(lhs_samples, tuple(state_index))
-                cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
-                cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
-                gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
-                memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
-                cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
-                second_config = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+        # Adjust values for the chosen actions
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
 
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
-            if sys.argv[5] == 'jxavier':
-                if cpu_cores not in sampled_configs['cpu_cores']:
-                    sampled_configs['cpu_cores'] = np.append(sampled_configs['cpu_cores'], cpu_cores)
-                    CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-            if cpu_freq not in sampled_configs['cpu_freq']:
-                sampled_configs['cpu_freq'] = np.append(sampled_configs['cpu_freq'], cpu_freq)
-                CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
-            elif gpu_freq not in sampled_configs['gpu_freq']:
-                sampled_configs['gpu_freq'] = np.append(sampled_configs['gpu_freq'], gpu_freq)
-                GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
-            elif memory_freq not in sampled_configs['memory_freq']:
-                sampled_configs['memory_freq'] = np.append(sampled_configs['memory_freq'], memory_freq)
-                MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
-            if sys.argv[5] == 'jxavier':
-                actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
-                action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-                ranges = [
-                    (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
-                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-                ]
-            elif sys.argv[5] == 'jorin-nano':
-                actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
-                action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-                ranges = [
-                    (0, 1),
-                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-                ]
-            state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-            update_q_table(state_key, actions)
-            if state_key in Q_table:
-                if phase == "exploitation":
-                    print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
-                    epsilon_explore = 0.5
-                    epsilon_exploit = 0.5
-                    continue
+        state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+        if state_key in Q_table:
+            if phase == "exploitation":
+                print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
+                epsilon_explore = 0.5
+                epsilon_exploit = 0.5
+                continue
 
     else:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
@@ -451,9 +442,9 @@ for episode in range(num_episodes):
     if reward == 1e-6:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(new_state_index)
-
-    new_actions, _ = choose_action_adaptive(new_state_index, lhs_samples)
+    
     update_q_table(state_index, actions)
+    new_actions, _ = choose_action_adaptive(new_state_index, lhs_samples)
     # Update Q-value using the Bellman equation
     old_q_value = get_q_value(state_index, actions)
     max_next_q_value = np.max(Q_table.get(tuple(new_state_index), np.zeros(np.prod(action_shape))))
