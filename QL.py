@@ -394,7 +394,7 @@ for episode in range(num_episodes):
         cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
 
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        if state_key in Q_table and bool(get_q_value(state_index, actions)) == False:
+        if state_key in Q_table and bool(get_q_value(state_index, actions)) == True:
             if phase == "exploitation":
                 print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
                 epsilon_explore = 0.5
