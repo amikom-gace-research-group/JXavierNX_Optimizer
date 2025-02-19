@@ -262,7 +262,7 @@ def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500
     return selected_action
 
 def choose_action_adaptive(state_index, lhs_samples, proposed=0):
-    global epsilon_explore, epsilon_exploit
+    global epsilon_explore, epsilon_exploit, best_action, episode, sampled_configs, CORES_ACTIONS, CPU_ACTIONS, GPU_ACTIONS, MEM_ACTIONS, action_shape, ranges
     state_key = tuple(state_index)
     # Select action based on epsilon
     if (epsilon_explore/epsilon_exploit) > 0.75:
@@ -282,6 +282,8 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
                 if cpu_cores not in sampled_configs['cpu_cores']:
                     sampled_configs['cpu_cores'] = np.append(sampled_configs['cpu_cores'], cpu_cores)
                     CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
+                else:
+                    phase = "exploration"
             if cpu_freq not in sampled_configs['cpu_freq']:
                 sampled_configs['cpu_freq'] = np.append(sampled_configs['cpu_freq'], cpu_freq)
                 CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
@@ -291,8 +293,11 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
             elif memory_freq not in sampled_configs['memory_freq']:
                 sampled_configs['memory_freq'] = np.append(sampled_configs['memory_freq'], memory_freq)
                 MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
+            else:
+                if phase == "exploration":
+                    return calculate_diversity(lhs_samples, state_key), "exploration"
             if sys.argv[5] == 'jxavier':
-                actions = (CORES_ACTIONS[-1], CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
                 action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
                 ranges = [
                     (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
@@ -302,7 +307,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
                     (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
                 ]
             elif sys.argv[5] == 'jorin-nano':
-                actions = (0, CPU_ACTIONS[-1], GPU_ACTIONS[-1], MEM_ACTIONS[-1], CL_RANGE.index(cl))
+                actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
                 action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
                 ranges = [
                     (0, 1),
