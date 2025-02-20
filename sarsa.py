@@ -482,7 +482,7 @@ while episode <= num_episodes:
         epsilon_exploit = min(epsilon_exploit * 1.05, 1)
     configs = {
         "api_time": api_time,
-        "reward": reward,
+        "q-value": new_q_value,
         "phase":phase,
         "episode": episode,
         "xaviernx_time_elapsed": elapsed_exec,
