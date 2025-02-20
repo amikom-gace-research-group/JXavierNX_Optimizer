@@ -84,7 +84,7 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Adjust configuration values based on action
 def adjust_value(value, action, proposed=0):
-    unique_values = sorted(value)
+    unique_values = value
     if len(unique_values) != 3 and not int(proposed):
         return min(unique_values)
     else:
