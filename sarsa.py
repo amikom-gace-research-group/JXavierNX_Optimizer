@@ -420,6 +420,11 @@ while episode <= num_episodes:
             else:
                 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
                 actions = np.unravel_index(np.argmax(Q_table[state_index]), action_shape)
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
