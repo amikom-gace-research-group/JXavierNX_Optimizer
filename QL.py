@@ -412,14 +412,14 @@ while episode <= num_episodes:
                 actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
             else:
                 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-                actions, phase = np.unravel_index(np.argmax(Q_table[state_index]), action_shape), "exploitation"
+                actions = np.unravel_index(np.argmax(Q_table[state_index]), action_shape)
 
         elif sys.argv[5] == 'jorin-nano':
             if cpu_freq in sampled_configs['cpu_freq'] and gpu_freq in sampled_configs['gpu_freq'] and memory_freq in sampled_configs['memory_freq'] and cl in CL_RANGE:
                 actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
             else:
                 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-                actions, phase = np.unravel_index(np.argmax(Q_table[state_index]), action_shape), "exploitation"
+                actions = np.unravel_index(np.argmax(Q_table[state_index]), action_shape)
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
