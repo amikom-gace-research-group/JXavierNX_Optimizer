@@ -150,7 +150,7 @@ def get_best_configuration():
 def get_second_best_configuration(action_index, action_shape, episode):
     best_q_value = float('-inf')
     best_state = None
-    second_q_value = float('-inf')
+    second_q_value = float('inf')
     second_best_state = None
 
     for state, q_values in Q_table.items():
@@ -168,7 +168,7 @@ def get_second_best_configuration(action_index, action_shape, episode):
             min_q_index = np.argmin(q_values)  # Find the index of the max Q-value
             min_q_value = q_values[min_q_index]
             
-            if min_q_value > second_q_value:
+            if min_q_value < second_q_value:
                 second_q_value = min_q_value
                 second_best_state = state
 
