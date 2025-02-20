@@ -378,7 +378,7 @@ cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores'
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
 best_q = -float('inf')
-episode = 0
+episode = 1
 
 # Execution loop with adaptive epsilon strategy
 while episode <= num_episodes:
