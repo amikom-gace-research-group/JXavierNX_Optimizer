@@ -507,7 +507,13 @@ while episode <= num_episodes:
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"ql-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+
+    if int(sys.argv[8]):
+        file = f"ql-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
+    else:
+        file = f"ql-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
+
+    save_csv(dict_record, file)
     
     # Update state and last reward
     last_reward = reward

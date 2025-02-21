@@ -504,7 +504,12 @@ while episode <= num_episodes:
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"sarsa-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    if int(sys.argv[8]):
+        file = f"sarsa-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
+    else:
+        file = f"sarsa-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
+
+    save_csv(dict_record, file)
     
     last_reward = reward
     state_index = new_state_index
