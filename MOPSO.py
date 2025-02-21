@@ -129,6 +129,35 @@ def save_csv(results, filename):
             writer.writeheader()  # Write header only once
         writer.writerows(results)
 
+def exec_trained(configs):
+    for eps in range(75, 100):
+        t1 = time.time()
+        metrics, api_time = execute_config(*configs)
+        elapsed_exec = round(time.time() - t1, 3)
+        if not metrics or metrics == "No Device":
+            continue
+        if metrics == "No Device":
+            break
+        fitness = calculate_fitness(metrics)
+        result_entry = {
+            "api_time": api_time,
+            "episode": eps,
+            "iteration": 1,
+            'reward': fitness,
+            'xavier_time_elapsed': elapsed_exec,
+            'cpu_cores': configs[0]+1,
+            'cpu_freq': configs[1],
+            'gpu_freq': configs[2],
+            'mem_freq': configs[3],
+            'cl': configs[4],
+            'throughput': metrics[0]["throughput"],
+            'power_cons': metrics[0]["power_cons"],
+            "cpu_percent": metrics[0]["cpu_percent"],
+            "gpu_percent": metrics[0]["gpu_percent"],
+            "mem_percent": metrics[0]["mem_percent"]
+        }
+        save_csv([result_entry], f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")
+
 # MOPSO Class
 class MOPSO:
     def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold, config_ranges, api_url, auth_header, power_budget):
@@ -228,10 +257,10 @@ if __name__ == "__main__":
     device_ranges = set_device_ranges(sys.argv[5])
     bounds = np.array([(0, 1) for _ in range(5)])
     mopso = MOPSO(
-        swarm_size=10,
+        swarm_size=15,
         problem_size=5,
         bounds=bounds,
-        max_iter=10,
+        max_iter=5,
         saturation_threshold=50,
         config_ranges=device_ranges,
         api_url=sys.argv[1],
@@ -242,5 +271,6 @@ if __name__ == "__main__":
     t1 = time.time()
     best_config, best_fitness = mopso.optimize()
     elapsed = round(((time.time() - sum(time_got)) - t1) * 1000, 3)
+    exec_trained(best_config)
     print(f"Best configuration found: {best_config} in {elapsed} ms")
     print(f"Objective value: {best_fitness}")

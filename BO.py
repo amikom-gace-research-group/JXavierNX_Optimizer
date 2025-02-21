@@ -37,7 +37,7 @@ POWER_BUDGET = int(sys.argv[6])
 best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 100  # Number of iterations for Bayesian Optimization
+n_calls = 75  # Number of iterations for Bayesian Optimization
 n_initial_points = 25
 
 time_got = []
@@ -45,15 +45,12 @@ time_got = []
 last_rewards = []  # To store recent rewards for saturation check
 episode_counter = 0
 
-cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
-
-# Define the parameter space for Bayesian Optimization
 space = [
-    cores_space,
-    Integer(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), name='cpu_freq'),
-    Integer(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), name='gpu_freq'),
-    Integer(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), name='mem_freq'),
-    Integer(min(CL_RANGE), max(CL_RANGE), name='cl')
+    Categorical(sampled_configs['cpu_cores'], name='cpu_cores'),
+    Categorical(sampled_configs['cpu_freq'], name='cpu_freq'),
+    Categorical(sampled_configs['gpu_freq'], name='gpu_freq'),
+    Categorical(sampled_configs['memory_freq'], name='mem_freq'),
+    Categorical(sampled_configs['cl'], name='cl')
 ]
 
 # Function to get the result from the external system
@@ -231,8 +228,10 @@ try:
     elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
     elapsed_total = round(time.time() - t2, 3)
 
-    # Output the best found configuration
+    # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
+    for _ in range(25):
+        objective(**best_params)
 except RuntimeError as e:
     print(e)  # Handle exception messages

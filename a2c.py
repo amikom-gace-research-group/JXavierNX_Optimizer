@@ -35,7 +35,7 @@ POWER_BUDGET = int(sys.argv[6])
 # Hyperparameters
 gamma = 0.99
 lr = 0.001
-num_episodes = 10
+num_episodes = 5
 
 prohibited_configs = set()
 
@@ -162,6 +162,35 @@ def calculate_reward(measured_metrics):
     
     return (throughput / power) * 1e6
 
+def exec_trained(configs):
+    for eps in range(76, 100):
+        t1 = time.time()
+        metrics, api_time = execute_config(*configs)
+        elapsed_exec = round(time.time() - t1, 3)
+        if not metrics or metrics == "No Device":
+            continue
+        if metrics == "No Device":
+            break
+        reward = calculate_reward(metrics)
+        config = {
+            "api_time": api_time,
+            "episode": eps,
+            "reward": reward,
+            "xaviernx_time_elapsed": elapsed_exec,
+            'a2c_time_elapsed': 0,
+            'cpu_cores': int(configs[0])+1,
+            'cpu_freq': int(configs[1]),
+            'gpu_freq': int(configs[2]),
+            'mem_freq': int(configs[3]),
+            'cl': int(configs[4]),
+            "throughput": metrics[0]["throughput"],
+            "power_cons": metrics[0]["power_cons"],
+            "cpu_percent": metrics[0]["cpu_percent"],
+            "gpu_percent": metrics[0]["gpu_percent"],
+            "mem_percent": metrics[0]["mem_percent"]
+        }
+        save_csv([config], f"a2c_{sys.argv[5]}_{sys.argv[4]}.csv")
+
 # Main A2C algorithm
 def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimizer):
     t1 = time.time()
@@ -178,7 +207,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     for _ in range(num_episodes):
         states, actions, rewards = [], [], []
 
-        for _ in range(10):  # Define the number of steps per episode
+        for _ in range(15):  # Define the number of steps per episode
             episode += 1
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             state_tensor = torch.tensor(state, dtype=torch.float32)
@@ -308,6 +337,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     for config in configs:
         dict_record = [{'a2c_time_elapsed': end, **config}]
         save_csv(dict_record, f"a2c_{sys.argv[5]}_{sys.argv[4]}.csv")
+    exec_trained(best_config)
     print(f"Best Config: {best_config} in {sum(time_got) + end_t1} sec")
 
 
