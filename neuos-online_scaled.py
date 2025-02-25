@@ -56,7 +56,7 @@ def select_dvfs(df_prof, episode, proposed=0):
     chosen_dvfs['1'] = list(baseline_dvfs)
     baseline = df_prof[(df_prof["cpu_cores"] == baseline_dvfs[0]) & (df_prof["cpu_freq"] == baseline_dvfs[1]) & (df_prof["gpu_freq"] == baseline_dvfs[2]) & (df_prof["memory_freq"] == baseline_dvfs[3]) & (df_prof["cl"] == baseline_dvfs[4])]
     baseline_power = round(baseline["power"].iloc[0])
-    dynamic = df_prof[(df_prof["power"] <= (baseline_power * dynamic_powerup(baseline_power))) & (df_prof["power"] > baseline_power)]
+    dynamic = df_prof[(df_prof["power"] < (baseline_power * dynamic_powerup(baseline_power))) & (df_prof["power"] > baseline_power)]
     if not dynamic.empty:
         throughput_max = dynamic["throughput"].max()
         dynamic_best = dynamic[dynamic["throughput"] >= throughput_max]
@@ -227,7 +227,7 @@ def execute_runtime(num_episodes=100):
             config = sampled_configs[conf]
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
         else:
-            if chosen_dvfs["D"]:
+            if chosen_dvfs["D"] and power_consumed <= POWER_BUDGET:
                 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs["D"]
             else:
                 cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']

@@ -38,7 +38,7 @@ best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
 n_calls = 75  # Number of iterations for Bayesian Optimization
-n_initial_points = 25
+n_initial_points = 28
 
 time_got = []
 
