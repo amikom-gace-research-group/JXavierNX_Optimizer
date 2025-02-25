@@ -229,9 +229,8 @@ try:
     elapsed_total = round(time.time() - t2, 3)
 
     # Output the best found configuration and try the best config on device
-    best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
-    print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
+    print(f"Best configuration found: {res.x} in {elapsed} ms for BO and total time is took {elapsed_total}")
     for _ in range(25):
-        objective(**best_params)
+        objective(**res.x)
 except RuntimeError as e:
     print(e)  # Handle exception messages
