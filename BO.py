@@ -231,6 +231,6 @@ try:
     # Output the best found configuration and try the best config on device
     print(f"Best configuration found: {res.x} in {elapsed} ms for BO and total time is took {elapsed_total}")
     for _ in range(25):
-        objective(**res.x)
+        objective(*res.x)
 except RuntimeError as e:
     print(e)  # Handle exception messages
