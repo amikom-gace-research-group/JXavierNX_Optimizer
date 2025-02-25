@@ -222,14 +222,15 @@ def execute_runtime(num_episodes=100):
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
 
-        if power_consumed < POWER_BUDGET and episode < round((int(sys.argv[7])/100)*len(sampled_configs)):
+        if episode < round((int(sys.argv[7])/100)*len(sampled_configs)):
             conf += 1
             config = sampled_configs[conf]
             cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
-        if chosen_dvfs["D"]:
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs["D"]
         else:
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']
+            if chosen_dvfs["D"]:
+                cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs["D"]
+            else:
+                cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = chosen_dvfs['1']
 
         if int(sys.argv[8]):
             file = f"neuos-online-proposed-{sys.argv[7]}_scaled_{sys.argv[5]}_{sys.argv[4]}.csv"
