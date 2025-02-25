@@ -232,6 +232,6 @@ try:
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
     for _ in range(25):
-        objective([best_params])
+        objective(tuple(res.x))
 except RuntimeError as e:
     print(e)  # Handle exception messages
