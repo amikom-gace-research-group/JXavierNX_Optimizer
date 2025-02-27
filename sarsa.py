@@ -192,8 +192,8 @@ def get_second_best_configuration(action_index, action_shape, episode):
             if max_q_value >= second_q_value:
                 second_q_value = max_q_value
                 second_best_state = state
-            if best_state == None:
-                best_state = state
+            if second_best_state == None:
+                second_best_state = state
 
         second_best_state = tuple([int(conf[int(x)]) for x, conf in zip(second_best_state, [sampled_configs['cpu_cores'], sampled_configs['cpu_freq'], sampled_configs['gpu_freq'], sampled_configs['memory_freq'], sampled_configs['cl']])])
         Q_table[best_state_index][np.ravel_multi_index(tuple(action_index), tuple(action_shape))] = best_q_value
