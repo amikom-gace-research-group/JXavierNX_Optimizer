@@ -133,8 +133,7 @@ def generate_lhs_samples():
     return [tuple(map(int, sample)) for sample in samples]
 
 def get_best_configuration():
-    best_q_value = float('-inf')
-    best_state = None
+    global best_q_value, best_state
 
     for state, q_values in Q_table.items():
         max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
@@ -148,10 +147,7 @@ def get_best_configuration():
     return best_state
 
 def get_second_best_configuration(action_index, action_shape, episode):
-    best_q_value = float('-inf')
-    best_state = None
-    second_q_value = float('inf')
-    second_best_state = None
+    global best_q_value, best_state, second_q_value, second_best_state
 
     for state, q_values in Q_table.items():
         max_q_index = np.argmax(q_values)  # Find the index of the max Q-value
