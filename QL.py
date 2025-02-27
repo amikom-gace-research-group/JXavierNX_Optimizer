@@ -375,6 +375,10 @@ state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
 best_q = -float('inf')
 episode = 1
+best_q_value = float('-inf')
+best_state = None
+second_q_value = float('inf')
+second_best_state = None
 
 # Execution loop with adaptive epsilon strategy
 while episode <= num_episodes:
