@@ -265,7 +265,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 "cpu_cores": cpu_cores+1,
                 "cpu_freq": cpu_freq,
                 "gpu_freq": gpu_freq,
-                "memory_freq": memory_freq,
+                "mem_freq": memory_freq,
                 "cl": cl,
                 "throughput": measured_metrics[0]["throughput"],
                 "power_cons": measured_metrics[0]["power_cons"],
