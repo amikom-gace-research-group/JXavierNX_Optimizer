@@ -146,7 +146,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
