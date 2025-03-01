@@ -4,6 +4,9 @@ import time
 import os
 import csv
 import requests
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+from skopt.plots import plot_gaussian_process
 from skopt import gp_minimize
 from skopt.space import Categorical
 from skopt.utils import use_named_args
@@ -201,20 +204,19 @@ class PhaseTracker:
             self.acquisition_values.append((ei[0], pi[0], lcb[0]))
 
             if np.argmax([ei[0], pi[0], lcb[0]]) == 0:
-                phase = "Exploration (EI)"
+                phase = "EI"
                 acquisition_type = "EI"
             elif np.argmax([ei[0], pi[0], lcb[0]]) == 1:
-                phase = "Exploration (PI)"
+                phase = "PI"
                 acquisition_type = "PI"
             else:
-                phase = "Exploitation (LCB)"
+                phase = "LCB"
                 acquisition_type = "LCB"
 
         iteration = len(self.points)
         with open(self.filename, mode="a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([iteration, x, acquisition_type, phase])
-
 
 
 # Initialize the tracker
@@ -227,7 +229,42 @@ try:
     # Run Bayesian Optimization
     elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
     elapsed_total = round(time.time() - t2, 3)
+    if int(sys.argv[7]):
+        # Ensure models exist before animating
+        if not hasattr(res, "models") or len(res.models) == 0:
+            raise ValueError("Bayesian Optimization did not generate models. Try increasing n_calls.")
 
+        # Total iterations
+        n_iters = len(res.models)
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        def update(n_iter):
+            """Update function for the animation."""
+            axes[0].cla()
+            axes[1].cla()
+
+            # Ensure we do not exceed available models
+            n_calls = min(n_iter, len(res.models) - 1)  # Avoid IndexError
+
+            if n_calls < 0:
+                return
+
+            axes[0] = plot_gaussian_process(res, n_calls=n_calls,
+                                objective=objective, noise_level=0,
+                                show_legend=True, show_title=False,
+                                show_next_point=False, show_acq_func=False,
+                                ax=axes[0])
+            axes[0].set_title(f"Iteration {n_calls} - Gaussian Process")
+
+            axes[1] = plot_gaussian_process(res, n_calls=n_calls,
+                                show_legend=False, show_title=False,
+                                show_mu=False, show_acq_func=True,
+                                show_observations=False, show_next_point=True,
+                                ax=axes[1])
+            axes[1].set_title("Acquisition Function (EI)")
+
+        # Create animation
+        ani = animation.FuncAnimation(fig, update, frames=n_iters, repeat=False)
+        ani.save("bo-res.gif", writer="pillow", fps=n_iters)
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
