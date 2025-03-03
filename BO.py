@@ -233,41 +233,14 @@ try:
     elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
     elapsed_total = round(time.time() - t2, 3)
     if int(sys.argv[7]):
-        # Ensure models exist before animating
-        if not hasattr(res, "models") or len(res.models) == 0:
-            raise ValueError("Bayesian Optimization did not generate models. Try increasing n_calls.")
+        from skopt.plots import plot_objective, plot_evaluations
 
-        # Total iterations
-        n_iters = len(res.models)
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-        def update(n_iter):
-            """Update function for the animation."""
-            axes[0].cla()
-            axes[1].cla()
-
-            # Ensure we do not exceed available models
-            n_calls = min(n_iter, len(res.models) - 1)  # Avoid IndexError
-
-            if n_calls < 0:
-                return
-
-            axes[0] = plot_gaussian_process(res, n_calls=n_calls,
-                                objective=objective, noise_level=0,
-                                show_legend=True, show_title=False,
-                                show_next_point=False, show_acq_func=False,
-                                ax=axes[0])
-            axes[0].set_title(f"Iteration {n_calls} - Gaussian Process")
-
-            axes[1] = plot_gaussian_process(res, n_calls=n_calls,
-                                show_legend=False, show_title=False,
-                                show_mu=False, show_acq_func=True,
-                                show_observations=False, show_next_point=True,
-                                ax=axes[1])
-            axes[1].set_title("Acquisition Function (EI)")
-
-        # Create animation
-        ani = animation.FuncAnimation(fig, update, frames=n_iters, repeat=False)
-        ani.save("bo-res.gif", writer="pillow", fps=n_iters)
+        # Plot the optimization process
+        fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+        plot_objective(res, ax=ax[0])
+        plot_evaluations(res, ax=ax[1])
+        plt.savefig("bo-res.png")  # Save as a static image
+        plt.close()
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
