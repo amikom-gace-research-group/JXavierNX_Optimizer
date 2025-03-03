@@ -138,17 +138,18 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     elapsed = round(time.time() - t1, 3)
     time_got.append(elapsed)
 
-    if measured_metrics[0]["throughput"] > best_throughput:
-        best_throughput = measured_metrics[0]["throughput"]
+    if measured_metrics[0]["throughput"]:
+        if measured_metrics[0]["throughput"] > best_throughput:
+            best_throughput = measured_metrics[0]["throughput"]
     
-    if not measured_metrics or measured_metrics == "No Device":
-        print("No device detected. Raising an exception to stop optimization.")
-        raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
+        if not measured_metrics or measured_metrics == "No Device":
+            print("No device detected. Raising an exception to stop optimization.")
+            raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
-    reward = calculate_reward(measured_metrics)
-    print(f"Configuration reward: {reward}")
+        reward = calculate_reward(measured_metrics)
+        print(f"Configuration reward: {reward}")
     
-    configs = {
+        configs = {
         "reward": reward,
 	    "api_time": api_time,
         "episode" : episode_counter,
@@ -159,18 +160,20 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         "mem_freq": int(mem_freq),
         "cl": int(cl),
         "power_budget": POWER_BUDGET,
-    }
-    result = {**configs, **measured_metrics[0]}
-    save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
+        }
+        result = {**configs, **measured_metrics[0]}
+        save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
 
-    last_rewards.append(reward)
+        last_rewards.append(reward)
     
-    if reward == 1e6:
-        return reward  # Return penalty for invalid config
+        if reward == 1e6:
+            return reward  # Return penalty for invalid config
 
-    episode_counter += 1
+        episode_counter += 1
 
-    return -reward  # Minimize the negative reward to maximize reward
+        return -reward  # Minimize the negative reward to maximize reward
+    return 0
+
 
 # Custom callback to track the optimization progress
 class PhaseTracker:
