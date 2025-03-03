@@ -138,7 +138,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     elapsed = round(time.time() - t1, 3)
     time_got.append(elapsed)
 
-    if measured_metrics[0]["throughput"]:
+    if measured_metrics:
         if measured_metrics[0]["throughput"] > best_throughput:
             best_throughput = measured_metrics[0]["throughput"]
     
