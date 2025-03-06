@@ -352,7 +352,7 @@ while True:
             
             reward = calculate_reward(measured_metrics, power_budget, balanced=int(sys.argv[7]))
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward}
-            av_configs = ((sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs)
+            av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
             if new_configs in av_configs[:-1]:
                 target_item = next((d for d in rewards_dicts if list(d.keys())[0] == av_configs[-1]), None)
                 target_idx = list(target_item.values())[0]
