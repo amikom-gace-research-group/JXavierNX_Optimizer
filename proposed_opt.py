@@ -292,7 +292,7 @@ max_trends_record = 5
 while True:
     for power_budget in POWER_BUDGET_LIST:
         rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
-        rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
+        rewards = [list(reward)[0] for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
         sorted_rewards = sorted(rewards, reverse=True)
         if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
             if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
