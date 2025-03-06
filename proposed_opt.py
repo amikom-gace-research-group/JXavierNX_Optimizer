@@ -234,7 +234,7 @@ def sampling(condition):
 
     for ids in sampled_configs:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _ = tuple(ids.values())
-        av_configs = ((sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl']) for sampled_config in sampled_configs)
+        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl']) for sampled_config in sampled_configs]
 
         if tuple(ids.values()) in av_configs:
             stuck_count += 1
@@ -394,6 +394,7 @@ while True:
             max_trends_record = 5
             out = sampling(0)
             if out == 'stuck':
+                print("Searching has no idea to search again, early stopping executed")
                 sampled_configs = backup_sampled_configs
                 break
             continue
@@ -409,7 +410,7 @@ for _ in range(5):
     best_item = items[0]
     best_idx = list(best_item.values())[0]
     configs = tuple(sampled_configs[best_idx].values())
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = configs
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _ = configs
 
     if configs in prohibited_configs:
         print("optimization searcher failed to search the best configuration :(")
