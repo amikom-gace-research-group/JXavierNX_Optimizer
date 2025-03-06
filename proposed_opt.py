@@ -392,7 +392,7 @@ while True:
 for _ in range(5):
     power_budget = random.choice(POWER_BUDGET_LIST)
     rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
-    rewards = [reward for reward in rewards_dicts.keys()]
+    rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
     configs = (sampled_configs[rewards_dicts[max(rewards)]].values())
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
 
