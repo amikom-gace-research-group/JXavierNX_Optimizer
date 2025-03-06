@@ -312,8 +312,8 @@ while True:
                 second_best_idx = list(second_best_item.values())[0]
             best_item = items[0]
             best_idx = list(best_item.values())[0]
-            home_conf = (sampled_configs[best_idx].values())
-            neig_conf = (sampled_configs[second_best_idx].values())
+            home_conf = tuple(sampled_configs[best_idx].values())
+            neig_conf = tuple(sampled_configs[second_best_idx].values())
 
             if home_conf in prohibited_configs and neig_conf in prohibited_configs:
                 out = sampling(0)
@@ -408,8 +408,8 @@ for _ in range(5):
     items = sorted(rewards_dicts, key=lambda d: list(d.keys())[0], reverse=True)
     best_item = items[0]
     best_idx = list(best_item.values())[0]
-    configs = (sampled_configs[best_idx].values())
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
+    configs = tuple(sampled_configs[best_idx].values())
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = configs
 
     if configs in prohibited_configs:
         print("optimization searcher failed to search the best configuration :(")
@@ -433,7 +433,7 @@ for _ in range(5):
 
     reward = calculate_reward(measured_metrics, power_budget, balanced=int(sys.argv[7]))
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward}
-    sampled_configs[rewards_dicts(max(rewards))] = dict_new_configs
+    sampled_configs[best_idx] = dict_new_configs
 
     if reward < 1:
         print("PROHIBITED CONFIG!")
