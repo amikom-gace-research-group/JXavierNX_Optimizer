@@ -306,8 +306,14 @@ while True:
                 continue
             if len(rewards) >= max_trends_record:
                 max_trends_record *= 2
-            home_conf = (sampled_configs[rewards_dicts[sorted_rewards[0]]].values())
-            neig_conf = (sampled_configs[rewards_dicts[sorted_rewards[1]]].values())
+            items = sorted(rewards_dicts, key=lambda d: list(d.keys())[0], reverse=True)
+            if len(items) > 1:
+                second_best_item = items[1]
+                second_best_idx = list(second_best_item.values())[0]
+            best_item = items[0]
+            best_idx = list(best_item.values())[0]
+            home_conf = (sampled_configs[best_idx].values())
+            neig_conf = (sampled_configs[second_best_idx].values())
 
             if home_conf in prohibited_configs and neig_conf in prohibited_configs:
                 out = sampling(0)
@@ -348,7 +354,9 @@ while True:
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward}
             av_configs = ((sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs)
             if new_configs in av_configs[:-1]:
-                sampled_configs[rewards_dicts(av_configs[-1])] = dict_new_configs
+                target_item = next((d for d in rewards_dicts if list(d.keys())[0] == av_configs[-1]), None)
+                target_idx = list(target_item.values())[0]
+                sampled_configs[target_idx] = dict_new_configs
             else:
                 sampled_configs.append(dict_new_configs)
 
@@ -397,7 +405,10 @@ for _ in range(5):
     power_budget = random.choice(POWER_BUDGET_LIST)
     rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
     rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
-    configs = (sampled_configs[rewards_dicts[max(rewards)]].values())
+    items = sorted(rewards_dicts, key=lambda d: list(d.keys())[0], reverse=True)
+    best_item = items[0]
+    best_idx = list(best_item.values())[0]
+    configs = (sampled_configs[best_idx].values())
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(configs)
 
     if configs in prohibited_configs:
