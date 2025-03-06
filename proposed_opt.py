@@ -213,20 +213,21 @@ def count_trend(lst):
 stuck_count = 0
 
 def sampling(condition):
+    global eps, stuck_count, sampled_configs, prohibited_configs
     if str(sys.argv[8]) == 'min-max' and condition:
         for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE)), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE))]:
             config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0}
             sampled_configs.append(config)
     elif str(sys.argv[8]) == 'rand-hc': # random hypercube
         lhs_samples = generate_lhs_samples()
-        st_state = (random.randint(CPU_CORES_RANGE), random.randint(CPU_FREQ_RANGE), random.randint(GPU_FREQ_RANGE), random.randint(MEMORY_FREQ_RANGE), random.randint(CL_RANGE))
+        st_state = random.choice(lhs_samples)
         nd_state = calculate_diversity(lhs_samples, st_state)
         for configs in [st_state, nd_state]:
             config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0}
             sampled_configs.append(config)
     elif str(sys.argv[8]) == 'rand' or (not condition if str(sys.argv[8]) == 'min-max' else False): # pure random
         for _ in range(2):
-            config = {"cpu_cores": int(random.randint(CPU_CORES_RANGE)), "cpu_freq": int(random.randint(CPU_FREQ_RANGE)), "gpu_freq": int(random.randint(GPU_FREQ_RANGE)), "memory_freq": int(random.randint(MEMORY_FREQ_RANGE)), "cl": int(random.randint(CL_RANGE)), "reward":0}
+            config = {"cpu_cores": int(random.choice(CPU_CORES_RANGE)), "cpu_freq": int(random.choice(CPU_FREQ_RANGE)), "gpu_freq": int(random.choice(GPU_FREQ_RANGE)), "memory_freq": int(random.choice(MEMORY_FREQ_RANGE)), "cl": int(random.choice(CL_RANGE)), "reward":0}
             sampled_configs.append(config)
     else:
         sys.exit(0)
@@ -291,7 +292,7 @@ max_trends_record = 5
 while True:
     for power_budget in POWER_BUDGET_LIST:
         rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
-        rewards = [reward for reward in rewards_dicts.keys()]
+        rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
         if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
             if len(rewards) >= max_trends_record:
                 max_trends_record *= 2
