@@ -293,17 +293,19 @@ while True:
     for power_budget in POWER_BUDGET_LIST:
         rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
         rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
+        sorted_rewards = sorted(rewards, reverse=True)
         if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
-            if len(rewards) >= max_trends_record:
-                max_trends_record *= 2
-            if count_trend(rewards)['ST'] > count_trend(rewards)['INC']:
-                sampled_configs = [d for d in sampled_configs if d.get("reward") not in rewards]
+            if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
+                backup_sampled_configs = sampled_configs
+                sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
                 out = sampling(0)
                 if out == 'stuck':
                     print("Searching has no idea to search again, early stopping executed")
+                    sampled_configs = backup_sampled_configs
                     break
                 continue
-            sorted_rewards = sorted(rewards, reverse=True)
+            if len(rewards) >= max_trends_record:
+                max_trends_record *= 2
             home_conf = (sampled_configs[rewards_dicts[sorted_rewards[0]]].values())
             neig_conf = (sampled_configs[rewards_dicts[sorted_rewards[1]]].values())
 
@@ -379,10 +381,12 @@ while True:
             print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             eps += 1
         else:
-            sampled_configs = [d for d in sampled_configs if d.get("reward") not in rewards]
+            backup_sampled_configs = sampled_configs
+            sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
             max_trends_record = 5
             out = sampling(0)
             if out == 'stuck':
+                sampled_configs = backup_sampled_configs
                 break
             continue
     if out == 'stuck' or measured_metrics == 'No Device':
