@@ -263,7 +263,7 @@ def sampling(condition):
 
         if reward < 1:
             print("PROHIBITED CONFIG!")
-            prohibited_configs.add(ids)
+            prohibited_configs.add(tuple(ids.values()))
 
         configs = {
             "api_time": api_time,
