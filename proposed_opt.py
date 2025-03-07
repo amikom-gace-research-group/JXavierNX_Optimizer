@@ -259,6 +259,9 @@ def sampling(condition):
     if str(sys.argv[8]) == 'min-max' and condition:
         for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE)), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE))]:
             config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "power_budget":POWER_BUDGET, "throughput":0, 'power_cons':-1}
+            if config in sampled_configs:
+                stuck_count += 1
+                return "stuck"
             sampled_configs.append(config)
     elif str(sys.argv[8]) == 'rand-hc': # random hypercube
         lhs_samples = generate_lhs_samples()
@@ -266,22 +269,25 @@ def sampling(condition):
         nd_state = calculate_diversity(lhs_samples, st_state)
         for configs in [st_state, nd_state]:
             config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":POWER_BUDGET, "throughput":0, 'power_cons':-1}
+            if config in sampled_configs:
+                stuck_count += 1
+                return "stuck"
             sampled_configs.append(config)
     elif str(sys.argv[8]) == 'rand' or (not condition if str(sys.argv[8]) == 'min-max' else False): # pure random
         for _ in range(2):
             config = {"cpu_cores": int(random.choice(CPU_CORES_RANGE)), "cpu_freq": int(random.choice(CPU_FREQ_RANGE)), "gpu_freq": int(random.choice(GPU_FREQ_RANGE)), "memory_freq": int(random.choice(MEMORY_FREQ_RANGE)), "cl": int(random.choice(CL_RANGE)), "reward":0, "power_budget":POWER_BUDGET, "throughput":0, 'power_cons':-1}
+            if config in sampled_configs:
+                stuck_count += 1
+                return "stuck"
             sampled_configs.append(config)
     else:
         sys.exit(0)
 
     for ids in sampled_configs:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
-        av_checker = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['power_budget']) for sampled_config in sampled_configs]
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-        if tuple(ids_checker.values()) in av_checker:
-            stuck_count += 1
-            return "stuck"
-        elif tuple(ids_checker.values()) in prohibited_configs:
+        
+        if tuple(ids_checker.values()) in prohibited_configs:
             stuck_count += 1
             return "stuck"
         else:
