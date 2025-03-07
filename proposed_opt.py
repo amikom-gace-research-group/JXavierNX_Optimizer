@@ -341,7 +341,7 @@ power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in
 diff = [sampled_config['power_budget'] - sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_budget'] > sampled_config['power_cons']]
 POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if (power_budget - max(power_list)) == min(diff)]
 
-while True:
+while eps <= (int(sys.argv[7])-5):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
