@@ -315,7 +315,7 @@ def sampling(condition):
             "api_time": api_time,
             "reward": reward,
             "phase":"exploration",
-            "power_budget": POWER_BUDGET,
+            "power_budget": ids["power_budget"],
             "episode": eps,
             "xaviernx_time_elapsed": elapsed_exec,
             "cpu_cores": cpu_cores+1,
