@@ -330,7 +330,7 @@ def sampling(condition):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
         rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -490,7 +490,7 @@ while eps <= (int(sys.argv[7])-5):
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             eps += 1
@@ -574,7 +574,7 @@ while i<6:
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
