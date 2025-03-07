@@ -309,6 +309,11 @@ def sampling(condition):
         if reward < 1:
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(ids_checker.values()))
+        
+        diff = [power_budget - measured_metrics[0]["power_cons"] for power_budget in POWER_BUDGET if power_budget > measured_metrics[0]["power_cons"]]
+        ids["power_budget"] = [power_budget for power_budget in POWER_BUDGET if (power_budget - measured_metrics[0]["power_cons"]) == min(diff)][0]
+
+        reward = calculate_reward(measured_metrics, ids["power_budget"], balanced=int(sys.argv[6]))
 
         configs = {
             "api_time": api_time,
