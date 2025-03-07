@@ -235,13 +235,6 @@ def sampling(condition):
             sampled_configs.append(config)
     else:
         sys.exit(0)
-    sampled_checker = [(v for k, v in sampled.items() if k != 'reward') for sampled in sampled_configs]
-    if sampled_checker in prohibited_configs:
-        stuck_count += 1
-        return "stuck"
-    else:
-        visited = True
-        max_stuck_count*=2
 
     for ids in sampled_configs:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = tuple(ids.values())
@@ -253,10 +246,8 @@ def sampling(condition):
         elif tuple(ids_checker.values()) in prohibited_configs:
             stuck_count += 1
             return "stuck"
-        elif not visited:
-            max_stuck_count*=2
         else:
-            visited = False
+            max_stuck_count*=2
 
         t1 = time.time()
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
@@ -348,7 +339,7 @@ while True:
                         print("Home and neighbor has visited the prohibited config after sampling again, early stopping executed")
                         break
                 continue
-            elif new_configs in prohibited_configs:
+            elif (*new_configs, power_budget) in prohibited_configs:
                 stuck_count += 1
                 out = sampling(0)
                 if out == 'stuck':
@@ -443,7 +434,7 @@ for _ in range(5):
     configs = tuple(sampled_configs[best_idx].values())
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = configs
 
-    if configs in prohibited_configs:
+    if (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget) in prohibited_configs:
         print("optimization searcher failed to search the best configuration :(")
         break
 
