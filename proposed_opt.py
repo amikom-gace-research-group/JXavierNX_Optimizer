@@ -344,12 +344,10 @@ th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
 power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in sampled_configs) if pwr != -1]
-diff = [sampled_config['power_budget'] - sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_budget'] > sampled_config['power_cons']]
 POWER_BUDGET = [
     power_budget
     for power_budget in POWER_BUDGET
-    for power in power_list
-    if (power_budget - power) == min(diff)
+    if min(power_list) <= power_budget <= max(power_list)
 ]
 
 i_p = 0
@@ -457,14 +455,6 @@ while eps <= (int(sys.argv[7])-5):
                 print("PROHIBITED CONFIG!")
                 prohibited_configs.add(tuple(new_checker.values()))
             
-            power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in sampled_configs) if pwr != -1]
-            diff = [sampled_config['power_budget'] - sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_budget'] > sampled_config['power_cons']]
-            POWER_BUDGET = [
-                power_budget
-                for power_budget in POWER_BUDGET
-                for power in power_list
-                if (power_budget - power) == min(diff)
-            ]
             diff = [power_budget - measured_metrics[0]["power_cons"] for power_budget in POWER_BUDGET if power_budget > measured_metrics[0]["power_cons"]]
             power_budget = [power_budget for power_budget in POWER_BUDGET if (power_budget - measured_metrics[0]["power_cons"]) == min(diff)][0]
 
