@@ -275,7 +275,7 @@ def sampling(condition):
         sys.exit(0)
 
     for ids in sampled_configs:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = tuple(ids.values())
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = tuple(ids.values())
         av_checker = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['power_budget']) for sampled_config in sampled_configs]
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         if tuple(ids_checker.values()) in av_checker:
@@ -327,7 +327,7 @@ def sampling(condition):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
         rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -380,7 +380,7 @@ while True:
             best_idx = list(best_item.keys())[0]
             home_conf = tuple(sampled_configs[best_idx].values())
             neig_conf = tuple(sampled_configs[second_best_idx].values())
-            new_configs = generate_neighbor(home_conf[:-2], neig_conf[:-2], th_corr_conf_list, pwr_corr_conf_list)
+            new_configs = generate_neighbor(home_conf[:-3], neig_conf[:-3], th_corr_conf_list, pwr_corr_conf_list)
             home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
             neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
@@ -458,7 +458,7 @@ while True:
                 mode = "max"
 
             dict_record = [{**configs, **measured_metrics[0]}]
-            save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+            save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
             eps += 1
@@ -485,7 +485,7 @@ for _ in range(5):
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = configs
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget)
 
     if new_configs in prohibited_configs:
@@ -537,7 +537,7 @@ for _ in range(5):
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}-{sys.argv[8]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
