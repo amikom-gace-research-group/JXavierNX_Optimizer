@@ -226,12 +226,6 @@ def sampling(condition):
         lhs_samples = generate_lhs_samples()
         st_state = random.choice(lhs_samples)
         nd_state = calculate_diversity(lhs_samples, st_state)
-        if st_state in prohibited_configs and nd_state in prohibited_configs:
-            stuck_count += 1
-            return "stuck"
-        else:
-            visited = True
-            max_stuck_count*=2
         for configs in [st_state, nd_state]:
             config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":POWER_BUDGET}
             sampled_configs.append(config)
@@ -241,15 +235,22 @@ def sampling(condition):
             sampled_configs.append(config)
     else:
         sys.exit(0)
+    sampled_checker = [(v for k, v in sampled.items() if k != 'reward') for sampled in sampled_configs]
+    if sampled_checker in prohibited_configs:
+        stuck_count += 1
+        return "stuck"
+    else:
+        visited = True
+        max_stuck_count*=2
 
     for ids in sampled_configs:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = tuple(ids.values())
-        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl']) for sampled_config in sampled_configs]
-
-        if tuple(ids.values()) in av_configs:
+        av_checker = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['power_budget']) for sampled_config in sampled_configs]
+        ids_checker = {k: v for k, v in ids.items() if k != 'reward'}
+        if tuple(ids_checker.values()) in av_checker:
             stuck_count += 1
             return "stuck"
-        elif tuple(ids.values()) in prohibited_configs:
+        elif tuple(ids_checker.values()) in prohibited_configs:
             stuck_count += 1
             return "stuck"
         elif not visited:
@@ -277,7 +278,7 @@ def sampling(condition):
 
         if reward < 1:
             print("PROHIBITED CONFIG!")
-            prohibited_configs.add(tuple(ids.values()))
+            prohibited_configs.add(tuple(ids_checker.values()))
 
         configs = {
             "api_time": api_time,
@@ -306,8 +307,8 @@ visited = False
 
 while True:
     for power_budget in POWER_BUDGET_LIST:
-        rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs)]
-        rewards = [list(reward)[0] for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
+        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
+        rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
         sorted_rewards = sorted(rewards, reverse=True)
         if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
             if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
@@ -327,17 +328,19 @@ while True:
                 max_stuck_count*=2
             if len(rewards) >= max_trends_record:
                 max_trends_record *= 2
-            items = sorted(rewards_dicts, key=lambda d: list(d.keys())[0], reverse=True)
+            items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
             if len(items) > 1:
                 second_best_item = items[1]
-                second_best_idx = list(second_best_item.values())[0]
+                second_best_idx = list(second_best_item.keys())[0]
             best_item = items[0]
-            best_idx = list(best_item.values())[0]
+            best_idx = list(best_item.keys())[0]
             home_conf = tuple(sampled_configs[best_idx].values())
             neig_conf = tuple(sampled_configs[second_best_idx].values())
             new_configs = generate_neighbor(home_conf[:-2], neig_conf[:-2])
+            home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward'])
+            neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward'])
 
-            if home_conf in prohibited_configs and neig_conf in prohibited_configs:
+            if home_checker in prohibited_configs and neig_checker in prohibited_configs:
                 stuck_count += 1
                 out = sampling(0)
                 if out == 'stuck':
@@ -380,15 +383,16 @@ while True:
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget}
             av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward'], sampled_config['power_budget']) for sampled_config in sampled_configs]
             if new_configs in av_configs[:-2] and av_configs[-1] == power_budget:
-                target_item = next((d for d in rewards_dicts if list(d.keys())[0] == av_configs[-2]), None)
-                target_idx = list(target_item.values())[0]
+                target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-2]), None)
+                target_idx = list(target_item.keys())[0]
                 sampled_configs[target_idx] = dict_new_configs
             else:
                 sampled_configs.append(dict_new_configs)
-
+            
+            new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward'}
             if reward < 1:
                 print("PROHIBITED CONFIG!")
-                prohibited_configs.add(new_configs)
+                prohibited_configs.add(tuple(new_checker.values()))
 
             configs = {
                 "api_time": api_time,
@@ -431,11 +435,11 @@ while True:
 #test 5 times
 for _ in range(5):
     power_budget = random.choice(POWER_BUDGET_LIST)
-    rewards_dicts = [{sampled_config['reward']:idx} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
-    rewards = [reward for reward in (rewards_dict.keys() for rewards_dict in rewards_dicts)]
-    items = sorted(rewards_dicts, key=lambda d: list(d.keys())[0], reverse=True)
+    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
+    rewards = [reward for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
+    items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]
-    best_idx = list(best_item.values())[0]
+    best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _ = configs
 
@@ -463,9 +467,10 @@ for _ in range(5):
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_cons":measured_metrics[0]['power_cons']}
     sampled_configs[best_idx] = dict_new_configs
 
+    new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward'}
     if reward < 1:
         print("PROHIBITED CONFIG!")
-        prohibited_configs.add(new_configs)
+        prohibited_configs.add(tuple(new_checker.values()))
 
     configs = {
         "api_time": api_time,
