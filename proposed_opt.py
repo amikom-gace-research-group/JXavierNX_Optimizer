@@ -341,20 +341,21 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
 while True:
     for power_budget in POWER_BUDGET_LIST:
-        th = [sampled_config["throughput"] for sampled_config in sampled_configs]
-        pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs]
-        cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs]
-        cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs]
-        gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs]
-        mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs]
-        _cls = [sampled_config["cl"] for sampled_config in sampled_configs]
-        for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
-            th_corr_conf_list[i] = pearson_correlation(x, th)
-            pwr_corr_conf_list[i] = pearson_correlation(x, pwr)
-        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
+        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
         rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
         sorted_rewards = sorted(rewards, reverse=True)
         if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
+            if len(rewards) >= max_trends_record:
+                th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+                for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
+                    th_corr_conf_list[i] = pearson_correlation(x, th)
+                    pwr_corr_conf_list[i] = pearson_correlation(x, pwr)
             if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
                 stuck_count += 1
                 max_trends_record = 5
@@ -479,7 +480,7 @@ while True:
 #test 5 times
 for _ in range(5):
     power_budget = random.choice(POWER_BUDGET_LIST)
-    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
+    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] != 0]
     rewards = [reward for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]
