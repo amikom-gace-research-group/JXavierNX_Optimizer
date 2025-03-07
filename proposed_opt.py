@@ -275,7 +275,7 @@ def sampling(condition):
         sys.exit(0)
 
     for ids in sampled_configs:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = tuple(ids.values())
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
         av_checker = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['power_budget']) for sampled_config in sampled_configs]
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         if tuple(ids_checker.values()) in av_checker:
@@ -380,7 +380,7 @@ while True:
             best_idx = list(best_item.keys())[0]
             home_conf = tuple(sampled_configs[best_idx].values())
             neig_conf = tuple(sampled_configs[second_best_idx].values())
-            new_configs = generate_neighbor(home_conf[:-3], neig_conf[:-3], th_corr_conf_list, pwr_corr_conf_list)
+            new_configs = generate_neighbor(home_conf[:-4], neig_conf[:-4], th_corr_conf_list, pwr_corr_conf_list)
             home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
             neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
@@ -485,7 +485,7 @@ for _ in range(5):
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = configs
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget)
 
     if new_configs in prohibited_configs:
