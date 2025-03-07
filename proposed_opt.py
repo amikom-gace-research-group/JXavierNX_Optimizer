@@ -308,8 +308,6 @@ def sampling(condition):
         if reward < 1:
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(ids_checker.values()))
-            diff = [power_budget - measured_metrics[0]["power_cons"] for power_budget in POWER_BUDGET if power_budget > measured_metrics[0]["power_cons"]]
-            ids["power_budget"] = [power_budget for power_budget in POWER_BUDGET if (power_budget - measured_metrics[0]["power_cons"]) == min(diff)][0]
 
         configs = {
             "api_time": api_time,
@@ -326,7 +324,7 @@ def sampling(condition):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{mode}-_{sys.argv[5]}_{sys.argv[4]}.csv")
         rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -467,7 +465,7 @@ while True:
             mode = "max"
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{mode}-_{sys.argv[5]}_{sys.argv[4]}.csv")
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
         eps += 1
@@ -548,7 +546,7 @@ while i<6:
         mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{mode}-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{mode}-_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
