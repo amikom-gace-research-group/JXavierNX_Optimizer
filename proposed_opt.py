@@ -257,18 +257,19 @@ max_stuck_count = 5
 def sampling(condition):
     global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count
     if condition:
-        for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE)), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE))]:
-            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "power_budget":POWER_BUDGET[0], "throughput":0, 'power_cons':-1}
+        for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, id_pwr_budget in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE), 0), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE), -1)]:
+            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "power_budget":POWER_BUDGET[id_pwr_budget], "throughput":0, 'power_cons':-1}
             if config in sampled_configs:
                 stuck_count += 1
                 return "stuck"
             sampled_configs.append(config)
     else: # random hypercube
         lhs_samples = generate_lhs_samples()
+        power_budget = random.choice(POWER_BUDGET)
         st_state = random.choice(lhs_samples)
         nd_state = calculate_diversity(lhs_samples, st_state)
         for configs in [st_state, nd_state]:
-            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":POWER_BUDGET[-1], "throughput":0, 'power_cons':-1}
+            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
             if config in sampled_configs:
                 stuck_count += 1
                 return "stuck"
