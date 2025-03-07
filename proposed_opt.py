@@ -344,9 +344,11 @@ max_trends_record = 5
 visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
+i_p = 0
 
 while True:
-    for power_budget in POWER_BUDGET_LIST:
+    while i_p < len(POWER_BUDGET_LIST):
+        power_budget = POWER_BUDGET_LIST[i_p]
         rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
         rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
         sorted_rewards = sorted(rewards, reverse=True)
@@ -480,13 +482,17 @@ while True:
                     sampled_configs = backup_sampled_configs
                     break
             continue
+        i_p+=1
     if (out == 'stuck' if len(rewards) >= max_trends_record else False) or measured_metrics == 'No Device':
         break
 
+i = 0
 #test 5 times
-for _ in range(5):
+while i<6:
     power_budget = random.choice(POWER_BUDGET_LIST)
-    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] != 0]
+    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
+    if not rewards_dicts:
+        continue
     rewards = [reward for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]
@@ -548,3 +554,4 @@ for _ in range(5):
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
+    i+=1
