@@ -157,7 +157,7 @@ if sys.argv[5] == 'jxavier':
         (1, 4)
     ]
     low_pwr = 4000
-    high_pwr = 20000
+    high_pwr = 20500
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1511)
@@ -172,7 +172,7 @@ elif sys.argv[5] == 'jorin-nano':
         (1, 4)
     ]
     low_pwr = 4700
-    high_pwr = 15000
+    high_pwr = 15500
 
 POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
