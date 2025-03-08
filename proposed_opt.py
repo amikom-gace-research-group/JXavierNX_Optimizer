@@ -439,9 +439,6 @@ while eps <= (int(sys.argv[7])-5):
             if measured_metrics == "No Device":
                 print("No Device/No Inference Runtime")
                 break
-
-            diff = [power_budget - measured_metrics[0]["power_cons"] for power_budget in POWER_BUDGET if power_budget > measured_metrics[0]["power_cons"]]
-            power_budget = [power_budget for power_budget in POWER_BUDGET if (power_budget - measured_metrics[0]["power_cons"]) == min(diff)][0]
             
             reward = calculate_reward(measured_metrics, power_budget, balanced=int(sys.argv[6]))
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
