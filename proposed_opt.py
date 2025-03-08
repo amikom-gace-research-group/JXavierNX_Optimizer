@@ -255,7 +255,7 @@ stuck_count = 0
 max_stuck_count = 5
 
 def sampling(condition):
-    global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count
+    global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count, POWER_BUDGET
     if condition:
         for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, id_pwr_budget in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE), 0), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE), -1)]:
             config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "power_budget":POWER_BUDGET[id_pwr_budget], "throughput":0, 'power_cons':-1}
