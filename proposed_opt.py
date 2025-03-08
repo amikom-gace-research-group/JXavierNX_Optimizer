@@ -287,11 +287,8 @@ def sampling(condition):
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         
-        if tuple(ids_checker.values()) in prohibited_configs:
-            stuck_count += 1
-            return "stuck"
-        else:
-            max_stuck_count*=2
+        if tuple(ids_checker.values()) in prohibited_configs or ids["power_cons"] != -1:
+            continue
 
         t1 = time.time()
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
