@@ -276,11 +276,13 @@ def sampling(condition):
             sampled_configs.append(config)
 
     for ids in sampled_configs:
-        ids["power_budget"] = [
+        pwr_budget = [
             power_budget
             for power_budget in POWER_BUDGET
             if ids["power_cons"] <= power_budget <= ids["power_cons"]
-        ][0]
+        ]
+        if pwr_budget:
+            ids["power_budget"] = pwr_budget[0]
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
