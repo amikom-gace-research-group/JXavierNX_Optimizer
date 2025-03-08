@@ -439,6 +439,13 @@ while eps <= (int(sys.argv[7])-5):
             if measured_metrics == "No Device":
                 print("No Device/No Inference Runtime")
                 break
+
+            power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in sampled_configs) if pwr != -1]
+            POWER_BUDGET = [
+                power_budget
+                for power_budget in POWER_BUDGET
+                if min(power_list) <= power_budget <= max(power_list)
+            ]
             
             reward = calculate_reward(measured_metrics, power_budget, balanced=int(sys.argv[6]))
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
