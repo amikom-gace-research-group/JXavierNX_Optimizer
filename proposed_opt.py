@@ -351,8 +351,11 @@ POWER_BUDGET = [
     for power_budget in POWER_BUDGET
     if min(power_list) <= power_budget <= max(power_list)
 ]
+backup_POWER_BUDGET = POWER_BUDGET
 
 while eps <= (int(sys.argv[7])-5):
+    if not POWER_BUDGET:
+        POWER_BUDGET = backup_POWER_BUDGET
     power_budget = POWER_BUDGET[eps % len(POWER_BUDGET)]
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
