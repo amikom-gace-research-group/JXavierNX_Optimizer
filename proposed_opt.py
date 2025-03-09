@@ -372,6 +372,9 @@ while eps <= (int(sys.argv[7])-5):
             for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
                 th_corr_conf_list[i] = pearson_correlation(x, th)
                 pwr_corr_conf_list[i] = pearson_correlation(x, pwr)
+            if None in th_corr_conf_list and None in pwr_corr_conf_list:
+                th_corr_conf_list = [1, 1, 1, 1, 1]
+                pwr_corr_conf_list = [1, 1, 1, 1, 1]
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
@@ -387,7 +390,6 @@ while eps <= (int(sys.argv[7])-5):
         else:
             visited = True
             max_stuck_count*=2
-        if len(rewards) >= max_trends_record:
             max_trends_record *= 2
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
         if len(items) > 1:
