@@ -150,6 +150,7 @@ def exec_trained(configs, episode):
         result_entry = {
             "api_time": api_time,
             "episode": eps,
+            'power_budget':power_budget,
             "iteration": 1,
             'reward': fitness,
             'xavier_time_elapsed': elapsed_exec,
@@ -193,7 +194,7 @@ class MOPSO:
             for particle in self.swarm:
                 if not self.power_budget:
                     self.power_budget = self.backup_POWER_BUDGET
-                self.power_budget = self.power_budget[episode % len(self.power_budget)]
+                power_budget = self.power_budget[episode % len(self.power_budget)]
                 episode += 1
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
@@ -214,7 +215,7 @@ class MOPSO:
                 if metrics == "No Device":
                     break
 
-                fitness = calculate_fitness(metrics, self.power_budget)
+                fitness = calculate_fitness(metrics, power_budget)
 
                 if fitness == 1e-6:
                     print("Prohibited Configuration!")
@@ -234,6 +235,7 @@ class MOPSO:
                 result_entry = {
                     "api_time": api_time,
                     "episode": episode,
+                    "power_budget":power_budget,
                     "iteration": iteration,
                     'reward': fitness,
                     'xavier_time_elapsed': elapsed_exec,
@@ -264,7 +266,6 @@ class MOPSO:
                 for power_budget in self.power_budget
                 if min(power_list) <= power_budget <= max(power_list)
             ]
-            self.backup_POWER_BUDGET = self.power_budget
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":

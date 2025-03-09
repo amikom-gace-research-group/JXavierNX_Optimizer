@@ -359,7 +359,6 @@ def execute_runtime(num_episodes):
             for power_budget in POWER_BUDGET
             if min(power_list) <= power_budget <= max(power_list)
         ]
-        backup_POWER_BUDGET = POWER_BUDGET
 
         elapsed = round(((time.time() - elapsed_exec) - t1) * 1000, 3)
         configs = {

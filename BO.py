@@ -4,11 +4,9 @@ import time
 import os
 import csv
 import requests
-import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-from skopt.plots import plot_gaussian_process
 from skopt import gp_minimize
-from skopt.space import Categorical
+from skopt.space import Categorical, Integer
 from skopt.utils import use_named_args
 from skopt.acquisition import gaussian_ei, gaussian_pi, gaussian_lcb
 
@@ -20,40 +18,40 @@ if sys.argv[5] == 'jxavier':
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
+    low_pwr = 4000
+    high_pwr = 20500
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1511)
     GPU_FREQ_RANGE = range(306, 625)
     MEMORY_FREQ_RANGE = [2133]
     CL_RANGE = range(1, 4)
+    low_pwr = 4700
+    high_pwr = 15500
 
-sampled_configs ={
-     "cpu_cores": CPU_CORES_RANGE, 
-     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
-     "cl": CL_RANGE
-}
-
-POWER_BUDGET = int(sys.argv[6])
+POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
 best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 75  # Number of iterations for Bayesian Optimization
-n_initial_points = 28
+n_calls = 20  # Number of iterations for Bayesian Optimization
+n_initial_points = 2
 
 time_got = []
 
 last_rewards = []  # To store recent rewards for saturation check
 episode_counter = 0
 
+cores_space = (Categorical(CPU_CORES_RANGE, name='cpu_cores') if len(CPU_CORES_RANGE) == 1 else Integer(min(CPU_CORES_RANGE), max(CPU_CORES_RANGE), name='cpu_cores'))
+mem_space = (Categorical(MEMORY_FREQ_RANGE, name='mem_freq') if len(MEMORY_FREQ_RANGE) == 1 else Integer(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), name='mem_freq'))
+
+# Define the parameter space for Bayesian Optimization
 space = [
-    Categorical(sampled_configs['cpu_cores'], name='cpu_cores'),
-    Categorical(sampled_configs['cpu_freq'], name='cpu_freq'),
-    Categorical(sampled_configs['gpu_freq'], name='gpu_freq'),
-    Categorical(sampled_configs['memory_freq'], name='mem_freq'),
-    Categorical(sampled_configs['cl'], name='cl')
+    cores_space,
+    Integer(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), name='cpu_freq'),
+    Integer(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), name='gpu_freq'),
+    mem_space,
+    Integer(min(CL_RANGE), max(CL_RANGE), name='cl')
 ]
 
 # Function to get the result from the external system
@@ -108,11 +106,11 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Reward function based on power and throughput metrics
 # Efficient reward calculation
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET:
+    if power > power_budget:
         return 1e6
     
     return throughput / power
@@ -126,12 +124,18 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
+powers = []
+backup_POWER_BUDGET = POWER_BUDGET
+
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter, best_throughput
+    global episode_counter, best_throughput, powers, backup_POWER_BUDGET 
     print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
-    
+    if not POWER_BUDGET:
+        POWER_BUDGET = backup_POWER_BUDGET
+    power_budget = POWER_BUDGET[episode_counter % len(POWER_BUDGET)]
+
     t1 = time.time()
     measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
@@ -148,6 +152,15 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
         reward = calculate_reward(measured_metrics)
         print(f"Configuration reward: {reward}")
+
+        powers.append(measured_metrics[0]["power_cons"])
+        if episode_counter > 2:
+            power_list = [pwr for pwr in powers if pwr != -1]
+            POWER_BUDGET = [
+                power_budget
+                for power_budget in POWER_BUDGET
+                if min(power_list) <= power_budget <= max(power_list)
+            ]
     
         configs = {
         "reward": reward,
@@ -159,7 +172,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         "gpu_freq": int(gpu_freq),
         "mem_freq": int(mem_freq),
         "cl": int(cl),
-        "power_budget": POWER_BUDGET,
+        "power_budget": power_budget,
         }
         result = {**configs, **measured_metrics[0]}
         save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
@@ -244,7 +257,7 @@ try:
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
-    for _ in range(25):
+    for _ in range(5):
         objective(tuple(res.x))
 except RuntimeError as e:
     print(e)  # Handle exception messages
