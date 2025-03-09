@@ -34,7 +34,7 @@ POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
-n_calls = 20  # Number of iterations for Bayesian Optimization
+n_calls = int(sys.argv[6]) - 5
 n_initial_points = 2
 
 time_got = []
@@ -175,7 +175,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         "power_budget": power_budget,
         }
         result = {**configs, **measured_metrics[0]}
-        save_csv([result], f"bo_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
         last_rewards.append(reward)
     

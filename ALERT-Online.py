@@ -378,7 +378,7 @@ def execute_runtime(num_episodes):
             "gpu_percent": measured_metrics[0]["gpu_percent"],
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
-        file = f"alert-online-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv"
+        file = f"alert-online-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv"
 
         save_csv([configs], file)
 
@@ -417,5 +417,5 @@ def save_csv(dict_list, filename):
 # -----------------------
 
 if __name__ == "__main__":
-    execute_runtime(int(sys.argv[7]))
+    execute_runtime(int(sys.argv[6]))
 

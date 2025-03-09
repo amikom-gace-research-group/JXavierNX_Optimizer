@@ -165,7 +165,7 @@ def exec_trained(configs, episode):
             "gpu_percent": metrics[0]["gpu_percent"],
             "mem_percent": metrics[0]["mem_percent"]
         }
-        save_csv([result_entry], f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv([result_entry], f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
 # MOPSO Class
 class MOPSO:
@@ -270,23 +270,24 @@ class MOPSO:
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":
                 break
-        save_csv(results, f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
+        save_csv(results, f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
         return self.best_config, self.global_best_fitness, self.power_budget, episode
 
 # Main Execution
 if __name__ == "__main__":
+    max_iter = round((int(sys.argv[6]) - 5)/2)
     device_ranges = set_device_ranges(sys.argv[5])
     bounds = np.array([(0, 1) for _ in range(5)])
     mopso = MOPSO(
         swarm_size=2,
         problem_size=5,
         bounds=bounds,
-        max_iter=10,
+        max_iter=max_iter,
         saturation_threshold=50,
         config_ranges=device_ranges,
         api_url=sys.argv[1],
         auth_header=sys.argv[2],
-        power_budget=int(sys.argv[6]),
+        power_budget=POWER_BUDGET,
     )
     # Run the MOPSO algorithm
     t1 = time.time()
