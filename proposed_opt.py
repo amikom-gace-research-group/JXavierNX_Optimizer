@@ -387,7 +387,7 @@ while eps <= (int(sys.argv[7])-5):
                     sampled_configs = backup_sampled_configs
                     break
             continue
-        else:
+        elif count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             visited = True
             max_stuck_count*=2
             max_trends_record *= 2
