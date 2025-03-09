@@ -346,7 +346,7 @@ visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
-power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in sampled_configs) if pwr != -1]
+power_list = [sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_cons'] != -1]
 POWER_BUDGET = [
     power_budget
     for power_budget in POWER_BUDGET
@@ -445,7 +445,7 @@ while eps <= (int(sys.argv[7])-5):
             print("No Device/No Inference Runtime")
             break
 
-        power_list = [pwr for pwr in (sampled_config['power_cons'] for sampled_config in sampled_configs) if pwr != -1]
+        power_list = [sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_cons'] != -1]
         POWER_BUDGET = [
             power_budget
             for power_budget in POWER_BUDGET

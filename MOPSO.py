@@ -1,5 +1,6 @@
 import numpy as np
 import requests
+import random
 import csv
 import time
 import sys
@@ -24,16 +25,22 @@ def set_device_ranges(device_type):
 
     sampled_configs ={
         "CPU_CORES_RANGE": CPU_CORES_RANGE, 
-        "CPU_FREQ_RANGE": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-        "GPU_FREQ_RANGE": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-        "MEMORY_FREQ_RANGE": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+        "CPU_FREQ_RANGE": CPU_FREQ_RANGE, 
+        "GPU_FREQ_RANGE": GPU_FREQ_RANGE, 
+        "MEMORY_FREQ_RANGE": MEMORY_FREQ_RANGE, 
         "CL_RANGE": CL_RANGE
     }
 
     return sampled_configs
 
+if sys.argv[5] == 'jxavier':
+    low_pwr = 4000
+    high_pwr = 20500
+elif sys.argv[5] == 'jorin-nano':
+    low_pwr = 4700
+    high_pwr = 15500
 
-POWER_BUDGET = int(sys.argv[6])
+POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
 time_got = []
 prohibited_configs = set()
@@ -89,11 +96,11 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Reward function based on power and throughput metrics
-def calculate_fitness(measured_metrics):
+def calculate_fitness(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET:
+    if power > power_budget:
         return 1e-6
     
     return (throughput / power) * 1e6
@@ -129,8 +136,9 @@ def save_csv(results, filename):
             writer.writeheader()  # Write header only once
         writer.writerows(results)
 
-def exec_trained(configs):
-    for eps in range(75, 100):
+def exec_trained(configs, episode):
+    for eps in range(episode, episode+6):
+        power_budget = random.choice(POWER_BUDGET)
         t1 = time.time()
         metrics, api_time = execute_config(*configs)
         elapsed_exec = round(time.time() - t1, 3)
@@ -138,7 +146,7 @@ def exec_trained(configs):
             continue
         if metrics == "No Device":
             break
-        fitness = calculate_fitness(metrics)
+        fitness = calculate_fitness(metrics, power_budget)
         result_entry = {
             "api_time": api_time,
             "episode": eps,
@@ -175,6 +183,7 @@ class MOPSO:
         self.global_best_fitness = -1
         self.best_config = None
         self.best_throughput = -float('inf')
+        self.backup_POWER_BUDGET = power_budget
 
     def optimize(self):
         results = []
@@ -182,6 +191,9 @@ class MOPSO:
         for iteration in range(self.max_iter):
             best_fitness_this_iter = -1
             for particle in self.swarm:
+                if not self.power_budget:
+                    self.power_budget = self.backup_POWER_BUDGET
+                self.power_budget = self.power_budget[episode % len(self.power_budget)]
                 episode += 1
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
@@ -202,7 +214,7 @@ class MOPSO:
                 if metrics == "No Device":
                     break
 
-                fitness = calculate_fitness(metrics)
+                fitness = calculate_fitness(metrics, self.power_budget)
 
                 if fitness == 1e-6:
                     print("Prohibited Configuration!")
@@ -245,22 +257,30 @@ class MOPSO:
             for particle in self.swarm:
                 particle.update_velocity(self.global_best_position)
                 particle.update_position(self.bounds)
+            
+            power_list = [sampled_config['power_cons'] for sampled_config in results if sampled_config['power_cons'] != -1]
+            self.power_budget = [
+                power_budget
+                for power_budget in self.power_budget
+                if min(power_list) <= power_budget <= max(power_list)
+            ]
+            self.backup_POWER_BUDGET = self.power_budget
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":
                 break
         save_csv(results, f"mopso_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
-        return self.best_config, self.global_best_fitness
+        return self.best_config, self.global_best_fitness, self.power_budget, episode
 
 # Main Execution
 if __name__ == "__main__":
     device_ranges = set_device_ranges(sys.argv[5])
     bounds = np.array([(0, 1) for _ in range(5)])
     mopso = MOPSO(
-        swarm_size=15,
+        swarm_size=2,
         problem_size=5,
         bounds=bounds,
-        max_iter=5,
+        max_iter=10,
         saturation_threshold=50,
         config_ranges=device_ranges,
         api_url=sys.argv[1],
@@ -269,8 +289,8 @@ if __name__ == "__main__":
     )
     # Run the MOPSO algorithm
     t1 = time.time()
-    best_config, best_fitness = mopso.optimize()
+    best_config, best_fitness, POWER_BUDGET, episode = mopso.optimize()
     elapsed = round(((time.time() - sum(time_got)) - t1) * 1000, 3)
-    exec_trained(best_config)
+    exec_trained(best_config, episode)
     print(f"Best configuration found: {best_config} in {elapsed} ms")
     print(f"Objective value: {best_fitness}")
