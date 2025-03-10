@@ -131,6 +131,7 @@ backup_POWER_BUDGET = POWER_BUDGET
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     global episode_counter, best_throughput, powers, backup_POWER_BUDGET, POWER_BUDGET
+    episode_counter += 1
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
@@ -181,8 +182,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     
         if reward == 1e6:
             return reward  # Return penalty for invalid config
-
-        episode_counter += 1
 
         return -reward  # Minimize the negative reward to maximize reward
     return 0
