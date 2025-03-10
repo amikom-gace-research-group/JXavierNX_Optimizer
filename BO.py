@@ -150,7 +150,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
             print("No device detected. Raising an exception to stop optimization.")
             raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
-        reward = calculate_reward(measured_metrics)
+        reward = calculate_reward(measured_metrics, power_budget)
         print(f"Configuration reward: {reward}")
 
         powers.append(measured_metrics[0]["power_cons"])
