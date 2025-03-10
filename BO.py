@@ -130,7 +130,7 @@ backup_POWER_BUDGET = POWER_BUDGET
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter, best_throughput, powers, backup_POWER_BUDGET 
+    global episode_counter, best_throughput, powers, backup_POWER_BUDGET, POWER_BUDGET
     print(f"Testing configuration: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET

@@ -139,6 +139,9 @@ def save_csv(results, filename):
 def exec_trained(configs, episode):
     for eps in range(episode, episode+6):
         power_budget = random.choice(POWER_BUDGET)
+        if tuple(configs) in prohibited_configs:
+            print("Prohibited Configuration!")
+            continue
         t1 = time.time()
         metrics, api_time = execute_config(*configs)
         elapsed_exec = round(time.time() - t1, 3)
@@ -147,6 +150,9 @@ def exec_trained(configs, episode):
         if metrics == "No Device":
             break
         fitness = calculate_fitness(metrics, power_budget)
+        if fitness == 1e-6:
+            print("Prohibited Configuration!")
+            prohibited_configs.add(tuple(configs))
         result_entry = {
             "api_time": api_time,
             "episode": eps,
