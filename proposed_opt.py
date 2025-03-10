@@ -373,7 +373,7 @@ while eps <= (int(sys.argv[7])-5):
             for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
                 th_corr_conf_list[i] = pearson_correlation(x, th)
                 pwr_corr_conf_list[i] = pearson_correlation(x, pwr)
-            if np.isnan(th_corr_conf_list) or np.isnan(pwr_corr_conf_list):
+            if not np.any(th_corr_conf_list) or not np.any(pwr_corr_conf_list):
                 th_corr_conf_list = [1, 1, 1, 1, 1]
                 pwr_corr_conf_list = [1, 1, 1, 1, 1]
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
