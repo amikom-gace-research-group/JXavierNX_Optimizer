@@ -84,8 +84,10 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
             corr_conf = pwr_conf
         if exist_config > neighbor_config:
             new_neighbor = minmax(round(exist_config - ((exist_config - neighbor_config) / 2) * corr_conf), range) 
-        else:
+        elif exist_config < neighbor_config:
             new_neighbor = minmax(round(exist_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
+        elif exist_config == neighbor_config:
+            new_neighbor = exist_config
         new_neighbors.append(new_neighbor)
     return tuple(new_neighbors)
 
@@ -268,13 +270,19 @@ def sampling(condition):
             sampled_configs.append(config)
     else: # random hypercube
         lhs_samples = generate_lhs_samples()
-        st_state = random.choice(lhs_samples)
-        nd_state = calculate_diversity(lhs_samples, st_state)
-        for configs in [st_state, nd_state]:
-            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":POWER_BUDGET, "throughput":0, 'power_cons':-1}
-            if config in sampled_configs:
-                return "stuck"
-            sampled_configs.append(config)
+        power_budget = random.choice(POWER_BUDGET)
+        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
+        items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+        best_item = items[0]
+        best_idx = list(best_item.keys())[0]
+        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons' and k != 'power_budget'}
+        home_conf = tuple(home_dict.values())
+        configs = calculate_diversity(lhs_samples, home_conf)
+        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
+        if config in sampled_configs:
+            stuck_count += 1
+            return "stuck"
+        sampled_configs.append(config)
 
     for ids in sampled_configs:
         

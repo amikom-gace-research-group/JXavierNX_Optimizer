@@ -84,8 +84,10 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
             corr_conf = pwr_conf
         if exist_config > neighbor_config:
             new_neighbor = minmax(round(exist_config - ((exist_config - neighbor_config) / 2) * corr_conf), range) 
-        else:
+        elif exist_config < neighbor_config:
             new_neighbor = minmax(round(exist_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
+        elif exist_config == neighbor_config:
+            new_neighbor = exist_config
         new_neighbors.append(new_neighbor)
     return tuple(new_neighbors)
 
@@ -137,9 +139,6 @@ def pearson_correlation(x, y):
     # Calculate the Pearson correlation coefficient
     denominator = (variance_x * variance_y) ** 0.5
     return covariance / denominator
-
-def apply_configs(id):
-    return minmax(sampled_configs[id]["cpu_cores"], CPU_CORES_RANGE), minmax(sampled_configs[id]["cpu_freq"], CPU_FREQ_RANGE), minmax(sampled_configs[id]["gpu_freq"], GPU_FREQ_RANGE), minmax(sampled_configs[id]["memory_freq"], MEMORY_FREQ_RANGE), minmax(sampled_configs[id]["cl"], CL_RANGE)
 
 print("PID", os.getpid())
 
@@ -267,14 +266,18 @@ def sampling(condition):
     else: # random hypercube
         lhs_samples = generate_lhs_samples()
         power_budget = random.choice(POWER_BUDGET)
-        st_state = random.choice(lhs_samples)
-        nd_state = calculate_diversity(lhs_samples, st_state)
-        for configs in [st_state, nd_state]:
-            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
-            if config in sampled_configs:
-                stuck_count += 1
-                return "stuck"
-            sampled_configs.append(config)
+        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
+        items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+        best_item = items[0]
+        best_idx = list(best_item.keys())[0]
+        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons' and k != 'power_budget'}
+        home_conf = tuple(home_dict.values())
+        configs = calculate_diversity(lhs_samples, home_conf)
+        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
+        if config in sampled_configs:
+            stuck_count += 1
+            return "stuck"
+        sampled_configs.append(config)
 
     for ids in sampled_configs:
         pwr_budget = [
@@ -371,11 +374,14 @@ while eps <= (int(sys.argv[7])-5):
             mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
-                th_corr_conf_list[i] = pearson_correlation(x, th)
-                pwr_corr_conf_list[i] = pearson_correlation(x, pwr)
-            if not np.any(th_corr_conf_list) and not np.any(pwr_corr_conf_list):
-                th_corr_conf_list = [1, 1, 1, 1, 1]
-                pwr_corr_conf_list = [1, 1, 1, 1, 1]
+                a = pearson_correlation(x, th)
+                b = pearson_correlation(x, pwr)
+                if np.any(a) or np.any(b):
+                    th_corr_conf_list[i] = a
+                    pwr_corr_conf_list[i] = b
+                else:
+                    th_corr_conf_list[i] = 0
+                    pwr_corr_conf_list[i] = 0
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
