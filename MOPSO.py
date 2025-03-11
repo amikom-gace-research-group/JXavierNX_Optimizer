@@ -247,7 +247,7 @@ class MOPSO:
                 ]
 
                 if power_budget_min:
-                    self.power_budget = list(range(power_budget_min, max(self.power_budget), 500))
+                    self.power_budget = list(range(power_budget_min[0], max(self.power_budget), 500))
 
                 # Save results to CSV
                 result_entry = {

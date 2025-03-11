@@ -201,7 +201,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
             ]
 
             if power_budget_min:
-                POWER_BUDGET = list(range(power_budget_min, max(POWER_BUDGET), 500))
+                POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
     
         configs = {
         "reward": reward,

@@ -480,7 +480,7 @@ while eps <= (int(sys.argv[6])):
         ]
 
         if power_budget_min:
-            POWER_BUDGET = list(range(power_budget_min, max(POWER_BUDGET), 500))
+            POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
