@@ -188,6 +188,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                         for pwr in powers
                     )
                 ]
+                POWER_BUDGET = list(range(*POWER_BUDGET, 500))
     
         configs = {
         "reward": reward,

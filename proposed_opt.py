@@ -305,6 +305,7 @@ def sampling(condition):
                 for config in sampled_configs
             )
         ]
+        power_budget_fixed = list(range(*power_budget_fixed, 500))
 
     for ids in sampled_configs:
         # Filter POWER_BUDGET based on the minimal differences
@@ -402,6 +403,7 @@ if powmax_diff_list and power_diff_list:
             for config in sampled_configs
         )
     ]
+    POWER_BUDGET = list(range(*POWER_BUDGET, 500))
 
 backup_POWER_BUDGET = POWER_BUDGET
 
@@ -529,6 +531,7 @@ while eps <= (int(sys.argv[6])):
                     for config in sampled_configs
                 )
             ]
+            POWER_BUDGET = list(range(*POWER_BUDGET, 500))
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
