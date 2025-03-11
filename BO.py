@@ -160,7 +160,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         if episode_counter > 2:
             max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
 
-            # Step 1: Compute all positive differences (power_budget - power_cons)
             powmax_diff_list = [
                 power_budget - pwr
                 for power_budget in POWER_BUDGET
@@ -175,11 +174,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                 if power_budget > pwr
             ]
 
-            # Step 2: Find the smallest positive difference (closest to 0)
-            min_power_diff = min(power_diff_list) if power_diff_list else None
-
-            # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
-            if min_power_diff is not None and powmax_diff_list:
+            if power_diff_list and powmax_diff_list:
                 POWER_BUDGET = [
                     power_budget
                     for power_budget in POWER_BUDGET

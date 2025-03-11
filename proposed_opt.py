@@ -276,7 +276,6 @@ def sampling(condition):
     
     max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
-    # Step 1: Compute all positive differences (power_budget - power_cons)
     powmax_diff_list = [
         power_budget - config['power_cons']
         for power_budget in POWER_BUDGET
@@ -291,11 +290,7 @@ def sampling(condition):
         if power_budget > config['power_cons']
     ]
 
-    # Step 2: Find the smallest positive difference (closest to 0)
-    min_power_diff = min(powmin_diff_list) if powmin_diff_list else None
-
-    # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
-    if min_power_diff is not None:
+    if powmin_diff_list and powmax_diff_list:
         power_budget_fixed = [
             power_budget
             for power_budget in POWER_BUDGET
@@ -378,7 +373,6 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
 max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
-# Step 1: Compute all positive differences (power_budget - power_cons)
 powmax_diff_list = [
     power_budget - config['power_cons']
     for power_budget in POWER_BUDGET
@@ -393,11 +387,7 @@ power_diff_list = [
     if power_budget > config['power_cons']
 ]
 
-# Step 2: Find the smallest positive difference (closest to 0)
-min_power_diff = min(power_diff_list) if power_diff_list else None
-
-# Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
-if min_power_diff is not None and power_diff_list:
+if powmax_diff_list and power_diff_list:
     POWER_BUDGET = [
         power_budget
         for power_budget in POWER_BUDGET
@@ -510,7 +500,6 @@ while eps <= (int(sys.argv[6])):
 
         max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
-        # Step 1: Compute all positive differences (power_budget - power_cons)
         powmax_diff_list = [
             power_budget - config['power_cons']
             for power_budget in POWER_BUDGET
@@ -525,11 +514,7 @@ while eps <= (int(sys.argv[6])):
             if power_budget > config['power_cons']
         ]
 
-        # Step 2: Find the smallest positive difference (closest to 0)
-        min_power_diff = min(power_diff_list) if power_diff_list else None
-
-        # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
-        if min_power_diff is not None and power_diff_list:
+        if powmax_diff_list and power_diff_list:
             POWER_BUDGET = [
                 power_budget
                 for power_budget in POWER_BUDGET

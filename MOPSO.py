@@ -268,7 +268,6 @@ class MOPSO:
             
             max_pwr = max((sam['power_cons'] for sam in results if sam['power_cons'] != -1), default=0)
 
-            # Step 1: Compute all positive differences (power_budget - power_cons)
             powmax_diff_list = [
                 power_budget - config['power_cons']
                 for power_budget in self.power_budget
@@ -283,11 +282,7 @@ class MOPSO:
                 if power_budget > config['power_cons']
             ]
 
-            # Step 2: Find the smallest positive difference (closest to 0)
-            min_power_diff = min(power_diff_list) if power_diff_list else None
-
-            # Step 3: Filter power_budget to retain entries with the smallest positive difference
-            if min_power_diff is not None and powmax_diff_list:
+            if power_diff_list and powmax_diff_list:
                 self.power_budget = [
                     power_budget
                     for power_budget in self.power_budget
