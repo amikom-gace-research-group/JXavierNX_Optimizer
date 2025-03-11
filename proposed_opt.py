@@ -274,29 +274,45 @@ def sampling(condition):
             return "stuck"
         sampled_configs.append(config)
     
-    max_pwr = max(sam['power_cons'] for sam in sampled_configs)
+    max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
 
-    # Check if any config has the maximum power consumption
-    has_max_pwr = any(config['power_cons'] == max_pwr for config in sampled_configs)
-
-    # Calculate minimal difference for max_pwr configurations
-    powmax_diffs = [pb - max_pwr for pb in POWER_BUDGET if pb > max_pwr and has_max_pwr]
-    min_powmax_diff = min(powmax_diffs) if powmax_diffs else None
-
-    # Calculate minimal positive difference across all configurations
-    power_diffs = [pb - config['power_cons'] for pb in POWER_BUDGET for config in sampled_configs if pb > config['power_cons']]
-    min_power_diff = min(power_diffs) if power_diffs else None
-    power_budget_fixed = [
-        pb for pb in POWER_BUDGET
-        if (min_powmax_diff is not None and pb == max_pwr + min_powmax_diff)
-        or (min_power_diff is not None and any(
-            pb - config['power_cons'] == min_power_diff for config in sampled_configs
-        ))
+    # Step 1: Compute all positive differences (power_budget - power_cons)
+    powmax_diff_list = [
+        power_budget - config['power_cons']
+        for power_budget in POWER_BUDGET
+        for config in sampled_configs
+        if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
     ]
+
+    powmin_diff_list = [
+        power_budget - config['power_cons']
+        for power_budget in POWER_BUDGET
+        for config in sampled_configs
+        if power_budget > config['power_cons']
+    ]
+
+    # Step 2: Find the smallest positive difference (closest to 0)
+    min_power_diff = min(powmin_diff_list) if powmin_diff_list else None
+
+    # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
+    if min_power_diff is not None:
+        power_budget_fixed = [
+            power_budget
+            for power_budget in POWER_BUDGET
+            if any(
+                (power_budget - config['power_cons']) == powmax_diff_list[0]
+                for config in sampled_configs
+            )
+            or
+            any(
+                (power_budget - config['power_cons']) == powmin_diff_list[0]
+                for config in sampled_configs
+            )
+        ]
 
     for ids in sampled_configs:
         # Filter POWER_BUDGET based on the minimal differences
-        if min_powmax_diff is not None or min_power_diff is not None:
+        if power_budget_fixed:
             ids["power_budget"] = power_budget_fixed[0]
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
@@ -360,27 +376,40 @@ visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
-max_pwr = max(sam['power_cons'] for sam in sampled_configs)
+max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
 
-# Check if any config has the maximum power consumption
-has_max_pwr = any(config['power_cons'] == max_pwr for config in sampled_configs)
+# Step 1: Compute all positive differences (power_budget - power_cons)
+powmax_diff_list = [
+    power_budget - config['power_cons']
+    for power_budget in POWER_BUDGET
+    for config in sampled_configs
+    if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
+]
 
-# Calculate minimal difference for max_pwr configurations
-powmax_diffs = [pb - max_pwr for pb in POWER_BUDGET if pb > max_pwr and has_max_pwr]
-min_powmax_diff = min(powmax_diffs) if powmax_diffs else None
+power_diff_list = [
+    power_budget - config['power_cons']
+    for power_budget in POWER_BUDGET
+    for config in sampled_configs
+    if power_budget > config['power_cons']
+]
 
-# Calculate minimal positive difference across all configurations
-power_diffs = [pb - config['power_cons'] for pb in POWER_BUDGET for config in sampled_configs if pb > config['power_cons']]
-min_power_diff = min(power_diffs) if power_diffs else None
+# Step 2: Find the smallest positive difference (closest to 0)
+min_power_diff = min(power_diff_list) if power_diff_list else None
 
-# Filter POWER_BUDGET based on the minimal differences
-if min_powmax_diff is not None or min_power_diff is not None:
+# Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
+if min_power_diff is not None:
     POWER_BUDGET = [
-        pb for pb in POWER_BUDGET
-        if (min_powmax_diff is not None and pb == max_pwr + min_powmax_diff)
-        or (min_power_diff is not None and any(
-            pb - config['power_cons'] == min_power_diff for config in sampled_configs
-        ))
+        power_budget
+        for power_budget in POWER_BUDGET
+        if any(
+            (power_budget - config['power_cons']) == powmax_diff_list[0]
+            for config in sampled_configs
+        )
+        or
+        any(
+            (power_budget - config['power_cons']) == power_diff_list[0]
+            for config in sampled_configs
+        )
     ]
 
 backup_POWER_BUDGET = POWER_BUDGET
