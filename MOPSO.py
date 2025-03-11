@@ -266,12 +266,41 @@ class MOPSO:
                 particle.update_velocity(self.global_best_position)
                 particle.update_position(self.bounds)
             
-            power_list = [sampled_config['power_cons'] for sampled_config in results if sampled_config['power_cons'] != -1]
-            self.power_budget = [
-                power_budget
+            max_pwr = max(sam['power_cons'] for sam in results if sam['power_cons'] != -1)
+
+            # Step 1: Compute all positive differences (power_budget - power_cons)
+            powmax_diff_list = [
+                power_budget - config['power_cons']
                 for power_budget in self.power_budget
-                if min(power_list) <= power_budget <= max(power_list)
+                for config in results
+                if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
             ]
+
+            power_diff_list = [
+                power_budget - config['power_cons']
+                for power_budget in self.power_budget
+                for config in results
+                if power_budget > config['power_cons']
+            ]
+
+            # Step 2: Find the smallest positive difference (closest to 0)
+            min_power_diff = min(power_diff_list) if power_diff_list else None
+
+            # Step 3: Filter power_budget to retain entries with the smallest positive difference
+            if min_power_diff is not None and powmax_diff_list:
+                self.power_budget = [
+                    power_budget
+                    for power_budget in self.power_budget
+                    if any(
+                        (power_budget - config['power_cons']) == powmax_diff_list[0]
+                        for config in results
+                    )
+                    or
+                    any(
+                        (power_budget - config['power_cons']) == power_diff_list[0]
+                        for config in results
+                    )
+                ]
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":

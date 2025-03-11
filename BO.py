@@ -158,12 +158,41 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
         powers.append(measured_metrics[0]["power_cons"])
         if episode_counter > 2:
-            power_list = [pwr for pwr in powers if pwr != -1]
-            POWER_BUDGET = [
-                power_budget
+            max_pwr = max(pwr for pwr in powers if pwr != -1)
+
+            # Step 1: Compute all positive differences (power_budget - power_cons)
+            powmax_diff_list = [
+                power_budget - pwr
                 for power_budget in POWER_BUDGET
-                if min(power_list) <= power_budget <= max(power_list)
+                for pwr in powers
+                if power_budget > pwr and pwr == max_pwr
             ]
+
+            power_diff_list = [
+                power_budget - pwr
+                for power_budget in POWER_BUDGET
+                for pwr in powers
+                if power_budget > pwr
+            ]
+
+            # Step 2: Find the smallest positive difference (closest to 0)
+            min_power_diff = min(power_diff_list) if power_diff_list else None
+
+            # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
+            if min_power_diff is not None and powmax_diff_list:
+                POWER_BUDGET = [
+                    power_budget
+                    for power_budget in POWER_BUDGET
+                    if any(
+                        (power_budget - pwr) == powmax_diff_list[0]
+                        for pwr in powers
+                    )
+                    or
+                    any(
+                        (power_budget - pwr) == power_diff_list[0]
+                        for pwr in powers
+                    )
+                ]
     
         configs = {
         "reward": reward,
