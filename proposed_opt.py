@@ -64,7 +64,7 @@ def calculate_reward(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget or throughput < int(sys.argv[8]):
+    if power > power_budget or throughput < int(sys.argv[7]):
         return (throughput / power) * 1e-6
     
     return (throughput / power) * 1e6
@@ -331,7 +331,7 @@ def sampling(condition):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
         rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -352,7 +352,7 @@ POWER_BUDGET = [
 ]
 backup_POWER_BUDGET = POWER_BUDGET
 
-while eps <= (int(sys.argv[7])):
+while eps <= (int(sys.argv[6])):
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
     power_budget = POWER_BUDGET[eps % len(POWER_BUDGET)]
@@ -483,7 +483,7 @@ while eps <= (int(sys.argv[7])):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
         eps += 1
@@ -569,7 +569,7 @@ while i<6:
     }
 
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"proposed-{sys.argv[7]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1

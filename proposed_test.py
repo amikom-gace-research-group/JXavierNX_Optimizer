@@ -64,10 +64,10 @@ def calculate_reward(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget:
+    if power > power_budget or throughput < int(sys.argv[7]):
         return (throughput / power) * 1e-6
     
-    return (throughput / power ) * 1e6
+    return (throughput / power) * 1e6
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf):
@@ -178,7 +178,7 @@ elif sys.argv[5] == 'jorin-nano':
     low_pwr = corr_conf_dict['low_pwr']
     high_pwr = corr_conf_dict['high_pwr']
 
-POWER_BUDGET = int(sys.argv[7]) if low_pwr <= int(sys.argv[7]) <= high_pwr else high_pwr
+POWER_BUDGET = int(sys.argv[6]) if low_pwr <= int(sys.argv[6]) <= high_pwr else high_pwr
 
 prohibited_configs = set()
 
