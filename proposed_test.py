@@ -10,11 +10,6 @@ from pyDOE import lhs
 
 eps = 1
 
-if int(sys.argv[6]):
-    mode = "balanced"
-else:
-    mode = "max"
-
 def get_result():
     headers = {
         'Authorization': sys.argv[2],
@@ -65,14 +60,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics, power_budget, balanced=1):
+def calculate_reward(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
     if power > power_budget:
         return (throughput / power) * 1e-6
     
-    return (throughput / (power if balanced else 1)) * 1e6
+    return (throughput / power ) * 1e6
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf):
@@ -310,14 +305,14 @@ def sampling(condition):
             print("No Device/No Inference Runtime")
             break
 
-        reward = calculate_reward(measured_metrics, ids["power_budget"], balanced=int(sys.argv[6]))
+        reward = calculate_reward(measured_metrics, ids["power_budget"])
         ids["reward"] = reward
 
         if reward < 1:
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(ids_checker.values()))
 
-        reward = calculate_reward(measured_metrics, ids["power_budget"], balanced=int(sys.argv[6]))
+        reward = calculate_reward(measured_metrics, ids["power_budget"])
 
         configs = {
             "api_time": api_time,
@@ -334,7 +329,7 @@ def sampling(condition):
         }
 
         dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"test-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"test-proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
         rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
@@ -391,7 +386,7 @@ while eps <= 5:
         print("No Device/No Inference Runtime")
         break
     
-    reward = calculate_reward(measured_metrics, POWER_BUDGET, balanced=int(sys.argv[6]))
+    reward = calculate_reward(measured_metrics, POWER_BUDGET)
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": POWER_BUDGET, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
     av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward'], sampled_config['power_budget']) for sampled_config in sampled_configs]
     if new_configs in av_configs[:-2] and av_configs[-1] == POWER_BUDGET:
@@ -420,13 +415,8 @@ while eps <= 5:
         "cl": cl
     }
 
-    if int(sys.argv[6]):
-        mode = "balanced"
-    else:
-        mode = "max"
-
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"test-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"test-proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
@@ -465,7 +455,7 @@ while i<6:
         print("No Device/No Inference Runtime")
         break
 
-    reward = calculate_reward(measured_metrics, POWER_BUDGET, balanced=int(sys.argv[6]))
+    reward = calculate_reward(measured_metrics, POWER_BUDGET)
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": POWER_BUDGET, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
     sampled_configs[best_idx] = dict_new_configs
 
@@ -488,13 +478,8 @@ while i<6:
         "cl": cl
     }
 
-    if int(sys.argv[6]):
-        mode = "balanced"
-    else:
-        mode = "max"
-
     dict_record = [{**configs, **measured_metrics[0]}]
-    save_csv(dict_record, f"test-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    save_csv(dict_record, f"test-proposed_{sys.argv[5]}_{sys.argv[4]}.csv")
 
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
