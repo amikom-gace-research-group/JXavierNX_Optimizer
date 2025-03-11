@@ -474,9 +474,9 @@ while eps <= (int(sys.argv[6])):
             power_budget
             for power_budget in POWER_BUDGET
             if power_budget > measured_metrics[0]['power_cons']
-        ][0]
+        ]
 
-        if power_diff_list:
+        if power_budget_min:
             POWER_BUDGET = list(range(power_budget_min, max(POWER_BUDGET), 500))
         
         reward = calculate_reward(measured_metrics, power_budget)
