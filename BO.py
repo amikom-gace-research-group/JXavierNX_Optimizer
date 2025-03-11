@@ -34,7 +34,7 @@ POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 best_throughput = -1e6
 
 # Hyperparameters for Bayesian Optimization
-n_calls = int(sys.argv[6]) - 5
+n_calls = int(sys.argv[6])
 n_initial_points = 2
 
 time_got = []
@@ -110,7 +110,7 @@ def calculate_reward(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget:
+    if power > power_budget or throughput < int(sys.argv[8]):
         return 1e6
     
     return throughput / power
@@ -135,6 +135,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
+    if episode_counter >= 25:
+        power_budget = min(POWER_BUDGET)
     power_budget = POWER_BUDGET[episode_counter % len(POWER_BUDGET)]
 
     t1 = time.time()

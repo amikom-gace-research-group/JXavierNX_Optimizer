@@ -69,7 +69,7 @@ def calculate_reward(measured_metrics, power_budget, balanced=1):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget:
+    if power > power_budget or throughput < int(sys.argv[8]):
         return (throughput / power) * 1e-6
     
     return (throughput / (power if balanced else 1)) * 1e6
@@ -357,7 +357,7 @@ POWER_BUDGET = [
 ]
 backup_POWER_BUDGET = POWER_BUDGET
 
-while eps <= (int(sys.argv[7])-5):
+while eps <= (int(sys.argv[7])):
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
     power_budget = POWER_BUDGET[eps % len(POWER_BUDGET)]
@@ -523,7 +523,7 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
 i = 0
 #test 5 times
 while i<6:
-    power_budget = random.choice(POWER_BUDGET)
+    power_budget = min(POWER_BUDGET)
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
     if not rewards_dicts:
         continue

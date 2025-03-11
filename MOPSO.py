@@ -100,7 +100,7 @@ def calculate_fitness(measured_metrics, power_budget):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget:
+    if power > power_budget or throughput < int(sys.argv[7]):
         return 1e-6
     
     return (throughput / power) * 1e6
@@ -138,7 +138,7 @@ def save_csv(results, filename):
 
 def exec_trained(configs, episode):
     for eps in range(episode, episode+6):
-        power_budget = random.choice(POWER_BUDGET)
+        power_budget = min(POWER_BUDGET)
         if tuple(configs) in prohibited_configs:
             print("Prohibited Configuration!")
             continue
@@ -281,7 +281,7 @@ class MOPSO:
 
 # Main Execution
 if __name__ == "__main__":
-    max_iter = round((int(sys.argv[6]) - 5)/2)
+    max_iter = round((int(sys.argv[6]))/2)
     device_ranges = set_device_ranges(sys.argv[5])
     bounds = np.array([(0, 1) for _ in range(5)])
     mopso = MOPSO(
