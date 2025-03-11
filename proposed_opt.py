@@ -289,6 +289,7 @@ def sampling(condition):
         for config in sampled_configs
         if power_budget > config['power_cons']
     ]
+    power_budget_fixed = None
 
     if powmin_diff_list and powmax_diff_list:
         power_budget_fixed = [
