@@ -397,7 +397,7 @@ power_diff_list = [
 min_power_diff = min(power_diff_list) if power_diff_list else None
 
 # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
-if min_power_diff is not None:
+if min_power_diff is not None and power_diff_list:
     POWER_BUDGET = [
         power_budget
         for power_budget in POWER_BUDGET
@@ -508,12 +508,41 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        power_list = [sampled_config['power_cons'] for sampled_config in sampled_configs if sampled_config['power_cons'] != -1]
-        POWER_BUDGET = [
-            power_budget
+        max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
+
+        # Step 1: Compute all positive differences (power_budget - power_cons)
+        powmax_diff_list = [
+            power_budget - config['power_cons']
             for power_budget in POWER_BUDGET
-            if min(power_list) <= power_budget <= max(power_list)
+            for config in sampled_configs
+            if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
         ]
+
+        power_diff_list = [
+            power_budget - config['power_cons']
+            for power_budget in POWER_BUDGET
+            for config in sampled_configs
+            if power_budget > config['power_cons']
+        ]
+
+        # Step 2: Find the smallest positive difference (closest to 0)
+        min_power_diff = min(power_diff_list) if power_diff_list else None
+
+        # Step 3: Filter POWER_BUDGET to retain entries with the smallest positive difference
+        if min_power_diff is not None and power_diff_list:
+            POWER_BUDGET = [
+                power_budget
+                for power_budget in POWER_BUDGET
+                if any(
+                    (power_budget - config['power_cons']) == powmax_diff_list[0]
+                    for config in sampled_configs
+                )
+                or
+                any(
+                    (power_budget - config['power_cons']) == power_diff_list[0]
+                    for config in sampled_configs
+                )
+            ]
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
