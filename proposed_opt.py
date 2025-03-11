@@ -291,9 +291,6 @@ def sampling(condition):
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         elapsed_exec = round(time.time() - t1, 3)
 
-        ids["throughput"] = measured_metrics[0]["throughput"]
-        ids["power_cons"] = measured_metrics[0]["power_cons"]
-
         if isinstance(measured_metrics, list) or not measured_metrics:
             if not measured_metrics:
                 print("EXECUTION PROBLEM!")
@@ -304,6 +301,9 @@ def sampling(condition):
         if measured_metrics == "No Device":
             print("No Device/No Inference Runtime")
             break
+        
+        ids["throughput"] = measured_metrics[0]["throughput"]
+        ids["power_cons"] = measured_metrics[0]["power_cons"]
 
         reward = calculate_reward(measured_metrics, ids["power_budget"])
         ids["reward"] = reward
