@@ -235,6 +235,8 @@ def count_trend(lst):
     increasing = 0
     decreasing = 0
     stable = 0
+    prohibited = 0
+    positive = 0
     
     for i in range(1, len(lst)):
         if lst[i] > lst[i-1]:
@@ -243,8 +245,12 @@ def count_trend(lst):
             decreasing += 1
         else:
             stable += 1
+        if lst[i] < 1:
+            prohibited += 1
+        else:
+            positive += 1
     
-    return {"INC": increasing, "DEC": decreasing, "ST": stable}
+    return {"INC": increasing, "DEC": decreasing, "ST": stable, "-": prohibited, "+": positive}
 
 stuck_count = 0
 max_stuck_count = 5
@@ -273,45 +279,8 @@ def sampling(condition):
             stuck_count += 1
             return "stuck"
         sampled_configs.append(config)
-    
-    max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
-
-    powmax_diff_list = [
-        power_budget - config['power_cons']
-        for power_budget in POWER_BUDGET
-        for config in sampled_configs
-        if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
-    ]
-
-    powmin_diff_list = [
-        power_budget - config['power_cons']
-        for power_budget in POWER_BUDGET
-        for config in sampled_configs
-        if power_budget > config['power_cons']
-    ]
-    power_budget_fixed = None
-
-    if powmin_diff_list and powmax_diff_list:
-        power_budget_fixed = [
-            power_budget
-            for power_budget in POWER_BUDGET
-            if any(
-                (power_budget - config['power_cons']) == powmax_diff_list[0]
-                for config in sampled_configs
-            )
-            or
-            any(
-                (power_budget - config['power_cons']) == powmin_diff_list[0]
-                for config in sampled_configs
-            )
-        ]
-        power_budget_fixed = list(range(*power_budget_fixed, 500))
 
     for ids in sampled_configs:
-        # Filter POWER_BUDGET based on the minimal differences
-        if power_budget_fixed:
-            ids["power_budget"] = power_budget_fixed[0]
-
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         
@@ -414,7 +383,7 @@ while eps <= (int(sys.argv[6])):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
-    if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] if len(rewards) >= max_trends_record else True):
+    if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
         if len(rewards) >= max_trends_record:
             th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -501,37 +470,14 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
-
-        powmax_diff_list = [
-            power_budget - config['power_cons']
+        power_budget_min = [
+            power_budget
             for power_budget in POWER_BUDGET
-            for config in sampled_configs
-            if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
-        ]
+            if power_budget > measured_metrics[0]['power_cons']
+        ][0]
 
-        power_diff_list = [
-            power_budget - config['power_cons']
-            for power_budget in POWER_BUDGET
-            for config in sampled_configs
-            if power_budget > config['power_cons']
-        ]
-
-        if powmax_diff_list and power_diff_list:
-            POWER_BUDGET = [
-                power_budget
-                for power_budget in POWER_BUDGET
-                if any(
-                    (power_budget - config['power_cons']) == powmax_diff_list[0]
-                    for config in sampled_configs
-                )
-                or
-                any(
-                    (power_budget - config['power_cons']) == power_diff_list[0]
-                    for config in sampled_configs
-                )
-            ]
-            POWER_BUDGET = list(range(*POWER_BUDGET, 500))
+        if power_diff_list:
+            POWER_BUDGET = list(range(power_budget_min, max(POWER_BUDGET), 500))
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
