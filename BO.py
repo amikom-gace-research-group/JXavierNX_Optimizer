@@ -157,7 +157,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         print(f"Configuration reward: {reward}")
 
         powers.append(measured_metrics[0]["power_cons"])
-        if episode_counter > 2:
+        if episode_counter < 3:
             max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
 
             powmax_diff_list = [
@@ -189,6 +189,19 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                     )
                 ]
                 POWER_BUDGET = list(range(*POWER_BUDGET, 500))
+                backup_POWER_BUDGET = POWER_BUDGET
+        else:
+            if (power_budget - measured_metrics[0]['power_cons']) > 600:
+                POWER_BUDGET = backup_POWER_BUDGET
+
+            power_budget_min = [
+                power_budget
+                for power_budget in POWER_BUDGET
+                if power_budget > measured_metrics[0]['power_cons']
+            ]
+
+            if power_budget_min:
+                POWER_BUDGET = list(range(power_budget_min, max(POWER_BUDGET), 500))
     
         configs = {
         "reward": reward,

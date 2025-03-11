@@ -236,6 +236,18 @@ class MOPSO:
                     self.best_config = config
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
+                
+                if (power_budget - metrics[0]['power_cons']) > 600:
+                    self.power_budget = self.backup_POWER_BUDGET
+
+                power_budget_min = [
+                    power_budget
+                    for power_budget in self.power_budget
+                    if power_budget > metrics[0]['power_cons']
+                ]
+
+                if power_budget_min:
+                    self.power_budget = list(range(power_budget_min, max(self.power_budget), 500))
 
                 # Save results to CSV
                 result_entry = {
@@ -266,37 +278,39 @@ class MOPSO:
                 particle.update_velocity(self.global_best_position)
                 particle.update_position(self.bounds)
             
-            max_pwr = max((sam['power_cons'] for sam in results if sam['power_cons'] != -1), default=0)
+            if episode < len(self.swarm)+1:
+                max_pwr = max((sam['power_cons'] for sam in results if sam['power_cons'] != -1), default=0)
 
-            powmax_diff_list = [
-                power_budget - config['power_cons']
-                for power_budget in self.power_budget
-                for config in results
-                if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
-            ]
-
-            power_diff_list = [
-                power_budget - config['power_cons']
-                for power_budget in self.power_budget
-                for config in results
-                if power_budget > config['power_cons']
-            ]
-
-            if power_diff_list and powmax_diff_list:
-                self.power_budget = [
-                    power_budget
+                powmax_diff_list = [
+                    power_budget - config['power_cons']
                     for power_budget in self.power_budget
-                    if any(
-                        (power_budget - config['power_cons']) == powmax_diff_list[0]
-                        for config in results
-                    )
-                    or
-                    any(
-                        (power_budget - config['power_cons']) == power_diff_list[0]
-                        for config in results
-                    )
+                    for config in results
+                    if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
                 ]
-                self.power_budget = list(range(*self.power_budget, 500))
+
+                power_diff_list = [
+                    power_budget - config['power_cons']
+                    for power_budget in self.power_budget
+                    for config in results
+                    if power_budget > config['power_cons']
+                ]
+
+                if power_diff_list and powmax_diff_list:
+                    self.power_budget = [
+                        power_budget
+                        for power_budget in self.power_budget
+                        if any(
+                            (power_budget - config['power_cons']) == powmax_diff_list[0]
+                            for config in results
+                        )
+                        or
+                        any(
+                            (power_budget - config['power_cons']) == power_diff_list[0]
+                            for config in results
+                        )
+                    ]
+                    self.power_budget = list(range(*self.power_budget, 500))
+                    self.backup_POWER_BUDGET = self.power_budget
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":
