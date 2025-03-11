@@ -158,7 +158,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
         powers.append(measured_metrics[0]["power_cons"])
         if episode_counter > 2:
-            max_pwr = max(pwr for pwr in powers if pwr != -1)
+            max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
 
             # Step 1: Compute all positive differences (power_budget - power_cons)
             powmax_diff_list = [

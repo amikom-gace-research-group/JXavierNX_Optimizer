@@ -266,7 +266,7 @@ class MOPSO:
                 particle.update_velocity(self.global_best_position)
                 particle.update_position(self.bounds)
             
-            max_pwr = max(sam['power_cons'] for sam in results if sam['power_cons'] != -1)
+            max_pwr = max((sam['power_cons'] for sam in results if sam['power_cons'] != -1), default=0)
 
             # Step 1: Compute all positive differences (power_budget - power_cons)
             powmax_diff_list = [

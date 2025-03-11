@@ -274,7 +274,7 @@ def sampling(condition):
             return "stuck"
         sampled_configs.append(config)
     
-    max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
+    max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
     # Step 1: Compute all positive differences (power_budget - power_cons)
     powmax_diff_list = [
@@ -376,7 +376,7 @@ visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
-max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
+max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
 # Step 1: Compute all positive differences (power_budget - power_cons)
 powmax_diff_list = [
@@ -508,7 +508,7 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        max_pwr = max(sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1)
+        max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
 
         # Step 1: Compute all positive differences (power_budget - power_cons)
         powmax_diff_list = [
