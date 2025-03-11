@@ -273,30 +273,31 @@ def sampling(condition):
             stuck_count += 1
             return "stuck"
         sampled_configs.append(config)
+    
+    max_pwr = max(sam['power_cons'] for sam in sampled_configs)
+
+    # Check if any config has the maximum power consumption
+    has_max_pwr = any(config['power_cons'] == max_pwr for config in sampled_configs)
+
+    # Calculate minimal difference for max_pwr configurations
+    powmax_diffs = [pb - max_pwr for pb in POWER_BUDGET if pb > max_pwr and has_max_pwr]
+    min_powmax_diff = min(powmax_diffs) if powmax_diffs else None
+
+    # Calculate minimal positive difference across all configurations
+    power_diffs = [pb - config['power_cons'] for pb in POWER_BUDGET for config in sampled_configs if pb > config['power_cons']]
+    min_power_diff = min(power_diffs) if power_diffs else None
+    power_budget_fixed = [
+        pb for pb in POWER_BUDGET
+        if (min_powmax_diff is not None and pb == max_pwr + min_powmax_diff)
+        or (min_power_diff is not None and any(
+            pb - config['power_cons'] == min_power_diff for config in sampled_configs
+        ))
+    ]
 
     for ids in sampled_configs:
-        max_pwr = max(sam['power_cons'] for sam in sampled_configs)
-
-        # Check if any config has the maximum power consumption
-        has_max_pwr = any(config['power_cons'] == max_pwr for config in sampled_configs)
-
-        # Calculate minimal difference for max_pwr configurations
-        powmax_diffs = [pb - max_pwr for pb in POWER_BUDGET if pb > max_pwr and has_max_pwr]
-        min_powmax_diff = min(powmax_diffs) if powmax_diffs else None
-
-        # Calculate minimal positive difference across all configurations
-        power_diffs = [pb - config['power_cons'] for pb in POWER_BUDGET for config in sampled_configs if pb > config['power_cons']]
-        min_power_diff = min(power_diffs) if power_diffs else None
-
         # Filter POWER_BUDGET based on the minimal differences
         if min_powmax_diff is not None or min_power_diff is not None:
-            ids["power_budget"] = [
-                pb for pb in POWER_BUDGET
-                if (min_powmax_diff is not None and pb == max_pwr + min_powmax_diff)
-                or (min_power_diff is not None and any(
-                    pb - config['power_cons'] == min_power_diff for config in sampled_configs
-                ))
-            ]
+            ids["power_budget"] = power_budget_fixed[0]
 
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
