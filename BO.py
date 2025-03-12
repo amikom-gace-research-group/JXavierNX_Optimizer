@@ -200,7 +200,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                 if power_budget > measured_metrics[0]['power_cons']
             ]
 
-            if power_budget_min:
+            if power_budget_min and measured_metrics[0]['throughput'] >= int(sys.argv[8]):
                 POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
     
         configs = {

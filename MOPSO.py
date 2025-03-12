@@ -246,7 +246,7 @@ class MOPSO:
                     if power_budget > metrics[0]['power_cons']
                 ]
 
-                if power_budget_min:
+                if power_budget_min and metrics[0]['throughput'] >= int(sys.argv[7]):
                     self.power_budget = list(range(power_budget_min[0], max(self.power_budget), 500))
 
                 # Save results to CSV
