@@ -230,6 +230,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         else:
             return 0
     else:
+        if episode_counter >= 25:
+            POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         return 1e6
 
 # Custom callback to track the optimization progress
