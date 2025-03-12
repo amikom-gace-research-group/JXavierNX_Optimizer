@@ -482,6 +482,9 @@ while eps <= (int(sys.argv[6])):
         if power_budget_min and measured_metrics[0]['throughput'] >= int(sys.argv[7]):
             POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
         
+        if not POWER_BUDGET:
+            POWER_BUDGET = backup_POWER_BUDGET
+        
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
         av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward'], sampled_config['power_budget']) for sampled_config in sampled_configs]
