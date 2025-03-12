@@ -395,7 +395,7 @@ while eps <= (int(sys.argv[6])):
             for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
                 a = pearson_correlation(x, th)
                 b = pearson_correlation(x, pwr)
-                if np.any(a) or np.any(b):
+                if not np.isnan(a) or not np.isnan(b):
                     th_corr_conf_list[i] = a
                     pwr_corr_conf_list[i] = b
                 else:
