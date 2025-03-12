@@ -310,7 +310,8 @@ class MOPSO:
                         )
                     ]
                     self.power_budget = list(range(*self.power_budget, 500))
-                    self.backup_POWER_BUDGET = self.power_budget
+                    if self.power_budget:
+                        self.backup_POWER_BUDGET = self.power_budget
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if metrics == "No Device":

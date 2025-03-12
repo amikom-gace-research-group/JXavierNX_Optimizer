@@ -189,7 +189,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                     )
                 ]
                 POWER_BUDGET = list(range(*POWER_BUDGET, 500))
-                backup_POWER_BUDGET = POWER_BUDGET
+                if POWER_BUDGET:
+                    backup_POWER_BUDGET = POWER_BUDGET
         else:
             if (power_budget - measured_metrics[0]['power_cons']) > 600:
                 POWER_BUDGET = backup_POWER_BUDGET
