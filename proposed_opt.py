@@ -404,7 +404,6 @@ while eps <= (int(sys.argv[6])):
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
-            POWER_BUDGET = backup_POWER_BUDGET
             backup_sampled_configs = sampled_configs
             sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
             out = sampling(0)
@@ -434,7 +433,6 @@ while eps <= (int(sys.argv[6])):
 
         if home_checker in prohibited_configs and neig_checker in prohibited_configs:
             stuck_count += 1
-            POWER_BUDGET = backup_POWER_BUDGET
             out = sampling(0)
             if out == 'stuck':
                 if stuck_count >= max_stuck_count:
@@ -443,7 +441,6 @@ while eps <= (int(sys.argv[6])):
             continue
         elif (*new_configs, power_budget) in prohibited_configs:
             stuck_count += 1
-            POWER_BUDGET = backup_POWER_BUDGET
             out = sampling(0)
             if out == 'stuck':
                 if stuck_count >= max_stuck_count:
@@ -520,7 +517,6 @@ while eps <= (int(sys.argv[6])):
         backup_sampled_configs = sampled_configs
         sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
         max_trends_record = 5
-        POWER_BUDGET = backup_POWER_BUDGET
         out = sampling(0)
         if out == 'stuck':
             if stuck_count >= max_stuck_count:
