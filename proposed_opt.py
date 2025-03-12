@@ -479,7 +479,7 @@ while eps <= (int(sys.argv[6])):
             if power_budget > measured_metrics[0]['power_cons']
         ]
 
-        if power_budget_min:
+        if power_budget_min and measured_metrics[0]['throughput'] >= int(sys.argv[7]):
             POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
         
         reward = calculate_reward(measured_metrics, power_budget)
@@ -603,3 +603,5 @@ while i<6:
     print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
     eps += 1
     i+=1
+else:
+    pass
