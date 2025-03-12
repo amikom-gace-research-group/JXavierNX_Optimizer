@@ -404,6 +404,7 @@ while eps <= (int(sys.argv[6])):
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
+            POWER_BUDGET = backup_POWER_BUDGET
             backup_sampled_configs = sampled_configs
             sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
             out = sampling(0)
@@ -433,6 +434,7 @@ while eps <= (int(sys.argv[6])):
 
         if home_checker in prohibited_configs and neig_checker in prohibited_configs:
             stuck_count += 1
+            POWER_BUDGET = backup_POWER_BUDGET
             out = sampling(0)
             if out == 'stuck':
                 if stuck_count >= max_stuck_count:
@@ -441,6 +443,7 @@ while eps <= (int(sys.argv[6])):
             continue
         elif (*new_configs, power_budget) in prohibited_configs:
             stuck_count += 1
+            POWER_BUDGET = backup_POWER_BUDGET
             out = sampling(0)
             if out == 'stuck':
                 if stuck_count >= max_stuck_count:
@@ -470,20 +473,13 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        if (power_budget - measured_metrics[0]['power_cons']) > 600:
+        if measured_metrics[0]['throughput'] >= int(sys.argv[7]) and power_budget > measured_metrics[0]['power_cons']:
             POWER_BUDGET = backup_POWER_BUDGET
-
-        power_budget_min = [
-            power_budget
-            for power_budget in POWER_BUDGET
-            if power_budget > measured_metrics[0]['power_cons']
-        ]
-
-        if power_budget_min and measured_metrics[0]['throughput'] >= int(sys.argv[7]):
-            POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
-        
-        if not POWER_BUDGET:
-            POWER_BUDGET = backup_POWER_BUDGET
+            POWER_BUDGET = [
+                power_budget
+                for power_budget in POWER_BUDGET
+                if 0 < (power_budget - measured_metrics[0]['power_cons']) < 600
+            ]
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
@@ -524,6 +520,7 @@ while eps <= (int(sys.argv[6])):
         backup_sampled_configs = sampled_configs
         sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
         max_trends_record = 5
+        POWER_BUDGET = backup_POWER_BUDGET
         out = sampling(0)
         if out == 'stuck':
             if stuck_count >= max_stuck_count:

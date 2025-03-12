@@ -209,7 +209,7 @@ class MOPSO:
                     int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
                     int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
                 ]
-                if tuple(config) in prohibited_configs:
+                if tuple(*config, power_budget) in prohibited_configs:
                     print("Prohibited Configuration!")
                     continue
                 t2 = time.time()
@@ -225,7 +225,7 @@ class MOPSO:
 
                 if fitness == 1e-6:
                     print("Prohibited Configuration!")
-                    prohibited_configs.add(tuple(config))
+                    prohibited_configs.add(tuple(*config, power_budget))
 
                 if fitness > particle.best_fitness and metrics[0]["throughput"] > self.best_throughput:
                     particle.best_fitness = fitness
@@ -237,17 +237,13 @@ class MOPSO:
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
                 
-                if (power_budget - metrics[0]['power_cons']) > 600:
+                if metrics[0]['throughput'] >= int(sys.argv[7]) and power_budget > metrics[0]['power_cons']:
                     self.power_budget = self.backup_POWER_BUDGET
-
-                power_budget_min = [
-                    power_budget
-                    for power_budget in self.power_budget
-                    if power_budget > metrics[0]['power_cons']
-                ]
-
-                if power_budget_min and metrics[0]['throughput'] >= int(sys.argv[7]):
-                    self.power_budget = list(range(power_budget_min[0], max(self.power_budget), 500))
+                    self.power_budget = [
+                        power_budget
+                        for power_budget in self.power_budget
+                        if 0 < (power_budget - metrics[0]['power_cons']) < 600
+                    ]
 
                 # Save results to CSV
                 result_entry = {

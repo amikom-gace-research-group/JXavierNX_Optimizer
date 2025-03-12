@@ -33,6 +33,8 @@ POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
 best_throughput = -1e6
 
+prohibited_configs = set()
+
 # Hyperparameters for Bayesian Optimization
 n_calls = int(sys.argv[6])
 n_initial_points = 2
@@ -139,94 +141,96 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         power_budget = min(POWER_BUDGET)
     power_budget = POWER_BUDGET[episode_counter % len(POWER_BUDGET)]
 
-    t1 = time.time()
-    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
+    if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl, power_budget) not in prohibited_configs:
+        t1 = time.time()
+        measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
-    elapsed = round(time.time() - t1, 3)
-    time_got.append(elapsed)
+        elapsed = round(time.time() - t1, 3)
+        time_got.append(elapsed)
 
-    if measured_metrics:
-        if measured_metrics[0]["throughput"] > best_throughput:
-            best_throughput = measured_metrics[0]["throughput"]
-    
-        if not measured_metrics or measured_metrics == "No Device":
-            print("No device detected. Raising an exception to stop optimization.")
-            raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
+        if measured_metrics:
+            if measured_metrics[0]["throughput"] > best_throughput:
+                best_throughput = measured_metrics[0]["throughput"]
+        
+            if not measured_metrics or measured_metrics == "No Device":
+                print("No device detected. Raising an exception to stop optimization.")
+                raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
-        reward = calculate_reward(measured_metrics, power_budget)
-        print(f"Configuration reward: {reward}")
+            reward = calculate_reward(measured_metrics, power_budget)
+            print(f"Configuration reward: {reward}")
 
-        powers.append(measured_metrics[0]["power_cons"])
-        if episode_counter < 3:
-            max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
+            if reward == 1e6:
+                prohibited_configs.add((cpu_cores, cpu_freq, gpu_freq, mem_freq, cl, power_budget))
 
-            powmax_diff_list = [
-                power_budget - pwr
-                for power_budget in POWER_BUDGET
-                for pwr in powers
-                if power_budget > pwr and pwr == max_pwr
-            ]
+            powers.append(measured_metrics[0]["power_cons"])
+            if episode_counter < 3:
+                max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
 
-            power_diff_list = [
-                power_budget - pwr
-                for power_budget in POWER_BUDGET
-                for pwr in powers
-                if power_budget > pwr
-            ]
-
-            if power_diff_list and powmax_diff_list:
-                POWER_BUDGET = [
-                    power_budget
+                powmax_diff_list = [
+                    power_budget - pwr
                     for power_budget in POWER_BUDGET
-                    if any(
-                        (power_budget - pwr) == powmax_diff_list[0]
-                        for pwr in powers
-                    )
-                    or
-                    any(
-                        (power_budget - pwr) == power_diff_list[0]
-                        for pwr in powers
-                    )
+                    for pwr in powers
+                    if power_budget > pwr and pwr == max_pwr
                 ]
-                POWER_BUDGET = list(range(*POWER_BUDGET, 500))
-                if POWER_BUDGET:
-                    backup_POWER_BUDGET = POWER_BUDGET
+
+                power_diff_list = [
+                    power_budget - pwr
+                    for power_budget in POWER_BUDGET
+                    for pwr in powers
+                    if power_budget > pwr
+                ]
+
+                if power_diff_list and powmax_diff_list:
+                    POWER_BUDGET = [
+                        power_budget
+                        for power_budget in POWER_BUDGET
+                        if any(
+                            (power_budget - pwr) == powmax_diff_list[0]
+                            for pwr in powers
+                        )
+                        or
+                        any(
+                            (power_budget - pwr) == power_diff_list[0]
+                            for pwr in powers
+                        )
+                    ]
+                    POWER_BUDGET = list(range(*POWER_BUDGET, 500))
+                    if POWER_BUDGET:
+                        backup_POWER_BUDGET = POWER_BUDGET
+            else:
+                if measured_metrics[0]['throughput'] >= int(sys.argv[8]) and power_budget > measured_metrics[0]['power_cons']:
+                    POWER_BUDGET = backup_POWER_BUDGET
+                    POWER_BUDGET = [
+                        power_budget
+                        for power_budget in POWER_BUDGET
+                        if 0 < (power_budget - measured_metrics[0]['power_cons']) < 600
+                    ]
+        
+            configs = {
+            "reward": reward,
+            "api_time": api_time,
+            "episode" : episode_counter,
+            "infer_time": elapsed,
+            "cpu_cores": int(cpu_cores) + 1,
+            "cpu_freq": int(cpu_freq),
+            "gpu_freq": int(gpu_freq),
+            "mem_freq": int(mem_freq),
+            "cl": int(cl),
+            "power_budget": power_budget,
+            }
+            result = {**configs, **measured_metrics[0]}
+            save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+
+            last_rewards.append(reward)
+        
+            if reward == 1e6:
+                return reward  # Return penalty for invalid config
+
+            return -reward  # Minimize the negative reward to maximize reward
         else:
-            if (power_budget - measured_metrics[0]['power_cons']) > 600:
-                POWER_BUDGET = backup_POWER_BUDGET
-
-            power_budget_min = [
-                power_budget
-                for power_budget in POWER_BUDGET
-                if power_budget > measured_metrics[0]['power_cons']
-            ]
-
-            if power_budget_min and measured_metrics[0]['throughput'] >= int(sys.argv[8]):
-                POWER_BUDGET = list(range(power_budget_min[0], max(POWER_BUDGET), 500))
-    
-        configs = {
-        "reward": reward,
-	    "api_time": api_time,
-        "episode" : episode_counter,
-        "infer_time": elapsed,
-        "cpu_cores": int(cpu_cores) + 1,
-        "cpu_freq": int(cpu_freq),
-        "gpu_freq": int(gpu_freq),
-        "mem_freq": int(mem_freq),
-        "cl": int(cl),
-        "power_budget": power_budget,
-        }
-        result = {**configs, **measured_metrics[0]}
-        save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
-
-        last_rewards.append(reward)
-    
-        if reward == 1e6:
-            return reward  # Return penalty for invalid config
-
-        return -reward  # Minimize the negative reward to maximize reward
-    return 0
-
+            return 0
+    else:
+        return 1e6
 
 # Custom callback to track the optimization progress
 class PhaseTracker:
