@@ -545,6 +545,10 @@ while i<6:
     power_budget = min(POWER_BUDGET)
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
     if not rewards_dicts:
+        stuck_count += 1
+        if stuck_count >= max_stuck_count:
+            print("optimization searcher failed to search the best configuration :(")
+            break
         continue
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
