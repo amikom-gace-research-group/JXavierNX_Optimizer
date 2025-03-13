@@ -140,9 +140,8 @@ def save_csv(results, filename):
 
 def exec_trained(configs, episode):
     global POWER_BUDGET, backup_POWER_BUDGET
-    eps = 0
     up = False
-    while eps < 6:
+    while episode < 31:
         if not POWER_BUDGET:
             POWER_BUDGET = backup_POWER_BUDGET
         power_budget = min(POWER_BUDGET)
@@ -168,7 +167,7 @@ def exec_trained(configs, episode):
             prohibited_configs.add(tuple(configs))
         result_entry = {
             "api_time": api_time,
-            "episode": eps,
+            "episode": episode,
             'power_budget':power_budget,
             "iteration": 1,
             'reward': fitness,
@@ -185,6 +184,7 @@ def exec_trained(configs, episode):
             "mem_percent": metrics[0]["mem_percent"]
         }
         save_csv([result_entry], f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+        episode += 1
 
 # MOPSO Class
 class MOPSO:
