@@ -214,7 +214,7 @@ class MOPSO:
                     int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
                     int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
                 ]
-                if tuple(*config, power_budget) in prohibited_configs:
+                if (*config, power_budget) in prohibited_configs:
                     print("Prohibited Configuration!")
                     continue
                 t2 = time.time()
@@ -230,7 +230,7 @@ class MOPSO:
 
                 if fitness == 1e-6:
                     print("Prohibited Configuration!")
-                    prohibited_configs.add(tuple(*config, power_budget))
+                    prohibited_configs.add((*config, power_budget))
 
                 if fitness > particle.best_fitness and metrics[0]["throughput"] > self.best_throughput:
                     particle.best_fitness = fitness
