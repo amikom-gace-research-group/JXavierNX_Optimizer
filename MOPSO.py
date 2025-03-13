@@ -139,6 +139,7 @@ def save_csv(results, filename):
         writer.writerows(results)
 
 def exec_trained(configs, episode):
+    global POWER_BUDGET, backup_POWER_BUDGET
     for eps in range(episode, episode+6):
         if not POWER_BUDGET:
             POWER_BUDGET = backup_POWER_BUDGET
@@ -216,14 +217,13 @@ class MOPSO:
                 ]
                 if (*config, power_budget) in prohibited_configs:
                     print("Prohibited Configuration!")
-                    continue
+                    if self.best_config:
+                        config = self.best_config
                 t2 = time.time()
                 metrics, api_time = execute_config(*config)
                 elapsed_exec = round(time.time() - t2, 3)
                 time_got.append(elapsed_exec)
                 if not metrics or metrics == "No Device":
-                    continue
-                if metrics == "No Device":
                     break
 
                 fitness = calculate_fitness(metrics, power_budget)
@@ -315,7 +315,7 @@ class MOPSO:
                         self.backup_POWER_BUDGET = self.power_budget
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
-            if metrics == "No Device":
+            if not metrics or metrics == "No Device":
                 break
         save_csv(results, f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
         return self.best_config, self.global_best_fitness, self.power_budget, episode, self.backup_POWER_BUDGET
