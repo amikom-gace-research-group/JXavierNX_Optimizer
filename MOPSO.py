@@ -142,6 +142,7 @@ def exec_trained(configs, episode):
     global POWER_BUDGET, backup_POWER_BUDGET
     up = False
     while episode < 31:
+        episode += 1
         if not POWER_BUDGET:
             POWER_BUDGET = backup_POWER_BUDGET
         power_budget = min(POWER_BUDGET)
@@ -184,7 +185,6 @@ def exec_trained(configs, episode):
             "mem_percent": metrics[0]["mem_percent"]
         }
         save_csv([result_entry], f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
-        episode += 1
 
 # MOPSO Class
 class MOPSO:
