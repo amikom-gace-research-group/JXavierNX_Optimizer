@@ -140,14 +140,21 @@ def save_csv(results, filename):
 
 def exec_trained(configs, episode):
     global POWER_BUDGET, backup_POWER_BUDGET
-    for eps in range(episode, episode+6):
+    eps = 0
+    up = False
+    while eps < 6:
         if not POWER_BUDGET:
             POWER_BUDGET = backup_POWER_BUDGET
         power_budget = min(POWER_BUDGET)
         if tuple(configs) in prohibited_configs:
             POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
             print("Prohibited Configuration!")
-            continue
+            if up:
+                pass
+            else:
+                if not POWER_BUDGET:
+                    up = True
+                continue
         t1 = time.time()
         metrics, api_time = execute_config(*configs)
         elapsed_exec = round(time.time() - t1, 3)
