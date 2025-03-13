@@ -470,7 +470,7 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        if measured_metrics[0]['throughput'] >= int(sys.argv[7]) and power_budget > measured_metrics[0]['power_cons']:
+        if measured_metrics[0]['throughput'] >= int(sys.argv[7]):
             POWER_BUDGET = backup_POWER_BUDGET
             POWER_BUDGET = [
                 power_budget
@@ -538,6 +538,8 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
 i = 0
 #test 5 times
 while i<6:
+    if not POWER_BUDGET:
+        POWER_BUDGET = backup_POWER_BUDGET
     power_budget = min(POWER_BUDGET)
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
     if not rewards_dicts:

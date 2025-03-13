@@ -42,6 +42,8 @@ elif sys.argv[5] == 'jorin-nano':
 
 POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
+backup_POWER_BUDGET = POWER_BUDGET
+
 time_got = []
 prohibited_configs = set()
 
@@ -138,6 +140,8 @@ def save_csv(results, filename):
 
 def exec_trained(configs, episode):
     for eps in range(episode, episode+6):
+        if not POWER_BUDGET:
+            POWER_BUDGET = backup_POWER_BUDGET
         power_budget = min(POWER_BUDGET)
         if tuple(configs) in prohibited_configs:
             POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
@@ -238,7 +242,7 @@ class MOPSO:
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
                 
-                if metrics[0]['throughput'] >= int(sys.argv[7]) and power_budget > metrics[0]['power_cons']:
+                if metrics[0]['throughput'] >= int(sys.argv[7]):
                     self.power_budget = self.backup_POWER_BUDGET
                     self.power_budget = [
                         power_budget
@@ -314,7 +318,7 @@ class MOPSO:
             if metrics == "No Device":
                 break
         save_csv(results, f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
-        return self.best_config, self.global_best_fitness, self.power_budget, episode
+        return self.best_config, self.global_best_fitness, self.power_budget, episode, self.backup_POWER_BUDGET
 
 # Main Execution
 if __name__ == "__main__":
@@ -334,7 +338,7 @@ if __name__ == "__main__":
     )
     # Run the MOPSO algorithm
     t1 = time.time()
-    best_config, best_fitness, POWER_BUDGET, episode = mopso.optimize()
+    best_config, best_fitness, POWER_BUDGET, episode, backup_POWER_BUDGET = mopso.optimize()
     elapsed = round(((time.time() - sum(time_got)) - t1) * 1000, 3)
     exec_trained(best_config, episode)
     print(f"Best configuration found: {best_config} in {elapsed} ms")
