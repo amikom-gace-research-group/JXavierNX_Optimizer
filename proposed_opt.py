@@ -171,6 +171,8 @@ elif sys.argv[5] == 'jorin-nano':
 
 POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
+backup_POWER_BUDGET = POWER_BUDGET
+
 prohibited_configs = set()
 
 sampled_configs = []
@@ -374,8 +376,6 @@ if powmax_diff_list and power_diff_list:
     ]
     POWER_BUDGET = list(range(*POWER_BUDGET, 500))
 
-backup_POWER_BUDGET = POWER_BUDGET
-
 while eps <= (int(sys.argv[6])):
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
@@ -551,6 +551,7 @@ while i<6:
     if not rewards_dicts:
         POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         if up:
+            rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
             pass
         else:
             if not POWER_BUDGET:
