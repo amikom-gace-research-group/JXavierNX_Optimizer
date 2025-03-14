@@ -415,6 +415,7 @@ while eps <= (int(sys.argv[6])):
             continue
         elif count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             visited = True
+            stuck_count = 0
             max_stuck_count*=2
             max_trends_record *= 2
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
@@ -448,6 +449,7 @@ while eps <= (int(sys.argv[6])):
                     break
             continue
         elif not visited:
+            stuck_count = 0
             max_stuck_count*=2
         else:
             visited = False
@@ -539,6 +541,7 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
     yaml.dump(data, outfile, default_flow_style=False)
 
 i = 0
+up = False
 #test 5 times
 while i<6:
     if not POWER_BUDGET:
@@ -546,12 +549,13 @@ while i<6:
     power_budget = min(POWER_BUDGET)
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
     if not rewards_dicts:
-        stuck_count += 1
         POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
-        if stuck_count >= max_stuck_count:
-            print("optimization searcher failed to search the best configuration :(")
-            break
-        continue
+        if up:
+            pass
+        else:
+            if not POWER_BUDGET:
+                up = True
+            continue
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]
