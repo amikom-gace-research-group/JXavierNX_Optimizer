@@ -366,6 +366,7 @@ def sampling(condition):
                     for config in sampled_configs
                 )
             ]
+            POWER_BUDGET[-1] = POWER_BUDGET[-1]+500
             POWER_BUDGET = list(range(*POWER_BUDGET, 500))
 
         for i, ids in zip((0, -1), sampled_configs):
