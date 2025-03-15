@@ -407,7 +407,7 @@ while eps <= (int(sys.argv[6])):
             stuck_count += 1
             max_trends_record = 5
             backup_sampled_configs = sampled_configs
-            best_configs.append([d for d in sampled_configs if d.get("reward")  in sorted_rewards[0]])
+            best_configs.append([d for d in sampled_configs if d.get("reward") in sorted_rewards[0]][0])
             sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
             out = sampling(0)
             if out == 'stuck':
@@ -520,7 +520,7 @@ while eps <= (int(sys.argv[6])):
     else:
         stuck_count += 1
         backup_sampled_configs = sampled_configs
-        best_configs.append([d for d in sampled_configs if d.get("reward") not in sorted_rewards[0]])
+        best_configs.append([d for d in sampled_configs if d.get("reward") in sorted_rewards[0]][0])
         sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
         max_trends_record = 5
         out = sampling(0)
