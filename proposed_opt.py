@@ -272,17 +272,25 @@ def sampling(condition):
         lhs_samples = generate_lhs_samples()
         power_budget = random.choice(POWER_BUDGET)
         rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
-        items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
-        best_item = items[0]
-        best_idx = list(best_item.keys())[0]
-        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons' and k != 'power_budget'}
-        home_conf = tuple(home_dict.values())
-        configs = calculate_diversity(lhs_samples, home_conf)
-        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
-        if config in sampled_configs:
-            stuck_count += 1
-            return "stuck"
-        sampled_configs.append(config)
+        if not rewards_dicts:
+            configs = calculate_diversity(lhs_samples, random.choice(lhs_samples))
+            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
+            if config in sampled_configs:
+                stuck_count += 1
+                return "stuck"
+            sampled_configs.append(config)
+        else:
+            items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+            best_item = items[0]
+            best_idx = list(best_item.keys())[0]
+            home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons' and k != 'power_budget'}
+            home_conf = tuple(home_dict.values())
+            configs = calculate_diversity(lhs_samples, home_conf)
+            config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
+            if config in sampled_configs:
+                stuck_count += 1
+                return "stuck"
+            sampled_configs.append(config)
 
     for ids in sampled_configs:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
