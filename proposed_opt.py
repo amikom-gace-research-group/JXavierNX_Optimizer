@@ -551,11 +551,11 @@ while i<6:
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
     power_budget = min(POWER_BUDGET)
-    rewards_dicts = [{idx:best_configs['reward']} for idx, best_configs in enumerate(sampled_configs) if best_configs['power_budget'] == power_budget and best_configs['reward'] > 1]
+    rewards_dicts = [{idx:best_config['reward']} for idx, best_config in enumerate(best_configs) if best_config['power_budget'] == power_budget and best_config['reward'] > 1]
     if not rewards_dicts:
         POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         if up:
-            rewards_dicts = [{idx:best_configs['reward']} for idx, best_configs in enumerate(sampled_configs) if best_configs['power_budget'] == power_budget]
+            rewards_dicts = [{idx:best_config['reward']} for idx, best_config in enumerate(best_configs) if best_config['power_budget'] == power_budget]
             pass
         else:
             if not POWER_BUDGET:
