@@ -177,6 +177,8 @@ prohibited_configs = set()
 
 sampled_configs = []
 
+best_configs = []
+
 # Latin Hypercube Sampling to explore new states
 def lhs_sampling(num_samples, ranges):
     lhs_samples = lhs(len(ranges), samples=num_samples)
@@ -405,6 +407,7 @@ while eps <= (int(sys.argv[6])):
             stuck_count += 1
             max_trends_record = 5
             backup_sampled_configs = sampled_configs
+            best_configs.append([d for d in sampled_configs if d.get("reward")  in sorted_rewards[0]][0])
             sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
             out = sampling(0)
             if out == 'stuck':
@@ -517,6 +520,7 @@ while eps <= (int(sys.argv[6])):
     else:
         stuck_count += 1
         backup_sampled_configs = sampled_configs
+        best_configs.append([d for d in sampled_configs if d.get("reward") not in sorted_rewards[0]][0])
         sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[1:]]
         max_trends_record = 5
         out = sampling(0)
@@ -547,11 +551,11 @@ while i<6:
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
     power_budget = min(POWER_BUDGET)
-    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
+    rewards_dicts = [{idx:best_configs['reward']} for idx, best_configs in enumerate(sampled_configs) if best_configs['power_budget'] == power_budget and best_configs['reward'] > 1]
     if not rewards_dicts:
         POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         if up:
-            rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
+            rewards_dicts = [{idx:best_configs['reward']} for idx, best_configs in enumerate(sampled_configs) if best_configs['power_budget'] == power_budget]
             pass
         else:
             if not POWER_BUDGET:
