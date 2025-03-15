@@ -565,7 +565,7 @@ while i<6:
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
-    configs = tuple(sampled_configs[best_idx].values())
+    configs = tuple(best_configs[best_idx].values())
     cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = configs
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget)
 
@@ -591,7 +591,7 @@ while i<6:
 
     reward = calculate_reward(measured_metrics, power_budget)
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
-    sampled_configs[best_idx] = dict_new_configs
+    best_configs[best_idx] = dict_new_configs
 
     new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
     if reward < 1:
