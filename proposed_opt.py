@@ -65,9 +65,9 @@ def calculate_reward(measured_metrics, power_budget):
     throughput = measured_metrics[0]["throughput"]
     
     if power > power_budget or throughput < int(sys.argv[7]):
-        return -(power * 1e-6)
+        return -(power/throughput * 1e6)
     
-    return -(power * 1e6)
+    return -(power * 1e-6)
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf):
@@ -310,7 +310,7 @@ def sampling(condition):
         reward = calculate_reward(measured_metrics, ids["power_budget"])
         ids["reward"] = reward
 
-        if reward < 1:
+        if reward < -1:
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(ids_checker.values()))
 
@@ -501,7 +501,7 @@ while eps <= (int(sys.argv[6])):
             sampled_configs.append(dict_new_configs)
         
         new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-        if reward < 1:
+        if reward < -1:
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(new_checker.values()))
 
@@ -601,7 +601,7 @@ while i<6:
     sampled_configs[best_idx] = dict_new_configs
 
     new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-    if reward < 1:
+    if reward < -1:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(tuple(new_checker.values()))
 

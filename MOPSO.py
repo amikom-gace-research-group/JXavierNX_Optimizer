@@ -103,9 +103,9 @@ def calculate_fitness(measured_metrics, power_budget):
     throughput = measured_metrics[0]["throughput"]
     
     if power > power_budget or throughput < int(sys.argv[7]):
-        return -1e-6
+        return -1e6
     
-    return -(power * 1e6)
+    return -(power * 1e-6)
 
 class Particle:
     def __init__(self, problem_size):
