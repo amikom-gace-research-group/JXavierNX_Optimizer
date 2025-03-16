@@ -559,7 +559,7 @@ while i<6:
     if not rewards_dicts:
         POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         if up:
-            rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget]
+            rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
             pass
         else:
             if not POWER_BUDGET:
@@ -570,7 +570,10 @@ while i<6:
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = configs
+    if up:
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, power_budget, _, _ = configs
+    else:
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = configs
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget)
 
     if new_configs in prohibited_configs:
