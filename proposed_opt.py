@@ -65,9 +65,9 @@ def calculate_reward(measured_metrics, power_budget):
     throughput = measured_metrics[0]["throughput"]
     
     if power > power_budget or throughput < int(sys.argv[7]):
-        return (throughput / power) * 1e-6
+        return -(power * 1e-6)
     
-    return (throughput / power) * 1e6
+    return -(power * 1e6)
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf):

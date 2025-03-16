@@ -115,7 +115,7 @@ def calculate_reward(measured_metrics, power_budget):
     if power > power_budget or throughput < int(sys.argv[8]):
         return 1e6
     
-    return throughput / power
+    return power * 1e-6
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -221,11 +221,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
             save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
             last_rewards.append(reward)
-        
-            if reward == 1e6:
-                return reward  # Return penalty for invalid config
 
-            return -reward  # Minimize the negative reward to maximize reward
+            return reward  # Minimize the negative reward to maximize reward
         else:
             return 0
     else:
