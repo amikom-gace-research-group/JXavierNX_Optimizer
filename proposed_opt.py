@@ -390,11 +390,11 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 while eps <= (int(sys.argv[6])):
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
-    power_budget = POWER_BUDGET[eps % len(POWER_BUDGET)]
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
+        power_budget = POWER_BUDGET[(eps-3) % len(POWER_BUDGET)]
         if len(rewards) >= max_trends_record:
             th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
