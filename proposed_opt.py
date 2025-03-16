@@ -461,7 +461,6 @@ while eps <= (int(sys.argv[6])):
             continue
         elif not visited:
             stuck_count = 0
-            max_stuck_count*=2
         else:
             visited = False
         
