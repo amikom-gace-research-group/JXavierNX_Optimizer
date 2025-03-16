@@ -553,6 +553,7 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
 
 i = 0
 up = False
+POWER_BUDGET = backup_POWER_BUDGET
 #test 5 times
 while i<6:
     if not POWER_BUDGET:

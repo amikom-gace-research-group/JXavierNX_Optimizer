@@ -302,6 +302,7 @@ try:
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
+    POWER_BUDGET = backup_POWER_BUDGET
     for _ in range(5):
         objective(tuple(res.x))
 except RuntimeError as e:
