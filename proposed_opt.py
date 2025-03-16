@@ -537,9 +537,6 @@ while eps <= (int(sys.argv[6])):
                 break
         continue
 
-if not POWER_BUDGET:
-    POWER_BUDGET = backup_POWER_BUDGET
-
 data = dict(
     th_conf = th_corr_conf_list,
     pwr_conf = pwr_corr_conf_list,
