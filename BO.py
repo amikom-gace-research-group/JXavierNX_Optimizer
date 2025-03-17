@@ -138,8 +138,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
     if episode_counter >= 25:
-        if episode_counter == 25:
-            POWER_BUDGET = backup_POWER_BUDGET
         power_budget = min(POWER_BUDGET)
     else:
         power_budget = POWER_BUDGET[episode_counter % len(POWER_BUDGET)]
