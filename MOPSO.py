@@ -141,7 +141,6 @@ def save_csv(results, filename):
 def exec_trained(configs, episode):
     global POWER_BUDGET, backup_POWER_BUDGET
     up = False
-    POWER_BUDGET = backup_POWER_BUDGET
     while episode < 30:
         episode += 1
         if not POWER_BUDGET:
