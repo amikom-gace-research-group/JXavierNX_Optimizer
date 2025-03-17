@@ -318,6 +318,7 @@ class MOPSO:
                             for config in results
                         )
                     ]
+                    self.power_budget[-1] = self.power_budget[-1]+500
                     self.power_budget = list(range(*self.power_budget, 500))
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
