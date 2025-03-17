@@ -195,7 +195,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                             for pwr in powers
                         )
                     ]
-                    POWER_BUDGET[0] = POWER_BUDGET[0]+500
+                    POWER_BUDGET[-1] = POWER_BUDGET[-1]+500
                     POWER_BUDGET = list(range(*POWER_BUDGET, 500))
             else:
                 if measured_metrics[0]['throughput'] > int(sys.argv[8]):
