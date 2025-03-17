@@ -551,6 +551,7 @@ i = 0
 up = False
 POWER_BUDGET = backup_POWER_BUDGET
 #test 5 times
+u = 0
 while i<6:
     if not POWER_BUDGET:
         POWER_BUDGET = backup_POWER_BUDGET
@@ -563,7 +564,9 @@ while i<6:
             pass
         else:
             if not POWER_BUDGET:
-                up = True
+                u+=1
+                if u==len(backup_POWER_BUDGET):
+                    up = True
             continue
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
