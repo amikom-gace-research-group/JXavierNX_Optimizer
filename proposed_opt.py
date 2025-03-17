@@ -443,15 +443,7 @@ while eps <= (int(sys.argv[6])):
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
-        if home_checker in prohibited_configs and neig_checker in prohibited_configs:
-            stuck_count += 1
-            out = sampling(0)
-            if out == 'stuck':
-                if stuck_count >= max_stuck_count:
-                    print("Home and neighbor has visited the prohibited config after sampling again, early stopping executed")
-                    break
-            continue
-        elif (*new_configs, power_budget) in prohibited_configs:
+        if (*new_configs, power_budget) in prohibited_configs:
             stuck_count += 1
             out = sampling(0)
             if out == 'stuck':
