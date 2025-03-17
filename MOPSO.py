@@ -250,7 +250,7 @@ class MOPSO:
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
                 
-                if metrics[0]['throughput'] >= int(sys.argv[7]):
+                if metrics[0]['throughput'] > int(sys.argv[7]):
                     self.power_budget = self.backup_POWER_BUDGET
                     self.power_budget = [
                         power_budget

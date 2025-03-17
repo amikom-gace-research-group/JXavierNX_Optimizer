@@ -482,7 +482,7 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        if measured_metrics[0]['throughput'] >= int(sys.argv[7]):
+        if measured_metrics[0]['throughput'] > int(sys.argv[7]):
             POWER_BUDGET = backup_POWER_BUDGET
             POWER_BUDGET = [
                 power_budget
