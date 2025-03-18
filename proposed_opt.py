@@ -382,7 +382,7 @@ while eps <= (int(sys.argv[6])):
         home_conf = tuple(home_dict.values())
         neig_dict = {k: v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         neig_conf = tuple(neig_dict.values())
-        new_configs = generate_neighbor(home_conf[:-1], neig_conf[:-1], th_corr_conf_list, pwr_corr_conf_list, th)
+        new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th)
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
