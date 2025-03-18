@@ -274,7 +274,7 @@ def sampling(condition):
         sampled_configs.append(config)
 
     for ids in sampled_configs:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = tuple(ids.values())
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = tuple(ids.values())
         ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         
         if tuple(ids_checker.values()) in prohibited_configs or ids["power_cons"] != -1:
