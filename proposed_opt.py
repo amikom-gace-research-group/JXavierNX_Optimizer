@@ -484,16 +484,7 @@ up = False
 #test 5 times
 u = 0
 while i<6:
-    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] > 1]
-    if not rewards_dicts:
-        if up:
-            rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
-            pass
-        else:
-            u+=1
-            if u==5:
-                up = True
-            continue
+    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] > -1]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     best_item = items[0]

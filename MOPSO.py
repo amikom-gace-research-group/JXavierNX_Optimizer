@@ -139,7 +139,7 @@ def exec_trained(configs, episode):
         if metrics == "No Device":
             break
         fitness = calculate_fitness(metrics)
-        if fitness == 1e-6:
+        if fitness == -1e6:
             print("Prohibited Configuration!")
             prohibited_configs.add(tuple(configs))
         result_entry = {
@@ -205,7 +205,7 @@ class MOPSO:
 
                 fitness = calculate_fitness(metrics)
 
-                if fitness == 1e-6:
+                if fitness == -1e6:
                     print("Prohibited Configuration!")
                     prohibited_configs.add(tuple(config))
 
