@@ -60,11 +60,11 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics, power_budget):
+def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget or throughput < int(sys.argv[7]):
+    if throughput < int(sys.argv[7]):
         return -(power/throughput * 1e6)
     
     return -(power * 1e-6)
@@ -89,7 +89,7 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'power_budget', 'episode', 'xaviernx_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -151,8 +151,6 @@ if sys.argv[5] == 'jxavier':
         (1500, 1867),
         (1, 4)
     ]
-    low_pwr = 4000
-    high_pwr = 20500
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1511)
@@ -166,12 +164,6 @@ elif sys.argv[5] == 'jorin-nano':
         (2133, 2134),
         (1, 4)
     ]
-    low_pwr = 4700
-    high_pwr = 15500
-
-POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
-
-backup_POWER_BUDGET = POWER_BUDGET
 
 prohibited_configs = set()
 
@@ -258,25 +250,24 @@ stuck_count = 0
 max_stuck_count = 5
 
 def sampling(condition):
-    global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count, POWER_BUDGET
+    global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count
     if condition:
-        for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, id_pwr_budget in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE), 0), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE), -1)]:
-            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "power_budget":POWER_BUDGET[id_pwr_budget], "throughput":0, 'power_cons':-1}
+        for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE)), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE))]:
+            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "throughput":0, 'power_cons':-1}
             if config in sampled_configs:
                 stuck_count += 1
                 return "stuck"
             sampled_configs.append(config)
     else: # random hypercube
         lhs_samples = generate_lhs_samples()
-        power_budget = random.choice(POWER_BUDGET)
         rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
         best_item = items[0]
         best_idx = list(best_item.keys())[0]
-        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons' and k != 'power_budget'}
+        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         home_conf = tuple(home_dict.values())
         configs = calculate_diversity(lhs_samples, home_conf)
-        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "power_budget":power_budget, "throughput":0, 'power_cons':-1}
+        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
         if config in sampled_configs:
             stuck_count += 1
             return "stuck"
@@ -307,7 +298,7 @@ def sampling(condition):
         ids["throughput"] = measured_metrics[0]["throughput"]
         ids["power_cons"] = measured_metrics[0]["power_cons"]
 
-        reward = calculate_reward(measured_metrics, ids["power_budget"])
+        reward = calculate_reward(measured_metrics)
         ids["reward"] = reward
 
         if reward < -1:
@@ -318,7 +309,6 @@ def sampling(condition):
             "api_time": api_time,
             "reward": reward,
             "phase":"exploration",
-            "power_budget": ids["power_budget"],
             "episode": eps,
             "xaviernx_time_elapsed": elapsed_exec,
             "cpu_cores": cpu_cores+1,
@@ -335,52 +325,6 @@ def sampling(condition):
         print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
         eps += 1
     
-    if condition:
-        max_pwr = max((sam['power_cons'] for sam in sampled_configs if sam['power_cons'] != -1), default=0)
-
-        powmax_diff_list = [
-            power_budget - config['power_cons']
-            for power_budget in POWER_BUDGET
-            for config in sampled_configs
-            if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
-        ]
-
-        power_diff_list = [
-            power_budget - config['power_cons']
-            for power_budget in POWER_BUDGET
-            for config in sampled_configs
-            if power_budget > config['power_cons']
-        ]
-
-        if powmax_diff_list and power_diff_list:
-            POWER_BUDGET = [
-                power_budget
-                for power_budget in POWER_BUDGET
-                if any(
-                    (power_budget - config['power_cons']) == powmax_diff_list[0]
-                    for config in sampled_configs
-                )
-                or
-                any(
-                    (power_budget - config['power_cons']) == power_diff_list[0]
-                    for config in sampled_configs
-                )
-            ]
-            POWER_BUDGET[-1] = POWER_BUDGET[-1]+500
-            POWER_BUDGET = list(range(*POWER_BUDGET, 500))
-
-        for i, ids in zip((0, -1), sampled_configs):
-            ids["power_budget"] = POWER_BUDGET[i]
-
-            th = ids["throughput"]
-            pwr = ids["power_cons"]
-            measured_metrics = [{"throughput":th, "power_cons":pwr}]
-
-            reward = calculate_reward(measured_metrics, ids["power_budget"])
-
-            ids["reward"] = reward
-    
-
 sampling(1)
 max_trends_record = 5
 visited = False
@@ -388,15 +332,12 @@ th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
 while eps <= (int(sys.argv[6])):
-    if not POWER_BUDGET:
-        POWER_BUDGET = backup_POWER_BUDGET
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
     th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
-        power_budget = round((POWER_BUDGET[0] + POWER_BUDGET[-1])/2)
         if len(rewards) >= max_trends_record:
             cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -445,7 +386,7 @@ while eps <= (int(sys.argv[6])):
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
-        if (*new_configs, power_budget) in prohibited_configs:
+        if new_configs in prohibited_configs:
             stuck_count += 1
             out = sampling(0)
             if out == 'stuck':
@@ -476,25 +417,18 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        if measured_metrics[0]['throughput'] > int(sys.argv[7]):
-            POWER_BUDGET = backup_POWER_BUDGET
-            POWER_BUDGET = [
-                power_budget
-                for power_budget in POWER_BUDGET
-                if 0 < (power_budget - measured_metrics[0]['power_cons']) < 600
-            ]
-        elif cl != max(CL_RANGE):
+        if measured_metrics[0]['throughput'] < int(sys.argv[7]) and cl != max(CL_RANGE):
             for i in range(4):
                 th_corr_conf_list[i] = 0
                 pwr_corr_conf_list[i] = 0
             th_corr_conf_list[-1] = 1
             pwr_corr_conf_list[-1] = 1
         
-        reward = calculate_reward(measured_metrics, power_budget)
-        dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
-        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward'], sampled_config['power_budget']) for sampled_config in sampled_configs]
-        if new_configs in av_configs[:-2] and av_configs[-1] == power_budget:
-            target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-2]), None)
+        reward = calculate_reward(measured_metrics)
+        dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
+        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
+        if new_configs in av_configs[:-1]:
+            target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-1]), None)
             target_idx = list(target_item.keys())[0]
             sampled_configs[target_idx] = dict_new_configs
         else:
@@ -509,7 +443,6 @@ while eps <= (int(sys.argv[6])):
             "api_time": api_time,
             "reward": reward,
             "phase":"exploitation",
-            "power_budget": power_budget,
             "episode": eps,
             "xaviernx_time_elapsed": elapsed_exec,
             "cpu_cores": cpu_cores+1,
@@ -540,8 +473,6 @@ while eps <= (int(sys.argv[6])):
 data = dict(
     th_conf = th_corr_conf_list,
     pwr_conf = pwr_corr_conf_list,
-    high_pwr = max(POWER_BUDGET),
-    low_pwr = min(POWER_BUDGET)
 )
 
 with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
@@ -549,24 +480,19 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
 
 i = 0
 up = False
-POWER_BUDGET = backup_POWER_BUDGET
+
 #test 5 times
 u = 0
 while i<6:
-    if not POWER_BUDGET:
-        POWER_BUDGET = backup_POWER_BUDGET
-    power_budget = min(POWER_BUDGET)
-    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['power_budget'] == power_budget and sampled_config['reward'] > 1]
+    rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] > 1]
     if not rewards_dicts:
-        POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         if up:
             rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
             pass
         else:
-            if not POWER_BUDGET:
-                u+=1
-                if u==len(backup_POWER_BUDGET):
-                    up = True
+            u+=1
+            if u==5:
+                up = True
             continue
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
@@ -574,10 +500,10 @@ while i<6:
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
     if up:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, power_budget, _, _ = configs
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
     else:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _, _ = configs
-    new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, power_budget)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
+    new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     if new_configs in prohibited_configs:
         print("optimization searcher failed to search the best configuration :(")
@@ -599,8 +525,8 @@ while i<6:
         print("No Device/No Inference Runtime")
         break
 
-    reward = calculate_reward(measured_metrics, power_budget)
-    dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
+    reward = calculate_reward(measured_metrics)
+    dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
     sampled_configs[best_idx] = dict_new_configs
 
     new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
@@ -612,7 +538,6 @@ while i<6:
         "api_time": api_time,
         "reward": reward,
         "phase":"post-training",
-        "power_budget": power_budget,
         "episode": eps,
         "xaviernx_time_elapsed": elapsed_exec,
         "cpu_cores": cpu_cores+1,

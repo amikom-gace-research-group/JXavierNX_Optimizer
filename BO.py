@@ -18,18 +18,12 @@ if sys.argv[5] == 'jxavier':
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
-    low_pwr = 4000
-    high_pwr = 20500
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1511)
     GPU_FREQ_RANGE = range(306, 625)
     MEMORY_FREQ_RANGE = [2133]
     CL_RANGE = range(1, 4)
-    low_pwr = 4700
-    high_pwr = 15500
-
-POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
 
 best_throughput = -1e6
 
@@ -108,11 +102,11 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 
 # Reward function based on power and throughput metrics
 # Efficient reward calculation
-def calculate_reward(measured_metrics, power_budget):
+def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget or throughput < int(sys.argv[8]):
+    if throughput < int(sys.argv[8]):
         return 1e6
     
     return power * 1e-6
@@ -120,29 +114,22 @@ def calculate_reward(measured_metrics, power_budget):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'power_budget', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'episode', 'infer_time', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
             writer.writerow(d)
 
 powers = []
-backup_POWER_BUDGET = POWER_BUDGET
 
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter, best_throughput, powers, backup_POWER_BUDGET, POWER_BUDGET
+    global episode_counter, best_throughput, powers
     episode_counter += 1
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
-    if not POWER_BUDGET:
-        POWER_BUDGET = backup_POWER_BUDGET
-    if episode_counter >= 25:
-        power_budget = min(POWER_BUDGET)
-    else:
-        power_budget = round((POWER_BUDGET[0] + POWER_BUDGET[-1])/2)
 
-    if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl, power_budget) not in prohibited_configs:
+    if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl) not in prohibited_configs:
         t1 = time.time()
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
@@ -157,54 +144,13 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                 print("No device detected. Raising an exception to stop optimization.")
                 raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
-            reward = calculate_reward(measured_metrics, power_budget)
+            reward = calculate_reward(measured_metrics)
             print(f"Configuration reward: {reward}")
 
             if reward == 1e6:
-                prohibited_configs.add((cpu_cores, cpu_freq, gpu_freq, mem_freq, cl, power_budget))
+                prohibited_configs.add((cpu_cores, cpu_freq, gpu_freq, mem_freq, cl))
 
             powers.append(measured_metrics[0]["power_cons"])
-            if episode_counter < 3:
-                max_pwr = max((pwr for pwr in powers if pwr != -1), default=0)
-
-                powmax_diff_list = [
-                    power_budget - pwr
-                    for power_budget in POWER_BUDGET
-                    for pwr in powers
-                    if power_budget > pwr and pwr == max_pwr
-                ]
-
-                power_diff_list = [
-                    power_budget - pwr
-                    for power_budget in POWER_BUDGET
-                    for pwr in powers
-                    if power_budget > pwr
-                ]
-
-                if power_diff_list and powmax_diff_list:
-                    POWER_BUDGET = [
-                        power_budget
-                        for power_budget in POWER_BUDGET
-                        if any(
-                            (power_budget - pwr) == powmax_diff_list[0]
-                            for pwr in powers
-                        )
-                        or
-                        any(
-                            (power_budget - pwr) == power_diff_list[0]
-                            for pwr in powers
-                        )
-                    ]
-                    POWER_BUDGET[-1] = POWER_BUDGET[-1]+500
-                    POWER_BUDGET = list(range(*POWER_BUDGET, 500))
-            else:
-                if measured_metrics[0]['throughput'] > int(sys.argv[8]):
-                    POWER_BUDGET = backup_POWER_BUDGET
-                    POWER_BUDGET = [
-                        power_budget
-                        for power_budget in POWER_BUDGET
-                        if 0 < (power_budget - measured_metrics[0]['power_cons']) < 600
-                    ]
         
             configs = {
             "reward": reward,
@@ -216,7 +162,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
             "gpu_freq": int(gpu_freq),
             "mem_freq": int(mem_freq),
             "cl": int(cl),
-            "power_budget": power_budget,
             }
             result = {**configs, **measured_metrics[0]}
             save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
@@ -227,8 +172,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
         else:
             return 0
     else:
-        if episode_counter >= 25:
-            POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
         return 1e6
 
 # Custom callback to track the optimization progress
@@ -300,7 +243,6 @@ try:
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
-    POWER_BUDGET = backup_POWER_BUDGET
     for _ in range(5):
         objective(tuple(res.x))
 except RuntimeError as e:

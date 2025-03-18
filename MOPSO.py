@@ -1,6 +1,5 @@
 import numpy as np
 import requests
-import random
 import csv
 import time
 import sys
@@ -32,17 +31,6 @@ def set_device_ranges(device_type):
     }
 
     return sampled_configs
-
-if sys.argv[5] == 'jxavier':
-    low_pwr = 4000
-    high_pwr = 20500
-elif sys.argv[5] == 'jorin-nano':
-    low_pwr = 4700
-    high_pwr = 15500
-
-POWER_BUDGET = [power_budget for power_budget in range(low_pwr, high_pwr, 500)]
-
-backup_POWER_BUDGET = POWER_BUDGET
 
 time_got = []
 prohibited_configs = set()
@@ -98,11 +86,11 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Reward function based on power and throughput metrics
-def calculate_fitness(measured_metrics, power_budget):
+def calculate_fitness(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > power_budget or throughput < int(sys.argv[7]):
+    if throughput < int(sys.argv[7]):
         return -1e6
     
     return -(power * 1e-6)
@@ -133,28 +121,16 @@ class Particle:
 def save_csv(results, filename):
     # Write the results to a CSV file
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time', 'episode', 'power_budget', 'iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time', 'episode', 'iteration', 'reward', 'xavier_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:  # Check if file is empty
             writer.writeheader()  # Write header only once
         writer.writerows(results)
 
 def exec_trained(configs, episode):
-    global POWER_BUDGET, backup_POWER_BUDGET
-    up = False
     while episode < 30:
         episode += 1
-        if not POWER_BUDGET:
-            POWER_BUDGET = backup_POWER_BUDGET
-        power_budget = min(POWER_BUDGET)
         if tuple(configs) in prohibited_configs:
-            POWER_BUDGET = [power_budget for power_budget in POWER_BUDGET if power_budget != min(POWER_BUDGET)]
             print("Prohibited Configuration!")
-            if up:
-                pass
-            else:
-                if not POWER_BUDGET:
-                    up = True
-                continue
         t1 = time.time()
         metrics, api_time = execute_config(*configs)
         elapsed_exec = round(time.time() - t1, 3)
@@ -162,14 +138,13 @@ def exec_trained(configs, episode):
             continue
         if metrics == "No Device":
             break
-        fitness = calculate_fitness(metrics, power_budget)
+        fitness = calculate_fitness(metrics)
         if fitness == 1e-6:
             print("Prohibited Configuration!")
             prohibited_configs.add(tuple(configs))
         result_entry = {
             "api_time": api_time,
             "episode": episode,
-            'power_budget':power_budget,
             "iteration": 1,
             'reward': fitness,
             'xavier_time_elapsed': elapsed_exec,
@@ -188,7 +163,7 @@ def exec_trained(configs, episode):
 
 # MOPSO Class
 class MOPSO:
-    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold, config_ranges, api_url, auth_header, power_budget):
+    def __init__(self, swarm_size, problem_size, bounds, max_iter, saturation_threshold, config_ranges, api_url, auth_header):
         self.swarm_size = swarm_size
         self.problem_size = problem_size
         self.bounds = bounds
@@ -197,13 +172,11 @@ class MOPSO:
         self.config_ranges = config_ranges
         self.api_url = api_url
         self.auth_header = auth_header
-        self.power_budget = power_budget
         self.swarm = [Particle(problem_size) for _ in range(swarm_size)]
         self.global_best_position = np.zeros(problem_size)
         self.global_best_fitness = -1
         self.best_config = None
         self.best_throughput = -float('inf')
-        self.backup_POWER_BUDGET = power_budget
 
     def optimize(self):
         results = []
@@ -211,9 +184,6 @@ class MOPSO:
         for iteration in range(self.max_iter):
             best_fitness_this_iter = -1
             for particle in self.swarm:
-                if not self.power_budget:
-                    self.power_budget = self.backup_POWER_BUDGET
-                power_budget = round((self.power_budget[0]+self.power_budget[-1])/2)
                 episode += 1
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),
@@ -222,7 +192,7 @@ class MOPSO:
                     int(particle.position[3] * (self.config_ranges["MEMORY_FREQ_RANGE"][-1] - self.config_ranges["MEMORY_FREQ_RANGE"][0]) + self.config_ranges["MEMORY_FREQ_RANGE"][0]),
                     int(particle.position[4] * (self.config_ranges["CL_RANGE"][-1] - self.config_ranges["CL_RANGE"][0]) + self.config_ranges["CL_RANGE"][0])
                 ]
-                if (*config, power_budget) in prohibited_configs:
+                if tuple(config) in prohibited_configs:
                     print("Prohibited Configuration!")
                     if self.best_config:
                         config = self.best_config
@@ -233,11 +203,11 @@ class MOPSO:
                 if not metrics or metrics == "No Device":
                     break
 
-                fitness = calculate_fitness(metrics, power_budget)
+                fitness = calculate_fitness(metrics)
 
                 if fitness == 1e-6:
                     print("Prohibited Configuration!")
-                    prohibited_configs.add((*config, power_budget))
+                    prohibited_configs.add(tuple(config))
 
                 if fitness > particle.best_fitness and metrics[0]["throughput"] > self.best_throughput:
                     particle.best_fitness = fitness
@@ -248,20 +218,11 @@ class MOPSO:
                     self.best_config = config
                     self.global_best_fitness = fitness
                     self.global_best_position = np.copy(particle.position)
-                
-                if metrics[0]['throughput'] > int(sys.argv[7]):
-                    self.power_budget = self.backup_POWER_BUDGET
-                    self.power_budget = [
-                        power_budget
-                        for power_budget in self.power_budget
-                        if 0 < (power_budget - metrics[0]['power_cons']) < 600
-                    ]
 
                 # Save results to CSV
                 result_entry = {
                     "api_time": api_time,
                     "episode": episode,
-                    "power_budget":power_budget,
                     "iteration": iteration,
                     'reward': fitness,
                     'xavier_time_elapsed': elapsed_exec,
@@ -285,46 +246,12 @@ class MOPSO:
             for particle in self.swarm:
                 particle.update_velocity(self.global_best_position)
                 particle.update_position(self.bounds)
-            
-            if episode < len(self.swarm)+1:
-                max_pwr = max((sam['power_cons'] for sam in results if sam['power_cons'] != -1), default=0)
-
-                powmax_diff_list = [
-                    power_budget - config['power_cons']
-                    for power_budget in self.power_budget
-                    for config in results
-                    if power_budget > config['power_cons'] and config['power_cons'] == max_pwr
-                ]
-
-                power_diff_list = [
-                    power_budget - config['power_cons']
-                    for power_budget in self.power_budget
-                    for config in results
-                    if power_budget > config['power_cons']
-                ]
-
-                if power_diff_list and powmax_diff_list:
-                    self.power_budget = [
-                        power_budget
-                        for power_budget in self.power_budget
-                        if any(
-                            (power_budget - config['power_cons']) == powmax_diff_list[0]
-                            for config in results
-                        )
-                        or
-                        any(
-                            (power_budget - config['power_cons']) == power_diff_list[0]
-                            for config in results
-                        )
-                    ]
-                    self.power_budget[-1] = self.power_budget[-1]+500
-                    self.power_budget = list(range(*self.power_budget, 500))
 
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if not metrics or metrics == "No Device":
                 break
         save_csv(results, f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
-        return self.best_config, self.global_best_fitness, self.power_budget, episode, self.backup_POWER_BUDGET
+        return self.best_config, self.global_best_fitness, episode
 
 # Main Execution
 if __name__ == "__main__":
@@ -340,11 +267,10 @@ if __name__ == "__main__":
         config_ranges=device_ranges,
         api_url=sys.argv[1],
         auth_header=sys.argv[2],
-        power_budget=POWER_BUDGET,
     )
     # Run the MOPSO algorithm
     t1 = time.time()
-    best_config, best_fitness, POWER_BUDGET, episode, backup_POWER_BUDGET = mopso.optimize()
+    best_config, best_fitness, episode= mopso.optimize()
     elapsed = round(((time.time() - sum(time_got)) - t1) * 1000, 3)
     exec_trained(best_config, episode)
     print(f"Best configuration found: {best_config} in {elapsed} ms")
