@@ -70,14 +70,14 @@ def calculate_reward(measured_metrics, power_budget):
     return -(power * 1e-6)
 
 # exploitation
-def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf):
+def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf, th):
     new_neighbors = []
     for exist_config, neighbor_config, range, th_conf, pwr_conf in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE), th_corr_conf, pwr_corr_conf):
         if th_conf > pwr_conf:
             corr_conf = th_conf
         else:
             corr_conf = pwr_conf
-        if exist_config > neighbor_config:
+        if exist_config > neighbor_config or th[-1] > int(sys.argv[7]):
             new_neighbor = minmax(round(exist_config - ((exist_config - neighbor_config) / 2) * corr_conf), range) 
         elif exist_config < neighbor_config:
             new_neighbor = minmax(round(exist_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
@@ -393,25 +393,27 @@ while eps <= (int(sys.argv[6])):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
+    th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+    pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
-        power_budget = POWER_BUDGET[(eps-3) % len(POWER_BUDGET)]
+        power_budget = round((POWER_BUDGET[0] + POWER_BUDGET[-1])/2)
         if len(rewards) >= max_trends_record:
-            th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
-            pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
-            _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
-            for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
-                a = pearson_correlation(x, th)
-                b = pearson_correlation(x, pwr)
-                if not np.isnan(a) or not np.isnan(b):
-                    th_corr_conf_list[i] = a
-                    pwr_corr_conf_list[i] = b
-                else:
-                    th_corr_conf_list[i] = 0
-                    pwr_corr_conf_list[i] = 0
+            if th[-1] > int(sys.argv[7]):
+                for i, x in enumerate([cores, cpus, gpus, mems]):
+                    a = pearson_correlation(x, th)
+                    b = pearson_correlation(x, pwr)
+                    if not np.isnan(a) or not np.isnan(b):
+                        th_corr_conf_list[i] = a
+                        pwr_corr_conf_list[i] = b
+                    else:
+                        th_corr_conf_list[i] = 0
+                        pwr_corr_conf_list[i] = 0
+                th_corr_conf_list[-1] = 0
+                pwr_corr_conf_list[-1] = 0
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
@@ -439,7 +441,7 @@ while eps <= (int(sys.argv[6])):
         home_conf = tuple(home_dict.values())
         neig_dict = {k: v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         neig_conf = tuple(neig_dict.values())
-        new_configs = generate_neighbor(home_conf[:-1], neig_conf[:-1], th_corr_conf_list, pwr_corr_conf_list)
+        new_configs = generate_neighbor(home_conf[:-1], neig_conf[:-1], th_corr_conf_list, pwr_corr_conf_list, th)
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
@@ -481,6 +483,12 @@ while eps <= (int(sys.argv[6])):
                 for power_budget in POWER_BUDGET
                 if 0 < (power_budget - measured_metrics[0]['power_cons']) < 600
             ]
+        elif cl != max(CL_RANGE):
+            for i in range(4):
+                th_corr_conf_list[i] = 0
+                pwr_corr_conf_list[i] = 0
+            th_corr_conf_list[-1] = 1
+            pwr_corr_conf_list[-1] = 1
         
         reward = calculate_reward(measured_metrics, power_budget)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "power_budget": power_budget, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}

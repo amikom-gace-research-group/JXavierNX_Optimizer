@@ -213,7 +213,7 @@ class MOPSO:
             for particle in self.swarm:
                 if not self.power_budget:
                     self.power_budget = self.backup_POWER_BUDGET
-                power_budget = self.power_budget[episode % len(self.power_budget)]
+                power_budget = round((self.power_budget[0]+self.power_budget[-1])/2)
                 episode += 1
                 config = [
                     int(particle.position[0] * (self.config_ranges["CPU_CORES_RANGE"][-1] - self.config_ranges["CPU_CORES_RANGE"][0]) + self.config_ranges["CPU_CORES_RANGE"][0]),

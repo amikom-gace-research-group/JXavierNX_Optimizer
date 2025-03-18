@@ -140,7 +140,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     if episode_counter >= 25:
         power_budget = min(POWER_BUDGET)
     else:
-        power_budget = POWER_BUDGET[episode_counter % len(POWER_BUDGET)]
+        power_budget = round((POWER_BUDGET[0] + POWER_BUDGET[-1])/2)
 
     if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl, power_budget) not in prohibited_configs:
         t1 = time.time()
