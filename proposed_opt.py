@@ -353,8 +353,6 @@ while eps <= (int(sys.argv[6])):
                     else:
                         th_corr_conf_list[i] = 0
                         pwr_corr_conf_list[i] = 0
-                th_corr_conf_list[-1] = 0
-                pwr_corr_conf_list[-1] = 0
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
             stuck_count += 1
             max_trends_record = 5
