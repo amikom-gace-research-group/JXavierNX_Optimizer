@@ -4,6 +4,7 @@ import time
 import os
 import csv
 import requests
+import math
 from pyDOE import lhs
 
 eps = 1
@@ -76,9 +77,9 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
         else:
             corr_conf = pwr_conf
         if th[-1] > int(sys.argv[7]):
-            new_neighbor = minmax(round(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
+            new_neighbor = minmax(math.ceil(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
         else:
-            new_neighbor = minmax(round(neighbor_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
+            new_neighbor = minmax(math.ceil(neighbor_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
         new_neighbors.append(new_neighbor)
     return tuple(new_neighbors)
 
