@@ -326,6 +326,8 @@ max_trends_record = 5
 visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
 pwr_corr_conf_list = [1, 1, 1, 1, 1]
+backup_th_corr = th_corr_conf_list
+backup_pwr_corr = pwr_corr_conf_list
 
 while eps <= (int(sys.argv[6])):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
@@ -350,6 +352,8 @@ while eps <= (int(sys.argv[6])):
                     else:
                         th_corr_conf_list[i] = 0
                         pwr_corr_conf_list[i] = 0
+                backup_th_corr = th_corr_conf_list
+                backup_pwr_corr = pwr_corr_conf_list
         if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2:
             stuck_count += 1
             max_trends_record = 5
@@ -419,9 +423,14 @@ while eps <= (int(sys.argv[6])):
             break
 
         if measured_metrics[0]['throughput'] < int(sys.argv[7]) and cl != max(CL_RANGE):
-            for i in range(5):
+            for i in range(4):
                 th_corr_conf_list[i] = 0
                 pwr_corr_conf_list[i] = 0
+            th_corr_conf_list[i] = 1
+            pwr_corr_conf_list[i] = 1
+        else:
+            th_corr_conf_list = backup_th_corr
+            pwr_corr_conf_list = backup_pwr_corr
         
         reward = calculate_reward(measured_metrics)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
