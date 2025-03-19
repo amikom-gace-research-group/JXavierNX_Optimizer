@@ -4,8 +4,6 @@ import time
 import os
 import csv
 import requests
-import random
-import yaml
 from pyDOE import lhs
 
 eps = 1
@@ -338,7 +336,7 @@ while eps <= (int(sys.argv[6])):
     th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
-        if len(rewards) >= max_trends_record:
+        if len(rewards) >= max_trends_record+2:
             cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -354,7 +352,7 @@ while eps <= (int(sys.argv[6])):
                     else:
                         th_corr_conf_list[i] = 0
                         pwr_corr_conf_list[i] = 0
-        if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
+        if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2:
             stuck_count += 1
             max_trends_record = 5
             backup_sampled_configs = sampled_configs
@@ -368,7 +366,7 @@ while eps <= (int(sys.argv[6])):
                     sampled_configs = backup_sampled_configs
                     break
             continue
-        elif count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record:
+        elif count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2:
             visited = True
             stuck_count = 0
             max_stuck_count*=2
@@ -475,14 +473,6 @@ while eps <= (int(sys.argv[6])):
                 sampled_configs = backup_sampled_configs
                 break
         continue
-
-data = dict(
-    th_conf = th_corr_conf_list,
-    pwr_conf = pwr_corr_conf_list,
-)
-
-with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
-    yaml.dump(data, outfile, default_flow_style=False)
 
 i = 0
 
