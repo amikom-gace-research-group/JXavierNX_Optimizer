@@ -387,12 +387,12 @@ while eps <= (int(sys.argv[6])):
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
-        if new_configs in prohibited_configs:
+        if new_configs in prohibited_configs or new_configs in sampled_configs:
             stuck_count += 1
             out = sampling(0)
             if out == 'stuck':
                 if stuck_count >= max_stuck_count:
-                    print("Searching has visited the prohibited config after sampling again, early stopping executed")
+                    print("Searching has visited the prohibited/last config after sampling again, early stopping executed")
                     break
             continue
         elif not visited:
