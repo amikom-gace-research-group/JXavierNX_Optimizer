@@ -343,8 +343,9 @@ while eps <= (int(sys.argv[6])):
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
+            _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             if th[-1] > int(sys.argv[7]):
-                for i, x in enumerate([cores, cpus, gpus, mems]):
+                for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
                     a = pearson_correlation(x, th)
                     b = pearson_correlation(x, pwr)
                     if not np.isnan(a) or not np.isnan(b):
