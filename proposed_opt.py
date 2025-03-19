@@ -68,6 +68,11 @@ def calculate_reward(measured_metrics):
     
     return -(power * 1e-6)
 
+def rounded(x):
+    integer_part = math.floor(x)
+    fractional_part = x - integer_part
+    return integer_part + 1 if fractional_part >= 0.5 else integer_part
+
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf, th):
     new_neighbors = []
@@ -77,9 +82,9 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
         else:
             corr_conf = pwr_conf
         if th[-1] > int(sys.argv[7]):
-            new_neighbor = minmax(math.ceil(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
+            new_neighbor = minmax(rounded(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
         else:
-            new_neighbor = minmax(math.ceil(neighbor_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
+            new_neighbor = minmax(rounded(neighbor_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
         new_neighbors.append(new_neighbor)
     return tuple(new_neighbors)
 
