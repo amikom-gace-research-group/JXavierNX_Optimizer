@@ -76,7 +76,7 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
         else:
             corr_conf = pwr_conf
         if th[-1] > int(sys.argv[7]):
-            new_neighbor = minmax(round(exist_config - ((exist_config - neighbor_config) / 2) * corr_conf), range) 
+            new_neighbor = minmax(round(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
         else:
             new_neighbor = minmax(round(neighbor_config + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
         new_neighbors.append(new_neighbor)
@@ -426,8 +426,8 @@ while eps <= (int(sys.argv[6])):
             for i in range(4):
                 th_corr_conf_list[i] = 0
                 pwr_corr_conf_list[i] = 0
-            th_corr_conf_list[i] = 1
-            pwr_corr_conf_list[i] = 1
+            th_corr_conf_list[-1] = 1
+            pwr_corr_conf_list[-1] = 1
         else:
             th_corr_conf_list = backup_th_corr
             pwr_corr_conf_list = backup_pwr_corr
