@@ -387,7 +387,7 @@ while eps <= (int(sys.argv[6])):
 
         av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
 
-        check_config = [config[:-1].values() for config in av_configs if tuple(config[:-1].values()) == new_configs]
+        check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
 
         if new_configs in prohibited_configs or check_config:
             stuck_count += 1
