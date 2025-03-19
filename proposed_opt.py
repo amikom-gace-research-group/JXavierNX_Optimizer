@@ -482,10 +482,8 @@ with open(f'{sys.argv[5]}_{sys.argv[4]}.yml', 'w') as outfile:
     yaml.dump(data, outfile, default_flow_style=False)
 
 i = 0
-up = False
 
 #test 5 times
-u = 0
 while i<6:
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] > -1]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
@@ -493,10 +491,7 @@ while i<6:
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
-    if up:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
-    else:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = configs
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     if new_configs in prohibited_configs:
