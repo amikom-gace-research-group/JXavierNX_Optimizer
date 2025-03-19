@@ -387,7 +387,11 @@ while eps <= (int(sys.argv[6])):
         home_checker = tuple([v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
         neig_checker = tuple([v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'])
 
-        if new_configs in prohibited_configs or new_configs in sampled_configs:
+        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
+
+        check_config = [config[:-1].values() for config in av_configs if tuple(config[:-1].values()) == new_configs]
+
+        if new_configs in prohibited_configs or check_config:
             stuck_count += 1
             out = sampling(0)
             if out == 'stuck':
@@ -427,7 +431,6 @@ while eps <= (int(sys.argv[6])):
         
         reward = calculate_reward(measured_metrics)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
-        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
         if new_configs in av_configs[:-1]:
             target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-1]), None)
             target_idx = list(target_item.keys())[0]
