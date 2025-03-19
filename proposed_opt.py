@@ -260,7 +260,7 @@ def sampling(condition):
             sampled_configs.append(config)
     else: # random hypercube
         lhs_samples = generate_lhs_samples()
-        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
+        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
         best_item = items[0]
         best_idx = list(best_item.keys())[0]
