@@ -241,6 +241,8 @@ class MOPSO:
 
                 # Track the best fitness for this iteration
                 best_fitness_this_iter = max(best_fitness_this_iter, fitness)
+                if not self.best_config:
+                    self.best_config = config
 
             # Update velocity and position for each particle
             for particle in self.swarm:
