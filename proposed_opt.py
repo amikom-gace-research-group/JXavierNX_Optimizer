@@ -63,7 +63,7 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput < int(sys.argv[7]):
+    if int(throughput) < int(sys.argv[7]):
         return -(power/throughput * 1e6)
     
     return -(power * 1e-6)
@@ -81,7 +81,7 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
             corr_conf = th_conf
         else:
             corr_conf = pwr_conf
-        if th[-1] > int(sys.argv[7]):
+        if int(th[-1]) > int(sys.argv[7]):
             if exist_config > neighbor_config:
                 new_neighbor = minmax(rounded(exist_config - (abs(exist_config - neighbor_config) / 2) * corr_conf), range) 
             else:
@@ -351,7 +351,7 @@ while eps <= (int(sys.argv[6])):
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
-            if th[-1] > int(sys.argv[7]):
+            if int(th[-1]) > int(sys.argv[7]):
                 for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
                     a = pearson_correlation(x, th)
                     b = pearson_correlation(x, pwr)
@@ -431,7 +431,7 @@ while eps <= (int(sys.argv[6])):
             print("No Device/No Inference Runtime")
             break
 
-        if measured_metrics[0]['throughput'] < int(sys.argv[7]) and cl != max(CL_RANGE):
+        if int(measured_metrics[0]['throughput']) < int(sys.argv[7]) and cl != max(CL_RANGE):
             for i in range(4):
                 th_corr_conf_list[i] = 0
                 pwr_corr_conf_list[i] = 0
