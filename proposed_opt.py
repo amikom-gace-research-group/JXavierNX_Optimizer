@@ -385,9 +385,17 @@ while eps <= (int(sys.argv[6])):
             new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, aside=True)
             check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
             if new_configs in prohibited_configs or check_config:
-                if stuck_count >= max_stuck_count:
-                    print("Searching has visited the prohibited/last config after sampling again, early stopping executed")
-                    break
+                max_trends_record = 5
+                backup_sampled_configs = sampled_configs
+                sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[2:]]
+                if not sampled_configs:
+                    sampled_configs = backup_sampled_configs
+                out = sampling(0)
+                if out == 'stuck':
+                    if stuck_count >= max_stuck_count:
+                        print("Searching has visited the prohibited/last config after sampling again, early stopping executed")
+                        sampled_configs = backup_sampled_configs
+                        break
                 continue
         elif not visited:
             stuck_count = 0
