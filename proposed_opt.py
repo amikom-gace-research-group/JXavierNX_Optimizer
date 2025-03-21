@@ -470,6 +470,7 @@ while eps <= (int(sys.argv[6])):
         stuck_count += 1
         new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
         check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
+        
         if new_configs in prohibited_configs or check_config:
             max_trends_record = 5
             backup_sampled_configs = sampled_configs
@@ -483,6 +484,56 @@ while eps <= (int(sys.argv[6])):
                     sampled_configs = backup_sampled_configs
                     break
             continue
+        else:
+            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
+
+            # Execute the chosen configuration and get metrics
+            t1 = time.time()
+            measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+            elapsed_exec = round(time.time() - t1, 3)
+
+            if isinstance(measured_metrics, list) or not measured_metrics:
+                if not measured_metrics:
+                    print("EXECUTION PROBLEM!")
+                    continue
+                elif measured_metrics[0]['power_cons'] == 0:
+                    print("EXECUTION PROBLEM!")
+                    continue
+            if measured_metrics == "No Device":
+                print("No Device/No Inference Runtime")
+                break
+            reward = calculate_reward(measured_metrics)
+            dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
+            if new_configs in av_configs[:-1]:
+                target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-1]), None)
+                target_idx = list(target_item.keys())[0]
+                sampled_configs[target_idx] = dict_new_configs
+            else:
+                sampled_configs.append(dict_new_configs)
+            
+            new_checker = {k: v for k, v in dict_new_configs.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+            if reward < -1:
+                print("PROHIBITED CONFIG!")
+                prohibited_configs.add(tuple(new_checker.values()))
+
+            configs = {
+                "api_time": api_time,
+                "reward": reward,
+                "phase":"exploitation",
+                "episode": eps,
+                "xaviernx_time_elapsed": elapsed_exec,
+                "cpu_cores": cpu_cores+1,
+                "cpu_freq": cpu_freq,
+                "gpu_freq": gpu_freq,
+                "memory_freq": memory_freq,
+                "cl": cl
+            }
+
+            dict_record = [{**configs, **measured_metrics[0]}]
+            save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+
+            print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
+            eps += 1
 
 i = 0
 
