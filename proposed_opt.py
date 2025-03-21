@@ -257,7 +257,7 @@ def sampling(condition):
         best_idx = list(best_item.keys())[0]
         home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         home_conf = tuple(home_dict.values())
-        configs = calculate_diversity(lhs_samples, state=home_conf)
+        configs = calculate_diversity(lhs_samples, config=home_conf)
         config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
         if config in sampled_configs:
             stuck_count += 1
