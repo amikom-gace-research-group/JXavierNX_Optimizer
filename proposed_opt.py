@@ -338,7 +338,6 @@ while eps <= (int(sys.argv[6])):
     neig_conf = tuple(neig_dict.values())
     new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th)
     av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
-    check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -382,6 +381,8 @@ while eps <= (int(sys.argv[6])):
             stuck_count = 0
             max_stuck_count*=2
             max_trends_record *= 2
+        
+        check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
 
         if new_configs in prohibited_configs or check_config:
             stuck_count += 1
