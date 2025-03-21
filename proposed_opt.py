@@ -326,6 +326,7 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 while eps <= (int(sys.argv[6])):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+    th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if len(items) > 1:
         second_best_item = items[1]
         second_best_idx = list(second_best_item.keys())[0]
@@ -340,7 +341,6 @@ while eps <= (int(sys.argv[6])):
     check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
-    th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
         if len(rewards) >= max_trends_record+2:
