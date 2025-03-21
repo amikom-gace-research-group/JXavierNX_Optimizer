@@ -251,11 +251,7 @@ def sampling(condition):
         config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
         sampled_configs.append(config)
     else: # random hypercube
-        rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
-        items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
-        best_item = items[0]
-        best_idx = list(best_item.keys())[0]
-        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+        home_dict = {k: v for k, v in sampled_configs[-1].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         home_conf = tuple(home_dict.values())
         configs = calculate_diversity(lhs_samples, config=home_conf)
         config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
