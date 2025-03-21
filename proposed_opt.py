@@ -6,6 +6,8 @@ import csv
 import requests
 import math
 from pyDOE import lhs
+from sklearn.preprocessing import MinMaxScaler
+from scipy.spatial import distance
 
 eps = 1
 
@@ -182,47 +184,34 @@ def lhs_sampling(num_samples, ranges):
         sampled_values.append(lhs_samples[:, i] * (r[-1] - r[0]) + r[0])
     return np.array(sampled_values).T
 
-def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500):
-    """
-    Select a configuration for exploration based on diversity scores.
+def calculate_diversity(lhs_samples, config=None, condition=0):
+    configurations = list(lhs_samples)
 
-    Args:
-        lhs_samples: List of LHS-sampled configurations.
-        state_key: Current state (for reference, though not directly used here).
-        tau: Temperature parameter for softmax scaling (higher = more uniform).
-        max_diversity_score: Maximum value for diversity scores to prevent overflow.
+    if condition:
+        target_idx = 0
+    else:
+        target_idx = -1
+        if config:
+            configurations.append(config)
 
-    Returns:
-        selected_action: The selected action for exploration.
-    """
-    # Calculate diversity scores: Higher score for configurations far from each other
-    diversity_scores = []
-    for sample in lhs_samples:
-        diversity_score = sum(abs(np.array(sample) - np.array(state_key))) if state_key else 1
-        diversity_scores.append(diversity_score)
+    # Normalize configurations to [0, 1]
+    scaler = MinMaxScaler()
+    normalized_configs = scaler.fit_transform(np.array(configurations))
 
-    # Clip diversity scores to prevent overflow
-    diversity_scores = np.array(diversity_scores)
-    diversity_scores = np.clip(diversity_scores, None, max_diversity_score)
+    target = normalized_configs[target_idx].reshape(1, -1)
 
-    # Convert diversity scores to probabilities using softmax
-    exp_scores = np.exp(diversity_scores / tau)
+    # Compute Manhattan distances between target and all configurations
+    manhattan_distances = distance.cdist(target, normalized_configs, 'cityblock')[0]
 
-    # Prevent division by zero by adding a small epsilon value
-    exp_scores_sum = np.sum(exp_scores)
-    if exp_scores_sum == 0:
-        exp_scores_sum = 1e-6  # Small value to avoid division by zero
+    # Mask the self-distance (distance to itself) to avoid selecting it
+    manhattan_distances[target_idx] = -np.inf
 
-    probabilities = exp_scores / exp_scores_sum
+    # Find the index of the configuration with the maximum Manhattan distance
+    max_distance_idx = np.argmax(manhattan_distances)
 
-    # Handle any potential NaN values in probabilities
-    if np.any(np.isnan(probabilities)):
-        probabilities = np.ones_like(probabilities) / len(lhs_samples)  # Default uniform distribution
-
-    # Select an action based on probabilities
-    selected_action = lhs_samples[np.random.choice(len(lhs_samples), p=probabilities)]
-    
-    return selected_action
+    # Get the corresponding configuration (original or normalized)
+    max_distance_config = configurations[max_distance_idx]  # Original scale    
+    return max_distance_config
 
 # Generate LHS samples for the exploration phase
 def generate_lhs_samples():
@@ -256,81 +245,78 @@ max_stuck_count = 5
 
 def sampling(condition):
     global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count
+    lhs_samples = generate_lhs_samples()
     if condition:
-        for cpu_cores, cpu_freq, gpu_freq, memory_freq, cl in [(min(CPU_CORES_RANGE), min(CPU_FREQ_RANGE), min(GPU_FREQ_RANGE), min(MEMORY_FREQ_RANGE), min(CL_RANGE)), (max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE))]:
-            config = {"cpu_cores": int(cpu_cores), "cpu_freq": int(cpu_freq), "gpu_freq": int(gpu_freq), "memory_freq": int(memory_freq), "cl": cl, "reward":0, "throughput":0, 'power_cons':-1}
-            if config in sampled_configs:
-                stuck_count += 1
-                return "stuck"
-            sampled_configs.append(config)
+        configs = calculate_diversity(lhs_samples, condition=condition)
+        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
+        sampled_configs.append(config)
     else: # random hypercube
-        lhs_samples = generate_lhs_samples()
         rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
         best_item = items[0]
         best_idx = list(best_item.keys())[0]
         home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
         home_conf = tuple(home_dict.values())
-        configs = calculate_diversity(lhs_samples, home_conf)
+        configs = calculate_diversity(lhs_samples, state=home_conf)
         config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
         if config in sampled_configs:
             stuck_count += 1
             return "stuck"
         sampled_configs.append(config)
 
-    for ids in sampled_configs:
-        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = tuple(ids.values())
-        ids_checker = {k: v for k, v in ids.items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-        
-        if tuple(ids_checker.values()) in prohibited_configs or ids["power_cons"] != -1:
-            continue
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl, _, _, _ = tuple(sampled_configs[-1].values())
+    sampled_configs_checker = {k: v for k, v in sampled_configs[-1].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+    
+    if tuple(sampled_configs_checker.values()) in prohibited_configs or sampled_configs[-1]["power_cons"] != -1:
+        return "stuck"
 
-        t1 = time.time()
-        measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-        elapsed_exec = round(time.time() - t1, 3)
+    t1 = time.time()
+    measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
+    elapsed_exec = round(time.time() - t1, 3)
 
-        if isinstance(measured_metrics, list) or not measured_metrics:
-            if not measured_metrics:
-                print("EXECUTION PROBLEM!")
-                continue
-            elif measured_metrics[0]['power_cons'] == 0:
-                print("EXECUTION PROBLEM!")
-                continue
-        if measured_metrics == "No Device":
-            print("No Device/No Inference Runtime")
-            break
-        
-        ids["throughput"] = measured_metrics[0]["throughput"]
-        ids["power_cons"] = measured_metrics[0]["power_cons"]
+    if isinstance(measured_metrics, list) or not measured_metrics:
+        if not measured_metrics:
+            print("EXECUTION PROBLEM!")
+            return "stuck"
+        elif measured_metrics[0]['power_cons'] == 0:
+            print("EXECUTION PROBLEM!")
+            return "stuck"
+    if measured_metrics == "No Device":
+        print("No Device/No Inference Runtime")
+        return "stuck"
+    
+    sampled_configs[-1]["throughput"] = measured_metrics[0]["throughput"]
+    sampled_configs[-1]["power_cons"] = measured_metrics[0]["power_cons"]
 
-        reward = calculate_reward(measured_metrics)
-        ids["reward"] = reward
+    reward = calculate_reward(measured_metrics)
+    sampled_configs[-1]["reward"] = reward
 
-        if reward < -1:
-            print("PROHIBITED CONFIG!")
-            prohibited_configs.add(tuple(ids_checker.values()))
+    if reward < -1:
+        print("PROHIBITED CONFIG!")
+        prohibited_configs.add(tuple(sampled_configs_checker.values()))
 
-        configs = {
-            "api_time": api_time,
-            "reward": reward,
-            "phase":"exploration",
-            "episode": eps,
-            "xaviernx_time_elapsed": elapsed_exec,
-            "cpu_cores": cpu_cores+1,
-            "cpu_freq": cpu_freq,
-            "gpu_freq": gpu_freq,
-            "memory_freq": memory_freq,
-            "cl": cl
-        }
+    configs = {
+        "api_time": api_time,
+        "reward": reward,
+        "phase":"exploration",
+        "episode": eps,
+        "xaviernx_time_elapsed": elapsed_exec,
+        "cpu_cores": cpu_cores+1,
+        "cpu_freq": cpu_freq,
+        "gpu_freq": gpu_freq,
+        "memory_freq": memory_freq,
+        "cl": cl
+    }
 
-        dict_record = [{**configs, **measured_metrics[0]}]
-        save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
-        rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
+    dict_record = [{**configs, **measured_metrics[0]}]
+    save_csv(dict_record, f"proposed-{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    rewards = [reward for reward in (sampled_config['reward'] for sampled_config in sampled_configs)]
 
-        print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
-        eps += 1
+    print(f"Episode: {eps}, Reward: {reward}, Max Reward: {max(rewards) if rewards else None}")
+    eps += 1
     
 sampling(1)
+sampling(0)
 max_trends_record = 5
 visited = False
 th_corr_conf_list = [1, 1, 1, 1, 1]
