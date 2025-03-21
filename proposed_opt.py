@@ -382,7 +382,7 @@ while eps <= (int(sys.argv[6])):
 
         if new_configs in prohibited_configs or check_config:
             stuck_count += 1
-            new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, aside=True)
+            new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
             check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
             if new_configs in prohibited_configs or check_config:
                 max_trends_record = 5
