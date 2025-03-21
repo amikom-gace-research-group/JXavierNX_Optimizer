@@ -345,7 +345,7 @@ while eps <= (int(sys.argv[6])):
                         pwr_corr_conf_list[i] = 0
                 backup_th_corr = th_corr_conf_list
                 backup_pwr_corr = pwr_corr_conf_list
-        if count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2:
+        if (count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2 if len(rewards) >= max_trends_record else False):
             stuck_count += 1
             max_trends_record = 5
             backup_sampled_configs = sampled_configs
@@ -359,7 +359,7 @@ while eps <= (int(sys.argv[6])):
                     sampled_configs = backup_sampled_configs
                     break
             continue
-        elif count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2:
+        elif (count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2 if len(rewards) >= max_trends_record else False):
             visited = True
             stuck_count = 0
             max_stuck_count*=2
