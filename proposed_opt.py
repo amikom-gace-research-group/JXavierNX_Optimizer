@@ -325,6 +325,19 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 
 while eps <= (int(sys.argv[6])):
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
+    items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+    if len(items) > 1:
+        second_best_item = items[1]
+        second_best_idx = list(second_best_item.keys())[0]
+    best_item = items[0]
+    best_idx = list(best_item.keys())[0]
+    home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+    home_conf = tuple(home_dict.values())
+    neig_dict = {k: v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+    neig_conf = tuple(neig_dict.values())
+    new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th)
+    av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
+    check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     sorted_rewards = sorted(rewards, reverse=True)
     th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -349,36 +362,26 @@ while eps <= (int(sys.argv[6])):
             # backup_pwr_corr = pwr_corr_conf_list
         if (count_trend(rewards)['ST'] > count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2 if len(rewards) >= max_trends_record else False):
             stuck_count += 1
-            max_trends_record = 5
-            backup_sampled_configs = sampled_configs
-            sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[2:]]
-            if not sampled_configs:
-                sampled_configs = backup_sampled_configs
-            out = sampling(0)
-            if out == 'stuck':
-                if stuck_count >= max_stuck_count:
-                    print("Searching has no idea to search again, early stopping executed")
+            new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
+            check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
+            if new_configs in prohibited_configs or check_config:
+                max_trends_record = 5
+                backup_sampled_configs = sampled_configs
+                sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[2:]]
+                if not sampled_configs:
                     sampled_configs = backup_sampled_configs
-                    break
-            continue
+                out = sampling(0)
+                if out == 'stuck':
+                    if stuck_count >= max_stuck_count:
+                        print("Searching has no idea to search again, early stopping executed")
+                        sampled_configs = backup_sampled_configs
+                        break
+                continue
         elif (count_trend(rewards)['ST'] < count_trend(rewards)['INC'] and len(rewards) >= max_trends_record+2 if len(rewards) >= max_trends_record else False):
             visited = True
             stuck_count = 0
             max_stuck_count*=2
             max_trends_record *= 2
-        items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
-        if len(items) > 1:
-            second_best_item = items[1]
-            second_best_idx = list(second_best_item.keys())[0]
-        best_item = items[0]
-        best_idx = list(best_item.keys())[0]
-        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-        home_conf = tuple(home_dict.values())
-        neig_dict = {k: v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
-        neig_conf = tuple(neig_dict.values())
-        new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th)
-        av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
-        check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
 
         if new_configs in prohibited_configs or check_config:
             stuck_count += 1
@@ -464,18 +467,21 @@ while eps <= (int(sys.argv[6])):
         eps += 1
     else:
         stuck_count += 1
-        backup_sampled_configs = sampled_configs
-        sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[2:]]
-        if not sampled_configs:
-            sampled_configs = backup_sampled_configs
-        max_trends_record = 5
-        out = sampling(0)
-        if out == 'stuck':
-            if stuck_count >= max_stuck_count:
-                print("Searching has no idea to search again, early stopping executed")
+        new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
+        check_config = [config[:-1] for config in av_configs if config[:-1] == new_configs]
+        if new_configs in prohibited_configs or check_config:
+            max_trends_record = 5
+            backup_sampled_configs = sampled_configs
+            sampled_configs = [d for d in sampled_configs if d.get("reward") not in sorted_rewards[2:]]
+            if not sampled_configs:
                 sampled_configs = backup_sampled_configs
-                break
-        continue
+            out = sampling(0)
+            if out == 'stuck':
+                if stuck_count >= max_stuck_count:
+                    print("Searching has no idea to search again, early stopping executed")
+                    sampled_configs = backup_sampled_configs
+                    break
+            continue
 
 i = 0
 
