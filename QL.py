@@ -4,6 +4,7 @@ import time
 import os
 import csv
 import requests
+import random
 from pyDOE import lhs
 
 print("PID", os.getpid())
@@ -53,8 +54,6 @@ sampled_configs ={
      "cl": np.array(CL_RANGE)
 }
 
-POWER_BUDGET = int(sys.argv[6])
-
 best_throughput = -float('inf')
 max_reward = -float('inf')
 last_reward = 0
@@ -62,11 +61,10 @@ last_reward = 0
 # Hyperparameters
 alpha = 0.1
 gamma = 0.9
-prohibited_addition = 0
 epsilon_explore = 0.5
 epsilon_exploit = 0.5
 epsilon_min = 1e-10  # Minimum epsilon value (always exploit after this threshold)
-num_episodes = 100  # Number of episodes to run
+num_episodes = int(sys.argv[6])  # Number of episodes to run
 
 prohibited_configs = set()
 
@@ -83,9 +81,9 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     )
 
 # Adjust configuration values based on action
-def adjust_value(value, action, proposed=0):
+def adjust_value(value, action):
     unique_values = value
-    if len(unique_values) != 3 and not int(proposed):
+    if len(unique_values) != 3:
         return min(unique_values)
     else:
         return unique_values[action]
@@ -269,7 +267,7 @@ def calculate_diversity(lhs_samples, state_key, tau=1.0, max_diversity_score=500
     
     return selected_action
 
-def choose_action_adaptive(state_index, lhs_samples, proposed=0):
+def choose_action_adaptive(state_index, lhs_samples):
     global epsilon_explore, epsilon_exploit, best_action, episode, sampled_configs, CORES_ACTIONS, CPU_ACTIONS, GPU_ACTIONS, MEM_ACTIONS, action_shape, ranges
     state_key = tuple(state_index)
     # Select action based on epsilon
@@ -279,52 +277,7 @@ def choose_action_adaptive(state_index, lhs_samples, proposed=0):
         # Exploitation: choose best known action
         if state_key not in Q_table:
             return calculate_diversity(lhs_samples, state_key), "exploration" # Use LHS samples for unseen states
-        if proposed:
-            phase = "exploitation"
-            best_config = get_best_configuration()
-            if best_action:
-                update_q_table(state_key, best_action)
-                second_config = get_second_best_configuration(best_action, action_shape, episode)
-            else:
-                return calculate_diversity(lhs_samples, state_key), "exploration"
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = generate_neighbor(best_config, second_config)
-            if sys.argv[5] == 'jxavier':
-                if cpu_cores not in sampled_configs['cpu_cores']:
-                    sampled_configs['cpu_cores'] = np.append(sampled_configs['cpu_cores'], cpu_cores)
-                    CORES_ACTIONS.append(CORES_ACTIONS[-1]+1)
-            if cpu_freq not in sampled_configs['cpu_freq']:
-                sampled_configs['cpu_freq'] = np.append(sampled_configs['cpu_freq'], cpu_freq)
-                CPU_ACTIONS.append(CPU_ACTIONS[-1]+1)
-            if gpu_freq not in sampled_configs['gpu_freq']:
-                sampled_configs['gpu_freq'] = np.append(sampled_configs['gpu_freq'], gpu_freq)
-                GPU_ACTIONS.append(GPU_ACTIONS[-1]+1)
-            if memory_freq not in sampled_configs['memory_freq']:
-                sampled_configs['memory_freq'] = np.append(sampled_configs['memory_freq'], memory_freq)
-                MEM_ACTIONS.append(MEM_ACTIONS[-1]+1)
-            if sys.argv[5] == 'jxavier':
-                actions = (int(np.where(np.atleast_1d(sampled_configs['cpu_cores']) == cpu_cores)[0][0]), int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
-                action_shape = [len(CORES_ACTIONS), len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-                ranges = [
-                    (min(CORES_ACTIONS), max(CORES_ACTIONS) + 1),
-                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-                ]
-            elif sys.argv[5] == 'jorin-nano':
-                actions = (0, int(np.where(np.atleast_1d(sampled_configs['cpu_freq']) == cpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['gpu_freq']) == gpu_freq)[0][0]), int(np.where(np.atleast_1d(sampled_configs['memory_freq']) == memory_freq)[0][0]), CL_RANGE.index(cl))
-                action_shape = [1, len(CPU_ACTIONS), len(GPU_ACTIONS), len(MEM_ACTIONS), len(CL_ACTIONS)]
-                ranges = [
-                    (0, 1),
-                    (min(CPU_ACTIONS), max(CPU_ACTIONS) + 1),
-                    (min(GPU_ACTIONS), max(GPU_ACTIONS) + 1),
-                    (min(MEM_ACTIONS), max(MEM_ACTIONS) + 1),
-                    (min(CL_ACTIONS), max(CL_ACTIONS) + 1)
-                ]
-            update_q_table(state_key, actions)
-            return actions, phase  # Exploit best known action
-        else:
-            return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"
+        return np.unravel_index(np.argmax(Q_table[state_key]), action_shape), "exploitation"
 
 # Execute the configuration on the system
 def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
@@ -363,14 +316,14 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     return None, None
 
 # Calculate reward with shaping
-def calculate_reward(measured_metrics, balanced=1):
+def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET:
-        return -(throughput/power) * 1e6
+    if throughput < int(sys.argv[7]):
+        return -1e6
     
-    return (throughput / (power if balanced else 1)) * 1e6
+    return -(power * 1e-6)
 
 # CSV saving optimization
 def save_csv(dict_list, filename):
@@ -382,27 +335,27 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 # Initial configuration (starting in the middle of the range)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = random.choice(sampled_configs['cpu_cores']), random.choice(sampled_configs['cpu_freq']), random.choice(sampled_configs['gpu_freq']), random.choice(sampled_configs['memory_freq']), random.choice(sampled_configs['cl'])
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
 best_q = -float('inf')
 episode = 1
 
 # Execution loop with adaptive epsilon strategy
-while episode <= num_episodes:
-    if episode < 75:
+while episode <= (num_episodes+5):
+    if episode < (num_episodes):
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
 
         # Choose actions based on current state and LHS samples
-        actions, phase = choose_action_adaptive(state_index, lhs_samples, proposed=int(sys.argv[8]))
+        actions, phase = choose_action_adaptive(state_index, lhs_samples)
         
         # Adjust values for the chosen actions
-        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
-        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
-        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
-        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
-        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4]))
 
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         update_q_table(state_key, actions)
@@ -428,11 +381,11 @@ while episode <= num_episodes:
             else:
                 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
                 actions = np.unravel_index(np.argmax(Q_table[state_index]), action_shape)
-        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], proposed=sys.argv[8]))
-        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], proposed=sys.argv[8]))
-        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], proposed=sys.argv[8]))
-        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], proposed=sys.argv[8]))
-        cl = int(adjust_value(sampled_configs['cl'], actions[4], proposed=sys.argv[8]))
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0]))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1]))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2]))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3]))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4]))
 
     # Print the chosen configuration for tracking
     print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
@@ -457,9 +410,9 @@ while episode <= num_episodes:
         continue
 
     # Calculate the reward for this configuration
-    reward = calculate_reward(measured_metrics, balanced=int(sys.argv[7]))
+    reward = calculate_reward(measured_metrics)
 
-    if reward < 0:
+    if reward == -1e6:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(new_state_index)
     
@@ -491,7 +444,7 @@ while episode <= num_episodes:
     elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
-    if reward == 1e-6:
+    if reward == -1e6:
         epsilon_explore = min(epsilon_explore * 1.05, 1)  # Increase epsilon if performance is bad
     else:
         epsilon_exploit = min(epsilon_exploit * 1.05, 1)
@@ -509,19 +462,10 @@ while episode <= num_episodes:
         "memory_freq": memory_freq,
         "cl": cl
     }
-    if int(sys.argv[7]):
-        mode = "balanced"
-    else:
-        mode = "max"
 
     dict_record = [{**configs, **measured_metrics[0]}]
 
-    if int(sys.argv[8]):
-        file = f"ql-proposed-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
-    else:
-        file = f"ql-{mode}_{sys.argv[5]}_{sys.argv[4]}.csv"
-
-    save_csv(dict_record, file)
+    save_csv(dict_record, f"ql-{num_episodes}_{sys.argv[5]}_{sys.argv[4]}.csv")
     
     # Update state and last reward
     last_reward = reward
