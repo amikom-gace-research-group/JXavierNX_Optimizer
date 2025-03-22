@@ -15,27 +15,39 @@ if sys.argv[5] == 'jxavier':
     GPU_FREQ_RANGE = range(510, 1111)
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
+    output_sizes = {
+    'cpu_cores': 6,   # Number of actions for cpu_cores
+    'cpu_freq': 6,    # Number of actions for cpu_freq
+    'gpu_freq': 6,    # Number of actions for gpu_freq
+    'memory_freq': 6, # Number of actions for memory_freq
+    'cl': 6           # Number of actions for cl
+    }
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
     CPU_FREQ_RANGE = range(806, 1511)
     GPU_FREQ_RANGE = range(306, 625)
     MEMORY_FREQ_RANGE = [2133]
     CL_RANGE = range(1, 4)
+    output_sizes = {
+    'cpu_cores': 1,   # Number of actions for cpu_cores
+    'cpu_freq': 6,    # Number of actions for cpu_freq
+    'gpu_freq': 6,    # Number of actions for gpu_freq
+    'memory_freq': 1, # Number of actions for memory_freq
+    'cl': 6           # Number of actions for cl
+    }
 
 sampled_configs ={
      "cpu_cores": CPU_CORES_RANGE, 
-     "cpu_freq": np.linspace(min(CPU_FREQ_RANGE), max(CPU_FREQ_RANGE), 3), 
-     "gpu_freq": np.linspace(min(GPU_FREQ_RANGE), max(GPU_FREQ_RANGE), 3), 
-     "memory_freq": np.linspace(min(MEMORY_FREQ_RANGE), max(MEMORY_FREQ_RANGE), 3), 
+     "cpu_freq": CPU_FREQ_RANGE, 
+     "gpu_freq": GPU_FREQ_RANGE, 
+     "memory_freq": MEMORY_FREQ_RANGE, 
      "cl": CL_RANGE
 }
-
-POWER_BUDGET = int(sys.argv[6])
 
 # Hyperparameters
 gamma = 0.99
 lr = 0.001
-num_episodes = 5
+num_episodes = round((int(sys.argv[6]))/2)
 
 prohibited_configs = set()
 
@@ -86,13 +98,30 @@ class CriticNetwork(nn.Module):
         x = torch.relu(self.fc2(x))
         return self.fc3(x)
 
+def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
+    return (
+        np.searchsorted(sampled_configs['cpu_cores'], cpu_cores),
+        np.searchsorted(sampled_configs['cpu_freq'], cpu_freq),
+        np.searchsorted(sampled_configs['gpu_freq'], gpu_freq),
+        np.searchsorted(sampled_configs['memory_freq'], memory_freq),
+        np.searchsorted(sampled_configs['cl'], cl)
+    )
+
 # Adjust configuration values based on action
-def adjust_value(value, action):
-    unique_values = sorted(value)
-    if len(unique_values) != 3:
-        return min(unique_values)
-    else:
-        return unique_values[action]
+def adjust_value(value, action, state):
+    if action == 1:
+        state = state + 1
+    elif action == 2:
+        state = state - 1
+    elif action == 3:
+        state = state - 50
+    elif action == 4:
+        state = state + 50
+    elif action == 5:
+        state = state - 100
+    elif action == 6:
+        state = state + 100
+    return value[state]
 
 def get_result():
     headers = {
@@ -157,13 +186,13 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if power > POWER_BUDGET:
-        return  1e-6
+    if throughput < int(sys.argv[7]):
+        return -1e6
     
-    return (throughput / power) * 1e6
+    return -(power * 1e-6)
 
 def exec_trained(configs):
-    for eps in range(76, 100):
+    for eps in range(int(sys.argv[6]), int(sys.argv[6])+6):
         t1 = time.time()
         metrics, api_time = execute_config(*configs)
         elapsed_exec = round(time.time() - t1, 3)
@@ -189,7 +218,7 @@ def exec_trained(configs):
             "gpu_percent": metrics[0]["gpu_percent"],
             "mem_percent": metrics[0]["mem_percent"]
         }
-        save_csv([config], f"a2c_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv([config], f"a2c_{int(sys.argv[6])}_{sys.argv[5]}_{sys.argv[4]}.csv")
 
 # Main A2C algorithm
 def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimizer):
@@ -207,7 +236,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     for _ in range(num_episodes):
         states, actions, rewards = [], [], []
 
-        for _ in range(15):  # Define the number of steps per episode
+        for _ in range(2):  # Define the number of steps per episode
             episode += 1
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             state_tensor = torch.tensor(state, dtype=torch.float32)
@@ -222,13 +251,15 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
             actions_set = (cpu_cores_action, cpu_freq_action, gpu_freq_action, memory_freq_action, cl_action)
             actions.append(actions_set)
+
+            state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
             
             # Adjust configurations based on actions
-            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], cpu_cores_action))
-            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], cpu_freq_action))
-            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], gpu_freq_action))
-            memory_freq = int(adjust_value(sampled_configs['memory_freq'], memory_freq_action))
-            cl = int(adjust_value(sampled_configs['cl'], cl_action))
+            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], cpu_cores_action, state_index[0]))
+            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], cpu_freq_action, state_index[1]))
+            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], gpu_freq_action, state_index[2]))
+            memory_freq = int(adjust_value(sampled_configs['memory_freq'], memory_freq_action, state_index[3]))
+            cl = int(adjust_value(sampled_configs['cl'], cl_action, state_index[4]))
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
@@ -253,7 +284,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             reward = calculate_reward(measured_metrics)
             rewards.append(reward)
 
-            if reward == 1e-6:
+            if reward == -1e6:
                 print("Prohibited Configuration!")
                 prohibited_configs.add(str(state))
 
@@ -336,20 +367,13 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     end = end_t1 / len(time_got)
     for config in configs:
         dict_record = [{'a2c_time_elapsed': end, **config}]
-        save_csv(dict_record, f"a2c_{sys.argv[5]}_{sys.argv[4]}.csv")
+        save_csv(dict_record, f"a2c_{int(sys.argv[6])}_{sys.argv[5]}_{sys.argv[4]}.csv")
     exec_trained(best_config)
     print(f"Best Config: {best_config} in {sum(time_got) + end_t1} sec")
 
 
 # Initialize the actor and critic networks
 input_size = 5  # State representation: cpu_cores, cpu_freq, gpu_freq, memory_freq, cl
-output_sizes = {
-    'cpu_cores': 3,   # Number of actions for cpu_cores
-    'cpu_freq': 3,    # Number of actions for cpu_freq
-    'gpu_freq': 3,    # Number of actions for gpu_freq
-    'memory_freq': 3, # Number of actions for memory_freq
-    'cl': 3           # Number of actions for cl
-}
 
 actor_network = ActorNetwork(input_size, output_sizes)
 critic_network = CriticNetwork(input_size)
