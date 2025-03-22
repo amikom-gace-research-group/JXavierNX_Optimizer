@@ -343,7 +343,7 @@ episode = 1
 
 # Execution loop with adaptive epsilon strategy
 while episode <= (num_episodes+5):
-    if episode < (num_episodes):
+    if episode <= (num_episodes):
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
 
