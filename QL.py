@@ -18,11 +18,11 @@ if sys.argv[5] == 'jxavier':
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
     ranges = [
+        (0, 3),
         (min(ACTIONS), max(ACTIONS) + 1),
         (min(ACTIONS), max(ACTIONS) + 1),
         (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1),
-        (min(ACTIONS), max(ACTIONS) + 1)
+        (0, 3)
     ]
     action_shape = [len(ACTIONS), len(ACTIONS), len(ACTIONS), len(ACTIONS), len(ACTIONS)]
 elif sys.argv[5] == 'jorin-nano':
@@ -36,7 +36,7 @@ elif sys.argv[5] == 'jorin-nano':
         (min(ACTIONS), max(ACTIONS) + 1),
         (min(ACTIONS), max(ACTIONS) + 1),
         (0, 1),
-        (min(ACTIONS), max(ACTIONS) + 1)
+        (0, 3)
     ]
     action_shape = [1, len(ACTIONS), len(ACTIONS), 1, len(ACTIONS)]
 
@@ -75,19 +75,19 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     )
 
 # Adjust configuration values based on action
-def adjust_value(value, action, state):
+def adjust_value(value, action, state, range):
     if action == 1:
-        state = state + 1
+        state = min(state + 1, max(range))
     elif action == 2:
-        state = state - 1
+        state = max(min(range), state - 1)
     elif action == 3:
-        state = state - 50
+        state = min(state + 50, max(range))
     elif action == 4:
-        state = state + 50
+        state = max(min(range), state - 50)
     elif action == 5:
-        state = state - 100
+        state = min(state + 100, max(range))
     elif action == 6:
-        state = state + 100
+        state = max(min(range), state - 100)
     return value[state]
 
 def get_result():
@@ -338,11 +338,11 @@ while episode <= (num_episodes+5):
         actions, phase = choose_action_adaptive(state_index, lhs_samples)
         
         # Adjust values for the chosen actions
-        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], state_index[0]))
-        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], state_index[1]))
-        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], state_index[2]))
-        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], state_index[3]))
-        cl = int(adjust_value(sampled_configs['cl'], actions[4], state_index[4]))
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], state_index[0], range(len(CPU_CORES_RANGE))))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], state_index[1], range(len(CPU_FREQ_RANGE))))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], state_index[2], range(len(GPU_FREQ_RANGE))))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], state_index[3], range(len(MEMORY_FREQ_RANGE))))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4], state_index[4], range(len(CL_RANGE))))
 
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         update_q_table(state_key, actions)

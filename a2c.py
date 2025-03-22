@@ -16,11 +16,11 @@ if sys.argv[5] == 'jxavier':
     MEMORY_FREQ_RANGE = range(1500, 1867)
     CL_RANGE = range(1, 4)
     output_sizes = {
-    'cpu_cores': 6,   # Number of actions for cpu_cores
+    'cpu_cores': 3,   # Number of actions for cpu_cores
     'cpu_freq': 6,    # Number of actions for cpu_freq
     'gpu_freq': 6,    # Number of actions for gpu_freq
     'memory_freq': 6, # Number of actions for memory_freq
-    'cl': 6           # Number of actions for cl
+    'cl': 3           # Number of actions for cl
     }
 elif sys.argv[5] == 'jorin-nano':
     CPU_CORES_RANGE = [5]
@@ -33,7 +33,7 @@ elif sys.argv[5] == 'jorin-nano':
     'cpu_freq': 6,    # Number of actions for cpu_freq
     'gpu_freq': 6,    # Number of actions for gpu_freq
     'memory_freq': 1, # Number of actions for memory_freq
-    'cl': 6           # Number of actions for cl
+    'cl': 3           # Number of actions for cl
     }
 
 sampled_configs ={
@@ -108,19 +108,19 @@ def state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
     )
 
 # Adjust configuration values based on action
-def adjust_value(value, action, state):
+def adjust_value(value, action, state, range):
     if action == 1:
-        state = state + 1
+        state = min(state + 1, max(range))
     elif action == 2:
-        state = state - 1
+        state = max(min(range), state - 1)
     elif action == 3:
-        state = state - 50
+        state = min(state + 50, max(range))
     elif action == 4:
-        state = state + 50
+        state = max(min(range), state - 50)
     elif action == 5:
-        state = state - 100
+        state = min(state + 100, max(range))
     elif action == 6:
-        state = state + 100
+        state = max(min(range), state - 100)
     return value[state]
 
 def get_result():
@@ -255,11 +255,11 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
             state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
             
             # Adjust configurations based on actions
-            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], cpu_cores_action, state_index[0]))
-            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], cpu_freq_action, state_index[1]))
-            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], gpu_freq_action, state_index[2]))
-            memory_freq = int(adjust_value(sampled_configs['memory_freq'], memory_freq_action, state_index[3]))
-            cl = int(adjust_value(sampled_configs['cl'], cl_action, state_index[4]))
+            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], cpu_cores_action, state_index[0], range(len(CPU_CORES_RANGE))))
+            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], cpu_freq_action, state_index[1], range(len(CPU_FREQ_RANGE))))
+            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], gpu_freq_action, state_index[2], range(len(GPU_FREQ_RANGE))))
+            memory_freq = int(adjust_value(sampled_configs['memory_freq'], memory_freq_action, state_index[3], range(len(MEMORY_FREQ_RANGE))))
+            cl = int(adjust_value(sampled_configs['cl'], cl_action, state_index[4], range(len(CL_RANGE))))
 
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
 
