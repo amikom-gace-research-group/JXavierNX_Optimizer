@@ -90,7 +90,7 @@ def calculate_fitness(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput < int(sys.argv[7]):
+    if throughput <= int(sys.argv[7]):
         return -1e6
     
     return -(power * 1e-6)

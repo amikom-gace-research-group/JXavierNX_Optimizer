@@ -65,7 +65,7 @@ def calculate_reward(measured_metrics):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if int(throughput) < int(sys.argv[7]):
+    if int(throughput) <= int(sys.argv[7]):
         return -(power/throughput * 1e6)
     
     return -(power * 1e-6)
