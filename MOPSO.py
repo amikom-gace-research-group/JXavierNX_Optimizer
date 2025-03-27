@@ -16,7 +16,7 @@ def set_device_ranges(device_type):
         CPU_CORES_RANGE = [5]
         CPU_FREQ_RANGE = range(806, 1510)
         GPU_FREQ_RANGE = range(306, 624)
-        MEMORY_FREQ_RANGE = range(1500, 2133)
+        MEMORY_FREQ_RANGE = [2133]
         CL_RANGE = range(1, 4)
     else:
         raise ValueError("Invalid device type specified.")
