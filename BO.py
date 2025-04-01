@@ -129,7 +129,7 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
     episode_counter += 1
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
 
-    if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl) not in prohibited_configs:
+    if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl) not in prohibited_configs or episode_counter >= 26:
         t1 = time.time()
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
