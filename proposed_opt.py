@@ -549,8 +549,14 @@ while i<6:
     new_configs = (cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
     if new_configs in prohibited_configs:
-        print("optimization searcher failed to search the best configuration :(")
-        break
+        second_best_item = items[1]
+        second_best_idx = list(second_best_item.keys())[0]
+        home_dict = {k: v for k, v in sampled_configs[best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+        home_conf = tuple(home_dict.values())
+        neig_dict = {k: v for k, v in sampled_configs[second_best_idx].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}
+        neig_conf = tuple(neig_dict.values())
+        new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th)
+        cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
