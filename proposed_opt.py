@@ -566,6 +566,7 @@ while i<6:
         if new_configs in av_configs:
             target_idx = av_configs.index(new_configs)
             sampled_configs[target_idx] = dict_new_configs
+            continue
         else:
             sampled_configs.append(dict_new_configs)
 
