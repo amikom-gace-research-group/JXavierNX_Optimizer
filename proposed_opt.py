@@ -544,6 +544,7 @@ while i<6:
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     if len(items) < 2:
         sampling(0)
+        sampling(1)
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
