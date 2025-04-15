@@ -563,10 +563,15 @@ while i<6:
 
         av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
-        if new_configs in av_configs:
+        if new_configs in prohibited_configs:
             target_idx = av_configs.index(new_configs)
             sampled_configs[target_idx] = dict_new_configs
-            continue
+            new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
+            if new_configs in prohibited_configs:
+                target_idx = av_configs.index(new_configs)
+                sampled_configs[target_idx] = dict_new_configs
+            else:
+                continue
         else:
             sampled_configs.append(dict_new_configs)
 
