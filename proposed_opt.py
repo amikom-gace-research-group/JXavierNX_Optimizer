@@ -548,6 +548,8 @@ while i<6:
         rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] > -1]
         rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
         items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
+        if len(items) < 2:
+            continue
     best_item = items[0]
     best_idx = list(best_item.keys())[0]
     configs = tuple(sampled_configs[best_idx].values())
