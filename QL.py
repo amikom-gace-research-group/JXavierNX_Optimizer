@@ -376,7 +376,7 @@ while episode <= (num_episodes+5):
             print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
             epsilon_explore = 0.5
             epsilon_exploit = 0.5
-            continue
+        continue
 
     # Execute the chosen configuration and get metrics
     t1 = time.time()
