@@ -328,9 +328,11 @@ best_action = None
 best_q = -float('inf')
 episode = 1
 
+failed_pt = False
+
 # Execution loop with adaptive epsilon strategy
 while episode <= (num_episodes+5):
-    if episode <= (num_episodes):
+    if episode <= (num_episodes) or failed_pt:
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
 
@@ -346,13 +348,14 @@ while episode <= (num_episodes+5):
 
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         update_q_table(state_key, actions)
-        if state_key in Q_table and bool(get_q_value(state_key, actions)) == True:
-            print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
-            epsilon_explore = 0.5
-            epsilon_exploit = 0.5
-            continue
+        if not failed_pt:
+            if state_key in Q_table and bool(get_q_value(state_key, actions)) == True:
+                print("STUCK CONFIG, RESET TO DEFAULT CONFIG!")
+                epsilon_explore = 0.5
+                epsilon_exploit = 0.5
+                continue
 
-    else:
+    elif not failed_pt:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = get_best_configuration()
         actions = (0, 0 ,0, 0, 0)
         phase = "post-training"
@@ -363,9 +366,13 @@ while episode <= (num_episodes+5):
     # Convert to new state index
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 
-    if episode <= (num_episodes):
-        # Check for prohibited configurations
-        if new_state_index in prohibited_configs:
+    # Check for prohibited configurations
+    if new_state_index in prohibited_configs:
+        if episode > (num_episodes):
+            epsilon_explore = 1
+            epsilon_exploit = 2
+            failed_pt = True
+        else:
             print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
             epsilon_explore = 0.5
             epsilon_exploit = 0.5
