@@ -559,13 +559,14 @@ while i<6:
         cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = tuple(new_configs)
 
         av_configs = [(sampled_config['cpu_cores'], sampled_config['cpu_freq'], sampled_config['gpu_freq'], sampled_config['memory_freq'], sampled_config['cl'], sampled_config['reward']) for sampled_config in sampled_configs]
+        check_config = [config[:-1] for config in av_configs]
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
         if new_configs in prohibited_configs:
-            target_idx = next(i for i, config in enumerate(av_configs) if config == list(new_configs))
+            target_idx = check_config.index(new_configs)
             sampled_configs[target_idx] = dict_new_configs
             new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
             if new_configs in prohibited_configs:
-                target_idx = next(i for i, config in enumerate(av_configs) if config == list(new_configs))
+                target_idx = check_config.index(new_configs)
                 sampled_configs[target_idx] = dict_new_configs
             else:
                 continue
