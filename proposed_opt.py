@@ -565,7 +565,7 @@ while i<6:
             sampled_configs[target_idx] = dict_new_configs
             new_configs = generate_neighbor(home_conf, neig_conf, th_corr_conf_list, pwr_corr_conf_list, th, aside=True)
             if new_configs in prohibited_configs:
-                target_idx = av_configs.index(new_configs)
+                target_idx = av_configs.index(list(new_configs))
                 sampled_configs[target_idx] = dict_new_configs
             else:
                 continue
