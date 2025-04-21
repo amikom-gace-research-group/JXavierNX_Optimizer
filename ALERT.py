@@ -21,26 +21,7 @@ elif sys.argv[5] == 'jorin-nano':
     MEMORY_FREQ_RANGE = [2133]
     CL_RANGE = range(1, 4)
 
-POWER_BUDGET = int(sys.argv[6])
-
-def apply_configs(config):
-    return config["cpu_cores"], config["cpu_freq"], config["gpu_freq"], config["memory_freq"], config["cl"]
-
-def minmax(values, range):
-    values = min(values, max(range))
-    values = max(min(range), values)
-    return int(values)
-
-def generate_neighbor(exist_configs, neighbor_configs):
-    new_neighbors = []
-    for exist_config, neighbor_config, range in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE)):
-        if exist_config > neighbor_config:
-            new_neighbor = minmax(round(exist_config - (exist_config - neighbor_config) / 2), range)
-        else:
-            new_neighbor = minmax(round(exist_config + abs(exist_config - neighbor_config) / 2), range)
-        new_neighbors.append(new_neighbor)
-    new_neighbor  = {"cpu_cores": int(new_neighbors[0]), "cpu_freq": int(new_neighbors[1]), "gpu_freq": int(new_neighbors[2]), "memory_freq": int(new_neighbors[3]), "cl": new_neighbors[4]}
-    return new_neighbor
+THROUGHPUT_TARGET = int(sys.argv[6])
 
 # Extended Kalman Filter class for throughput prediction (returns mean and variance)
 class KalmanFilter:
@@ -217,27 +198,27 @@ def profile_configurations():
 # Dynamic Configuration Selection
 # -----------------------
 
-def select_best_configuration(profiling_data, power_budget, power_variance, episode, proposed=0):
+def select_best_configuration(profiling_data, throughput_target, throughput_variance):
     """
     Selects the best configuration to maximize throughput under a power budget.
 
     Args:
         profiling_data: List of profiled configurations with throughput, power metrics, and variance.
-        power_budget: Power budget constraint (W).
+        throughput_target: Power budget constraint (W).
 
     Returns:
         dict: The best configuration.
     """
     # Step 1: Extract relevant data from profiling_data
-    power = np.array([float(entry['power']) for entry in profiling_data])  # Mean power consumption
+    # power = np.array([float(entry['power']) for entry in profiling_data])  # Mean power consumption
     throughput = np.array([float(entry['throughput']) for entry in profiling_data])  # Throughput
     configurations = np.array(profiling_data)
 
     # Step 2: Create binary mask for valid configurations
-    power_mask = (power <= power_budget).astype(int)  # 1 if within power budget, 0 otherwise
+    power_mask = (throughput > throughput_target).astype(int)  # 1 if within power budget, 0 otherwise
 
     # Step 3: Calculate power probabilities
-    power_probabilities = np.array([calculate_probability(power_budget, p, var) for p, var in zip(power, [power_variance])])
+    power_probabilities = np.array([calculate_probability(throughput_target, t, var) for t, var in zip(throughput, [throughput_variance])])
 
     # Step 4: Create value matrix for scoring
     k_throughput = 1.0  # Weight for throughput (primary objective)
@@ -253,22 +234,7 @@ def select_best_configuration(profiling_data, power_budget, power_variance, epis
     best_index = np.argmax(value_matrix)  # Find the index of the highest score
     best_config = configurations[best_index]
 
-    if not proposed or episode > 74:
-        return best_config, best_index
-
-    # Set the value at the first maximum index to -infinity
-    if episode < 10:
-        second_best_index = np.argmin(value_matrix)
-    else:
-        value_matrix[best_index] = -np.inf
-        second_best_index = np.argmax(value_matrix)
-    second_best_config = apply_configs(configurations[second_best_index])
-    best_config = apply_configs(best_config)
-    new_config = generate_neighbor(best_config, second_best_config)
-    if new_config not in profiling_data:
-        profiling_data.append(new_config)
-
-    return new_config, profiling_data.index(new_config)
+    return best_config, best_index
 
 # -----------------------
 # Runtime Execution Loop
@@ -281,13 +247,13 @@ def execute_runtime(profiling_data, num_episodes=100):
     throughput_filter = KalmanFilter()
     power_filter = KalmanFilterPower()
     best_config = None
-    power_var = 0.01
+    throughput_var = 0.01
 
     for episode in range(num_episodes):
         t1 = time.time()
 
          # Select the best configuration dynamically
-        best = select_best_configuration(profiling_data, POWER_BUDGET, power_var, episode, proposed=int(sys.argv[7]))
+        best = select_best_configuration(profiling_data, THROUGHPUT_TARGET, throughput_var)
 
         if best is None:
             print("[Runtime] No valid configuration found.")
@@ -319,8 +285,8 @@ def execute_runtime(profiling_data, num_episodes=100):
         power = measured_metrics[0]['power_cons']
 
         # Update Kalman Filters
-        predicted_throughput, _ = throughput_filter.update(throughput)
-        predicted_power, power_var = power_filter.update(power)
+        predicted_throughput, throughput_var = throughput_filter.update(throughput)
+        predicted_power, _ = power_filter.update(power)
 
         # Update slowdown factor
         slowdown_factor = predicted_throughput / throughput
@@ -337,7 +303,7 @@ def execute_runtime(profiling_data, num_episodes=100):
             "episode": episode+1,
             "infer_overhead" : elapsed_exec,
             "alert_overhead" : elapsed,
-            "power_budget": POWER_BUDGET,
+            "throughput_target": THROUGHPUT_TARGET,
             "cpu_cores": int(cpu_cores)+1,
             "cpu_freq": cpu_freq,
             "gpu_freq": gpu_freq,
@@ -349,10 +315,7 @@ def execute_runtime(profiling_data, num_episodes=100):
             "gpu_percent": measured_metrics[0]["gpu_percent"],
             "mem_percent": measured_metrics[0]["mem_percent"]
         }
-        if int(sys.argv[7]):
-            file = f"alert-proposed_{sys.argv[5]}_{sys.argv[4]}.csv"
-        else:
-            file = f"alert_{sys.argv[5]}_{sys.argv[4]}.csv"
+        file = f"alert_{sys.argv[5]}_{sys.argv[4]}.csv"
         
         save_csv([configs], file)
 
@@ -376,7 +339,7 @@ def calculate_probability(goal, mean, variance):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'power_budget', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'throughput_target', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -392,7 +355,7 @@ if __name__ == "__main__":
         profiling_data = profile_configurations()
 
         # Step 2: Runtime execution
-        out = execute_runtime(profiling_data, num_episodes=100)
+        out = execute_runtime(profiling_data, num_episodes=5)
         if out == "No Best":
             continue
         else:
