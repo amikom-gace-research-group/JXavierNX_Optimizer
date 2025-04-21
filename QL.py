@@ -376,7 +376,7 @@ while episode <= (num_episodes+5):
             failed_pt = True
             fail += 1
             continue
-        else:
+        elif episode <= (num_episodes):
             print("PROHIBITED CONFIG, RESET TO DEFAULT CONFIG!")
             epsilon_explore = 0.5
             epsilon_exploit = 0.5
