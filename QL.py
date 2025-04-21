@@ -360,8 +360,8 @@ while episode <= (num_episodes+5):
         actions = (0, 0 ,0, 0, 0)
         phase = "post-training"
 
-    # Print the chosen configuration for tracking
-    print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
+    # # Print the chosen configuration for tracking
+    # print({"cpu_cores": cpu_cores+1, "cpu_freq": cpu_freq, "gpu_freq": gpu_freq, "memory_freq": memory_freq, "cl": cl})
 
     # Convert to new state index
     new_state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
