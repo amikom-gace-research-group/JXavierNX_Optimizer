@@ -228,8 +228,7 @@ def select_best_configuration(profiling_data, throughput_target, throughput_vari
 
     # Step 5: Select the best configuration
     if np.sum(power_mask) == 0:
-        print("No valid configuration found within the power budget.")
-        return None
+        print("[Runtime] No valid configuration found within the power budget.")
 
     best_index = np.argmax(value_matrix)  # Find the index of the highest score
     best_config = configurations[best_index]
@@ -254,11 +253,6 @@ def execute_runtime(profiling_data, num_episodes=100):
 
          # Select the best configuration dynamically
         best = select_best_configuration(profiling_data, THROUGHPUT_TARGET, throughput_var)
-
-        if best is None:
-            print("[Runtime] No valid configuration found.")
-            os.remove(f"profiling_{sys.argv[5]}_{sys.argv[4]}.csv")
-            break
 
         best_config, best_index = best
 
