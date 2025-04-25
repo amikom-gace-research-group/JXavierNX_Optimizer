@@ -99,7 +99,7 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'reward', 'phase', 'episode', 'xaviernx_time_elapsed', 'proposed_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -248,6 +248,7 @@ max_stuck_count = 5
 
 def sampling(condition):
     global eps, stuck_count, sampled_configs, prohibited_configs, max_stuck_count
+    t2 = time.time()
     lhs_samples = generate_lhs_samples()
     if condition:
         configs = calculate_diversity(lhs_samples, condition=condition)
@@ -294,12 +295,15 @@ def sampling(condition):
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(tuple(sampled_configs_checker.values()))
 
+    elapsed = round(((time.time() - t2) - elapsed_exec) * 1000, 3)
+
     configs = {
         "api_time": api_time,
         "reward": reward,
         "phase":"exploration",
         "episode": eps,
         "xaviernx_time_elapsed": elapsed_exec,
+        "proposed_time_elapsed": elapsed,
         "cpu_cores": cpu_cores+1,
         "cpu_freq": cpu_freq,
         "gpu_freq": gpu_freq,
@@ -324,6 +328,7 @@ pwr_corr_conf_list = [1, 1, 1, 1, 1]
 # backup_pwr_corr = pwr_corr_conf_list
 
 while eps <= (int(sys.argv[6])):
+    t2 = time.time()
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs) if sampled_config['reward'] != 0]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
     th = [sampled_config["throughput"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -448,12 +453,15 @@ while eps <= (int(sys.argv[6])):
             print("PROHIBITED CONFIG!")
             prohibited_configs.add(tuple(new_checker.values()))
 
+        elapsed = round(((time.time() - t2) - elapsed_exec) * 1000, 3)
+
         configs = {
             "api_time": api_time,
             "reward": reward,
             "phase":"exploitation",
             "episode": eps,
             "xaviernx_time_elapsed": elapsed_exec,
+            "proposed_time_elapsed": elapsed,
             "cpu_cores": cpu_cores+1,
             "cpu_freq": cpu_freq,
             "gpu_freq": gpu_freq,
@@ -516,12 +524,15 @@ while eps <= (int(sys.argv[6])):
                 print("PROHIBITED CONFIG!")
                 prohibited_configs.add(tuple(new_checker.values()))
 
+            elapsed = round(((time.time() - t2) - elapsed_exec) * 1000, 3)
+
             configs = {
                 "api_time": api_time,
                 "reward": reward,
                 "phase":"exploitation",
                 "episode": eps,
                 "xaviernx_time_elapsed": elapsed_exec,
+                "proposed_time_elapsed": elapsed,
                 "cpu_cores": cpu_cores+1,
                 "cpu_freq": cpu_freq,
                 "gpu_freq": gpu_freq,
@@ -539,6 +550,7 @@ i = 0
 
 #test 5 times
 while i<6:
+    t2 = time.time()
     rewards_dicts = [{idx:sampled_config['reward']} for idx, sampled_config in enumerate(sampled_configs)]
     rewards = [list(reward)[0] for reward in (rewards_dict.values() for rewards_dict in rewards_dicts)]
     items = sorted(rewards_dicts, key=lambda d: list(d.values())[0], reverse=True)
@@ -598,12 +610,15 @@ while i<6:
         print("PROHIBITED CONFIG!")
         prohibited_configs.add(tuple(new_checker.values()))
 
+    elapsed = round(((time.time() - t2) - elapsed_exec) * 1000, 3)
+
     configs = {
         "api_time": api_time,
         "reward": reward,
         "phase":"post-training",
         "episode": eps,
         "xaviernx_time_elapsed": elapsed_exec,
+        "proposed_time_elapsed": elapsed,
         "cpu_cores": cpu_cores+1,
         "cpu_freq": cpu_freq,
         "gpu_freq": gpu_freq,

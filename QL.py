@@ -334,6 +334,7 @@ failed_pt = False
 
 # Execution loop with adaptive epsilon strategy
 while episode <= (num_episodes+5):
+    t2 = time.time()
     if episode <= (num_episodes) or failed_pt:
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
@@ -423,7 +424,7 @@ while episode <= (num_episodes+5):
         best_q = new_q_value
         best_action = actions
 
-    elapsed = round(((time.time() - t1) - elapsed_exec) * 1000, 3)
+    elapsed = round(((time.time() - t2) - elapsed_exec) * 1000, 3)
 
     # Adaptive strategy: increase epsilon if reward is too low, decrease it if reward is sufficient
     if reward == -1e6:
