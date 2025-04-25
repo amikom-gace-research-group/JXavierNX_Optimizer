@@ -121,6 +121,7 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 powers = []
+results = []
 
 # The objective function for Bayesian Optimization
 @use_named_args(space)
@@ -162,10 +163,13 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
             "gpu_freq": int(gpu_freq),
             "mem_freq": int(mem_freq),
             "cl": int(cl),
+            'throughput': measured_metrics[0]["throughput"],
+            'power_cons': measured_metrics[0]["power_cons"],
+            "cpu_percent": measured_metrics[0]["cpu_percent"],
+            "gpu_percent": measured_metrics[0]["gpu_percent"],
+            "mem_percent": measured_metrics[0]["mem_percent"]
             }
-            result = {**configs, **measured_metrics[0]}
-            save_csv([result], f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
-
+            results.append(configs)
             last_rewards.append(reward)
 
             return reward  # Minimize the negative reward to maximize reward
@@ -229,7 +233,11 @@ try:
     t2 = time.time()
     res = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=n_initial_points, callback=[tracker])
     # Run Bayesian Optimization
-    elapsed = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
+    elapsed_tall = round(((time.time() - sum(time_got)) - t2) * 1000, 3)
+    elapsed = elapsed_tall / len(time_got)
+    for result in results:
+        dict_record = [{'bo_time_elapsed': elapsed, **result}]
+        save_csv(dict_record, f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
     elapsed_total = round(time.time() - t2, 3)
     if int(sys.argv[7]):
         from skopt.plots import plot_objective, plot_evaluations

@@ -179,6 +179,7 @@ class MOPSO:
         self.best_throughput = -float('inf')
 
     def optimize(self):
+        t1 = time.time()
         results = []
         episode = 0
         for iteration in range(self.max_iter):
@@ -252,7 +253,11 @@ class MOPSO:
             print(f"Iteration {iteration + 1}/{self.max_iter}, Best Fitness: {self.global_best_fitness}")
             if not metrics or metrics == "No Device":
                 break
-        save_csv(results, f"mopso_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")  # Save all results to CSV after optimization
+        end_t1 = round(((time.time() - t1) - sum(time_got)) * 1000, 3)
+        end = end_t1 / len(time_got)
+        for config in results:
+            dict_record = [{'mopso_time_elapsed': end, **config}]
+            save_csv(dict_record, f"mopso_{int(sys.argv[6])}_{sys.argv[5]}_{sys.argv[4]}.csv")
         return self.best_config, self.global_best_fitness, episode
 
 # Main Execution

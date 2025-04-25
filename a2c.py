@@ -269,9 +269,9 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 continue
 
             # Execute configuration and get metrics
-            t1 = time.time()
+            t2 = time.time()
             measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
-            elapsed_exec = round(time.time() - t1, 3)
+            elapsed_exec = round(time.time() - t2, 3)
             time_got.append(elapsed_exec)
 
             if not measured_metrics:
