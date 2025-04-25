@@ -126,7 +126,7 @@ results = []
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter, best_throughput, powers
+    global episode_counter, best_throughput, powers, results
     episode_counter += 1
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
 
@@ -238,6 +238,7 @@ try:
     for result in results:
         dict_record = [{'bo_time_elapsed': elapsed, **result}]
         save_csv(dict_record, f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
+    results = []
     elapsed_total = round(time.time() - t2, 3)
     if int(sys.argv[7]):
         from skopt.plots import plot_objective, plot_evaluations
@@ -251,7 +252,9 @@ try:
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
-    for _ in range(5):
+    for _, result in zip(range(5), results):
         objective(tuple(res.x))
+        dict_record = [{'bo_time_elapsed': 0, **result}]
+        save_csv(dict_record, f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 except RuntimeError as e:
     print(e)  # Handle exception messages
