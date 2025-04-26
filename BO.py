@@ -252,8 +252,9 @@ try:
     # Output the best found configuration and try the best config on device
     best_params = dict(zip(['cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl'], res.x))
     print(f"Best configuration found: {best_params} in {elapsed} ms for BO and total time is took {elapsed_total}")
-    for _, result in zip(range(5), results):
+    for _ in range(5):
         objective(tuple(res.x))
+    for result in results:
         dict_record = [{'bo_time_elapsed': 0, **result}]
         save_csv(dict_record, f"bo_{sys.argv[6]}_{sys.argv[5]}_{sys.argv[4]}.csv")
 except RuntimeError as e:
