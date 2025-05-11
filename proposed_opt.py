@@ -251,7 +251,7 @@ def sampling(condition):
     t2 = time.time()
     lhs_samples = generate_lhs_samples()
     if condition:
-        configs = calculate_diversity(lhs_samples, condition=condition)
+        configs = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE) #calculate_diversity(lhs_samples, condition=condition)
         config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
         sampled_configs.append(config)
     else: # random hypercube
