@@ -132,8 +132,6 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
 
     if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl) not in prohibited_configs or episode_counter >= 26:
         t1 = time.time()
-        if episode_counter == 1:
-            cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
 
         elapsed = round(time.time() - t1, 3)

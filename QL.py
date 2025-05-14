@@ -337,19 +337,17 @@ while episode <= (num_episodes+5):
     t2 = time.time()
     if episode <= (num_episodes) or failed_pt:
         # Generate LHS samples for this episode
-        if episode == 1:
-            cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
-        else:
-            lhs_samples = generate_lhs_samples()
-            # Choose actions based on current state and LHS samples
-            actions, phase = choose_action_adaptive(state_index, lhs_samples)
-            
-            # Adjust values for the chosen actions
-            cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], state_index[0], range(len(CPU_CORES_RANGE))))
-            cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], state_index[1], range(len(CPU_FREQ_RANGE))))
-            gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], state_index[2], range(len(GPU_FREQ_RANGE))))
-            memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], state_index[3], range(len(MEMORY_FREQ_RANGE))))
-            cl = int(adjust_value(sampled_configs['cl'], actions[4], state_index[4], range(len(CL_RANGE))))
+        lhs_samples = generate_lhs_samples()
+
+        # Choose actions based on current state and LHS samples
+        actions, phase = choose_action_adaptive(state_index, lhs_samples)
+        
+        # Adjust values for the chosen actions
+        cpu_cores = int(adjust_value(sampled_configs['cpu_cores'], actions[0], state_index[0], range(len(CPU_CORES_RANGE))))
+        cpu_freq = int(adjust_value(sampled_configs['cpu_freq'], actions[1], state_index[1], range(len(CPU_FREQ_RANGE))))
+        gpu_freq = int(adjust_value(sampled_configs['gpu_freq'], actions[2], state_index[2], range(len(GPU_FREQ_RANGE))))
+        memory_freq = int(adjust_value(sampled_configs['memory_freq'], actions[3], state_index[3], range(len(MEMORY_FREQ_RANGE))))
+        cl = int(adjust_value(sampled_configs['cl'], actions[4], state_index[4], range(len(CL_RANGE))))
 
         state_key = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
         update_q_table(state_key, actions)
