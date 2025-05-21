@@ -6,6 +6,7 @@ import csv
 import requests
 import math
 from pyDOE import lhs
+from scipy.spatial.distance import pdist, squareform
 from sklearn.preprocessing import MinMaxScaler
 from scipy.spatial import distance
 
@@ -110,40 +111,17 @@ def minmax(values, range):
     values = max(min(range), values)
     return int(values)
 
-def pearson_correlation(x, y):
-    # Check if the input lists are of the same length
-    if len(x) != len(y):
-        raise ValueError("The input lists must be of the same length.")
-    
+def distance_correlation(x, y):
+    x, y = np.array(x), np.array(y)
     n = len(x)
-    # Check if the input lists are empty
-    if n == 0:
-        raise ValueError("The input lists cannot be empty.")
-    
-    # Calculate the means of x and y
-    mean_x = sum(x) / n
-    mean_y = sum(y) / n
-    
-    # Initialize variables to accumulate the sums
-    covariance = 0.0
-    variance_x = 0.0
-    variance_y = 0.0
-    
-    # Iterate through the data points to compute the necessary sums
-    for xi, yi in zip(x, y):
-        diff_x = xi - mean_x
-        diff_y = yi - mean_y
-        covariance += diff_x * diff_y
-        variance_x += diff_x ** 2
-        variance_y += diff_y ** 2
-    
-    # Check for zero variance to avoid division by zero
-    if variance_x == 0 or variance_y == 0:
-        return float('nan')
-    
-    # Calculate the Pearson correlation coefficient
-    denominator = (variance_x * variance_y) ** 0.5
-    return covariance / denominator
+    a = squareform(pdist(x.reshape(-1, 1)))
+    b = squareform(pdist(y.reshape(-1, 1)))
+    A = a - a.mean(axis=0)[None, :] - a.mean(axis=1)[:, None] + a.mean()
+    B = b - b.mean(axis=0)[None, :] - b.mean(axis=1)[:, None] + b.mean()
+    dcov = np.sqrt((A * B).sum() / (n**2))
+    dvar_x = np.sqrt((A**2).sum() / (n**2))
+    dvar_y = np.sqrt((B**2).sum() / (n**2))
+    return dcov / np.sqrt(dvar_x * dvar_y)
 
 print("PID", os.getpid())
 
@@ -354,8 +332,8 @@ while eps <= (int(sys.argv[6])):
             mems = [sampled_config["memory_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             _cls = [sampled_config["cl"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             for i, x in enumerate([cores, cpus, gpus, mems, _cls]):
-                a = pearson_correlation(x, th)
-                b = pearson_correlation(x, pwr)
+                a = distance_correlation(x, th)
+                b = distance_correlation(x, pwr)
                 if not np.isnan(a) or not np.isnan(b):
                     th_corr_conf_list[i] = a
                     pwr_corr_conf_list[i] = b
