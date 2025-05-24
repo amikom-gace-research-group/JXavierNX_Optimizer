@@ -175,7 +175,7 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','id', 'episode', 'reward', 'xaviernx_time_elapsed', 'a2c_time_elapsed', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'mem_freq', 'cl', 'elapsed', 'throughput', 'power_cons', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:
@@ -212,6 +212,7 @@ def exec_trained(configs):
             'gpu_freq': int(configs[2]),
             'mem_freq': int(configs[3]),
             'cl': int(configs[4]),
+            "elapsed": metrics[0]["elapsed"],
             "throughput": metrics[0]["throughput"],
             "power_cons": metrics[0]["power_cons"],
             "cpu_percent": metrics[0]["cpu_percent"],
@@ -231,7 +232,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     episode = 0
 
     # Initial configuration (starting in the middle of the range)
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = random.choice(sampled_configs['cpu_cores']), random.choice(sampled_configs['cpu_freq']), random.choice(sampled_configs['gpu_freq']), random.choice(sampled_configs['memory_freq']), random.choice(sampled_configs['cl'])
 
     for _ in range(num_episodes):
         states, actions, rewards = [], [], []
@@ -298,6 +299,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 "gpu_freq": gpu_freq,
                 "mem_freq": memory_freq,
                 "cl": cl,
+                "elapsed": measured_metrics[0]["elapsed"],
                 "throughput": measured_metrics[0]["throughput"],
                 "power_cons": measured_metrics[0]["power_cons"],
                 "cpu_percent": measured_metrics[0]["cpu_percent"],
