@@ -67,9 +67,10 @@ def avg(val):
     sum(val)//len(val)
 
 def increment_target(scores, target):
-    if avg(scores) < -1:
-        target += 5
-    return target
+    if scores:
+        if avg(scores) < -1:
+            target += 5
+        return target
 
 # Calculate reward with shaping
 def calculate_reward(measured_metrics, target):
