@@ -335,8 +335,9 @@ while eps <= (int(sys.argv[6])):
     sorted_rewards = sorted(rewards, reverse=True)
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
-        if len(rewards) >= max_trends_record+2:
+        if (eps % 5) == 0:
             th_target = increment_target(rewards, th_target)
+        if len(rewards) >= max_trends_record+2:
             cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
