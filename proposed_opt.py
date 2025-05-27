@@ -229,8 +229,7 @@ def sampling(condition):
     t2 = time.time()
     lhs_samples = generate_lhs_samples()
     if condition:
-        configs = calculate_diversity(lhs_samples, condition=condition)
-        config = {"cpu_cores": int(configs[0]), "cpu_freq": int(configs[1]), "gpu_freq": int(configs[2]), "memory_freq": int(configs[3]), "cl": int(configs[4]), "reward":0, "throughput":0, 'power_cons':-1}
+        config = {"cpu_cores": max(CPU_CORES_RANGE), "cpu_freq": max(CPU_FREQ_RANGE), "gpu_freq": max(GPU_FREQ_RANGE), "memory_freq": max(MEMORY_FREQ_RANGE), "cl": max(CL_RANGE), "reward":0, "throughput":0, 'power_cons':-1}
         sampled_configs.append(config)
     else: # random hypercube
         home_dict = {k: v for k, v in sampled_configs[-1].items() if k != 'reward' and k != 'throughput' and k != 'power_cons'}

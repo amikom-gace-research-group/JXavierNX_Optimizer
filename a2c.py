@@ -232,7 +232,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
     episode = 0
 
     # Initial configuration (starting in the middle of the range)
-    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = random.choice(sampled_configs['cpu_cores']), random.choice(sampled_configs['cpu_freq']), random.choice(sampled_configs['gpu_freq']), random.choice(sampled_configs['memory_freq']), random.choice(sampled_configs['cl'])
+    cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 
     for _ in range(num_episodes):
         states, actions, rewards = [], [], []

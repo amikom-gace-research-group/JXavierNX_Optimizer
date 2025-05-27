@@ -322,7 +322,7 @@ def save_csv(dict_list, filename):
             writer.writerow(d)
 
 # Initial configuration (starting in the middle of the range)
-cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = random.choice(sampled_configs['cpu_cores']), random.choice(sampled_configs['cpu_freq']), random.choice(sampled_configs['gpu_freq']), random.choice(sampled_configs['memory_freq']), random.choice(sampled_configs['cl'])
+cpu_cores, cpu_freq, gpu_freq, memory_freq, cl = max(sampled_configs['cpu_cores']), max(sampled_configs['cpu_freq']), max(sampled_configs['gpu_freq']), max(sampled_configs['memory_freq']), max(sampled_configs['cl'])
 state_index = state_to_index(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl)
 best_action = None
 best_q = -float('inf')
