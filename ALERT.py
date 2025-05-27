@@ -182,10 +182,11 @@ def profile_configurations():
             cpu =  measured_metrics[0]["cpu_percent"]
             gpu = measured_metrics[0]["gpu_percent"]
             mem = measured_metrics[0]["mem_percent"]
-            data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec}
+            elapsed = measured_metrics[0]["elapsed"]
+            data = {**config, "throughput": throughput, "power": power, "cpu_percent": cpu, "gpu_percent": gpu, "mem_percent": mem, "profiling_time (s)": elapsed_exec, "elapsed": elapsed}
             profiling_data.append(data)
             with open(f"profiling_{sys.argv[5]}_{sys.argv[4]}.csv", 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['profiling_time (s)', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+                writer = csv.DictWriter(f, fieldnames=['profiling_time (s)', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'elapsed', 'cl', 'throughput', 'power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
                 if os.path.getsize(f"profiling_{sys.argv[5]}_{sys.argv[4]}.csv") == 0:
                     writer.writeheader()
                 writer.writerow(data)
@@ -303,6 +304,7 @@ def execute_runtime(profiling_data, num_episodes=100):
             "gpu_freq": gpu_freq,
             "memory_freq": memory_freq,
             "cl": cl,
+            "elapsed": measured_metrics[0]["elapsed"],
             "estimated_throughput": estimated_throughput,
             "estimated_power": estimated_power,
             "cpu_percent": measured_metrics[0]["cpu_percent"],
@@ -333,7 +335,7 @@ def calculate_probability(goal, mean, variance):
 # CSV saving optimization
 def save_csv(dict_list, filename):
     with open(filename, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'throughput_target', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'estimated_throughput', 'estimated_power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
+        writer = csv.DictWriter(f, fieldnames=['api_time','episode', 'infer_overhead', 'alert_overhead', 'throughput_target', 'cpu_cores', 'cpu_freq', 'gpu_freq', 'memory_freq', 'cl', 'elapsed', 'estimated_throughput', 'estimated_power', 'cpu_percent', 'gpu_percent', 'mem_percent'])
         if os.path.getsize(filename) == 0:
             writer.writeheader()
         for d in dict_list:

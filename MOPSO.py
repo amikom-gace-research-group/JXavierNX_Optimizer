@@ -237,6 +237,7 @@ class MOPSO:
                     'gpu_freq': config[2],
                     'mem_freq': config[3],
                     'cl': config[4],
+                    'elapsed': metrics[0]["elapsed"],
                     'throughput': metrics[0]["throughput"],
                     'power_cons': metrics[0]["power_cons"],
                     "cpu_percent": metrics[0]["cpu_percent"],
