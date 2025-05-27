@@ -302,12 +302,22 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
+th_target = int(sys.argv[7])
+
+def avg(val):
+    sum(val)//len(val)
+
+def increment_target(scores, target):
+    if avg(scores) < -1:
+        target += 5
+    return target
+
 # Calculate reward with shaping
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, target):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput <= int(sys.argv[7]):
+    if throughput <= target:
         return -1e6
     
     return -(power * 1e-6)
@@ -331,11 +341,14 @@ max_fail = 5
 fail = 0
 
 failed_pt = False
+rewards = [0]
 
 # Execution loop with adaptive epsilon strategy
 while episode <= (num_episodes+5):
     t2 = time.time()
     if episode <= (num_episodes) or failed_pt:
+        if (episode % 5) == 0:
+            th_target = increment_target(rewards, th_target)
         # Generate LHS samples for this episode
         lhs_samples = generate_lhs_samples()
 
@@ -393,7 +406,7 @@ while episode <= (num_episodes+5):
         continue
 
     # Calculate the reward for this configuration
-    reward = calculate_reward(measured_metrics)
+    reward = calculate_reward(measured_metrics, th_target)
 
     if reward == -1e6:
         print("PROHIBITED CONFIG!")
@@ -453,6 +466,7 @@ while episode <= (num_episodes+5):
     # Update state and last reward
     last_reward = reward
     state_index = new_state_index
+    rewards.append(reward)
 
     episode += 1
 

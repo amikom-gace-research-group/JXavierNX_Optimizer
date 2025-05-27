@@ -181,12 +181,22 @@ def save_csv(dict_list, filename):
         for d in dict_list:
             writer.writerow(d)
 
+th_target = int(sys.argv[7])
+
+def avg(val):
+    sum(val)//len(val)
+
+def increment_target(scores, target):
+    if avg(scores) < -1:
+        target += 5
+    return target
+
 # Efficient reward calculation
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, target):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput <= int(sys.argv[7]):
+    if throughput <= target:
         return -1e6
     
     return -(power * 1e-6)
@@ -200,7 +210,7 @@ def exec_trained(configs):
             continue
         if metrics == "No Device":
             break
-        reward = calculate_reward(metrics)
+        reward = calculate_reward(metrics, th_target)
         config = {
             "api_time": api_time,
             "episode": eps,
@@ -239,6 +249,8 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
 
         for _ in range(2):  # Define the number of steps per episode
             episode += 1
+            if (episode % 5) == 0:
+                th_target = increment_target(rewards, th_target)
             state = np.array([cpu_cores, cpu_freq, gpu_freq, memory_freq, cl])
             state_tensor = torch.tensor(state, dtype=torch.float32)
 
@@ -282,7 +294,7 @@ def a2c_algorithm(actor_network, critic_network, actor_optimizer, critic_optimiz
                 print("No Device/Inference Runtime")
                 break
 
-            reward = calculate_reward(measured_metrics)
+            reward = calculate_reward(measured_metrics, th_target)
             rewards.append(reward)
 
             if reward == -1e6:

@@ -85,12 +85,22 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
+th_target = int(sys.argv[7])
+
+def avg(val):
+    sum(val)//len(val)
+
+def increment_target(scores, target):
+    if avg(scores) < -1:
+        target += 5
+    return target
+
 # Reward function based on power and throughput metrics
-def calculate_fitness(measured_metrics):
+def calculate_fitness(measured_metrics, target):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput <= int(sys.argv[7]):
+    if throughput <= target:
         return -1e6
     
     return -(power * 1e-6)
@@ -127,6 +137,7 @@ def save_csv(results, filename):
         writer.writerows(results)
 
 def exec_trained(configs, episode):
+    global th_target
     while episode < 30:
         episode += 1
         if tuple(configs) in prohibited_configs:
@@ -138,7 +149,7 @@ def exec_trained(configs, episode):
             continue
         if metrics == "No Device":
             break
-        fitness = calculate_fitness(metrics)
+        fitness = calculate_fitness(metrics, th_target)
         if fitness == -1e6:
             print("Prohibited Configuration!")
             prohibited_configs.add(tuple(configs))
@@ -181,11 +192,14 @@ class MOPSO:
     def optimize(self):
         t1 = time.time()
         results = []
+        rewards = []
         episode = 0
         for iteration in range(self.max_iter):
             best_fitness_this_iter = -1
             for particle in self.swarm:
                 episode += 1
+                if (episode % 5) == 0:
+                    th_target = increment_target(rewards, th_target)
                 if episode == 1:
                     config = [
                         max(self.config_ranges["CPU_CORES_RANGE"]), max(self.config_ranges["CPU_FREQ_RANGE"]), max(self.config_ranges["GPU_FREQ_RANGE"]), max(self.config_ranges["MEMORY_FREQ_RANGE"]), max(self.config_ranges["CL_RANGE"])
@@ -209,7 +223,8 @@ class MOPSO:
                 if not metrics or metrics == "No Device":
                     break
 
-                fitness = calculate_fitness(metrics)
+                fitness = calculate_fitness(metrics, th_target)
+                rewards.append(fitness)
 
                 if fitness == -1e6:
                     print("Prohibited Configuration!")

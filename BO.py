@@ -100,13 +100,23 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
+th_target = int(sys.argv[8])
+
+def avg(val):
+    sum(val)//len(val)
+
+def increment_target(scores, target):
+    if avg(scores) < -1:
+        target += 5
+    return target
+
 # Reward function based on power and throughput metrics
 # Efficient reward calculation
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, target):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if throughput <= int(sys.argv[8]):
+    if throughput <= target:
         return 1e6
     
     return power * 1e-6
@@ -122,16 +132,19 @@ def save_csv(dict_list, filename):
 
 powers = []
 results = []
+rewards = []
 
 # The objective function for Bayesian Optimization
 @use_named_args(space)
 def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
-    global episode_counter, best_throughput, powers, results
+    global episode_counter, best_throughput, powers, results, rewards
     episode_counter += 1
     print(f"Testing configuration in eps {episode_counter}: CPU Cores={cpu_cores+1}, CPU Freq={cpu_freq}, GPU Freq={gpu_freq}, Mem Freq={mem_freq}, CL={cl}")
 
     if (cpu_cores, cpu_freq, gpu_freq, mem_freq, cl) not in prohibited_configs or episode_counter >= 26:
         t1 = time.time()
+        if (episode_counter % 5) == 0:
+            th_target = increment_target(rewards, th_target)
         if episode_counter == 1:
             cpu_cores, cpu_freq, gpu_freq, mem_freq, cl = max(CPU_CORES_RANGE), max(CPU_FREQ_RANGE), max(GPU_FREQ_RANGE), max(MEMORY_FREQ_RANGE), max(CL_RANGE)
         measured_metrics, api_time = execute_config(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl)
@@ -147,7 +160,8 @@ def objective(cpu_cores, cpu_freq, gpu_freq, mem_freq, cl):
                 print("No device detected. Raising an exception to stop optimization.")
                 raise RuntimeError("No device detected. Stopping optimization.")  # Raise exception to stop the optimizer
 
-            reward = calculate_reward(measured_metrics)
+            reward = calculate_reward(measured_metrics, th_target)
+            rewards.append(reward)
             print(f"Configuration reward: {reward}")
 
             if reward == 1e6:

@@ -61,12 +61,22 @@ def execute_config(cpu_cores, cpu_freq, gpu_freq, memory_freq, cl):
         print(f"Error executing config: {e}")
     return None, None
 
+th_target = int(sys.argv[7])
+
+def avg(val):
+    sum(val)//len(val)
+
+def increment_target(scores, target):
+    if avg(scores) < -1:
+        target += 5
+    return target
+
 # Calculate reward with shaping
-def calculate_reward(measured_metrics):
+def calculate_reward(measured_metrics, target):
     power = measured_metrics[0]["power_cons"]
     throughput = measured_metrics[0]["throughput"]
     
-    if int(throughput) <= int(sys.argv[7]):
+    if int(throughput) <= target:
         return -(power/throughput * 1e6)
     
     return -(power * 1e-6)
@@ -78,6 +88,7 @@ def rounded(x):
 
 # exploitation
 def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_conf, th, aside=False):
+    global th_target
     new_neighbors = []
     for exist_config, neighbor_config, range, th_conf, pwr_conf in zip(exist_configs, neighbor_configs, (CPU_CORES_RANGE, CPU_FREQ_RANGE, GPU_FREQ_RANGE, MEMORY_FREQ_RANGE, CL_RANGE), th_corr_conf, pwr_corr_conf):
         if th_conf > pwr_conf:
@@ -90,7 +101,7 @@ def generate_neighbor(exist_configs, neighbor_configs, th_corr_conf, pwr_corr_co
         else:
             home_l = exist_config
             home_h = neighbor_config
-        if int(th[-1]) > int(sys.argv[7]):
+        if int(th[-1]) > th_target:
             new_neighbor = minmax(rounded(home_l - (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
         else:
             new_neighbor = minmax(rounded(home_h + (abs(exist_config - neighbor_config) / 2) * corr_conf), range)
@@ -265,7 +276,7 @@ def sampling(condition):
     sampled_configs[-1]["throughput"] = measured_metrics[0]["throughput"]
     sampled_configs[-1]["power_cons"] = measured_metrics[0]["power_cons"]
 
-    reward = calculate_reward(measured_metrics)
+    reward = calculate_reward(measured_metrics, th_target)
     sampled_configs[-1]["reward"] = reward
 
     if reward < -1:
@@ -325,6 +336,7 @@ while eps <= (int(sys.argv[6])):
     pwr = [sampled_config["power_cons"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
     if (count_trend(rewards)['INC'] > count_trend(rewards)['DEC'] and count_trend(rewards)['-'] < count_trend(rewards)['+'] if len(rewards) >= max_trends_record else True):
         if len(rewards) >= max_trends_record+2:
+            th_target = increment_target(rewards, th_target)
             cores = [sampled_config["cpu_cores"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             cpus = [sampled_config["cpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
             gpus = [sampled_config["gpu_freq"] for sampled_config in sampled_configs if sampled_config["throughput"] != 0 and sampled_config["power_cons"] != -1]
@@ -416,7 +428,7 @@ while eps <= (int(sys.argv[6])):
         #     th_corr_conf_list = backup_th_corr
         #     pwr_corr_conf_list = backup_pwr_corr
         
-        reward = calculate_reward(measured_metrics)
+        reward = calculate_reward(measured_metrics, th_target)
         dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
         if new_configs in av_configs[:-1]:
             target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-1]), None)
@@ -487,7 +499,7 @@ while eps <= (int(sys.argv[6])):
             if measured_metrics == "No Device":
                 print("No Device/No Inference Runtime")
                 break
-            reward = calculate_reward(measured_metrics)
+            reward = calculate_reward(measured_metrics, th_target)
             dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
             if new_configs in av_configs[:-1]:
                 target_item = next((d for d in rewards_dicts if list(d.values())[0] == av_configs[-1]), None)
@@ -578,7 +590,7 @@ while i<6:
         print("No Device/No Inference Runtime")
         break
 
-    reward = calculate_reward(measured_metrics)
+    reward = calculate_reward(measured_metrics, th_target)
     dict_new_configs = {"cpu_cores": int(new_configs[0]), "cpu_freq": int(new_configs[1]), "gpu_freq": int(new_configs[2]), "memory_freq": int(new_configs[3]), "cl": new_configs[4], "reward":reward, "throughput":measured_metrics[0]["throughput"], "power_cons":measured_metrics[0]["power_cons"]}
     sampled_configs[best_idx] = dict_new_configs
 

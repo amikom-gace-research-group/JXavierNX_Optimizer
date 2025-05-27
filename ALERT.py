@@ -289,6 +289,9 @@ def execute_runtime(profiling_data, num_episodes=100):
         power_slowdown_factor = predicted_power / power
         estimated_power= power_slowdown_factor * power
 
+        if estimated_throughput >= THROUGHPUT_TARGET and (episode % 5) == 0:
+            THROUGHPUT_TARGET += 5
+
         profiling_data[best_index]['power'] = estimated_power
         profiling_data[best_index]['throughput'] = estimated_throughput
 
@@ -351,7 +354,7 @@ if __name__ == "__main__":
         profiling_data = profile_configurations()
 
         # Step 2: Runtime execution
-        out = execute_runtime(profiling_data, num_episodes=5)
+        out = execute_runtime(profiling_data, num_episodes=30)
         if out == "No Best":
             continue
         else:
