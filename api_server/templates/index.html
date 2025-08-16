@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFG Jetson Xavier NX API Server</title>
+    <script src="http://code.jquery.com/jquery-3.6.0.js"></script>
+</head>
+<body>
+    <h1>CFG Jetson API Server</h1><br>
+
+    <!-- Login Form -->
+    <div id="login-form">
+        <h3>Login/Register</h3>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username"><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password"><br><br>
+        <button onclick="login()">Login </button>
+        <button onclick="register()">Register</button>
+    </div>
+
+    <!-- API Access Section (Hidden until login is successful) -->
+    <div id="api-section" style="display:none;">
+        <h3>API Key Generate</h3>
+        <button onclick="postAPIREAD()">Generate READ Key</button>
+        <button onclick="postAPIWRITE()">Generate WRITE Key</button>
+        <h5>READ API KEY&ensp; : <a id="read">{{ keyread }}</a></h5>
+        <h5>WRITE API KEY : <a id="write">{{ keywrite }}</a></h5>
+
+        <button onclick="logout()">Logout</button> <!-- Added Logout button -->
+    </div>
+
+    <script>
+        window.addEventListener('beforeunload', function (event) {
+            // Customize this message as needed
+            const confirmationMessage = 'Are you sure you want to leave?';
+
+            // Standard for most browsers
+            event.returnValue = confirmationMessage;
+
+            // For older browsers
+            return confirmationMessage;
+        });
+        $(document).ready(function() {
+            alert("You are logged out.");
+        });
+        // Perform login and store session token
+        function login() {
+            const username = $('#username').val();
+            const password = $('#password').val();
+
+            $.ajax({
+                type: "POST",
+                url: "/login",
+                data: { username, password },
+                success: function(response) {
+                    alert("Login successful");
+                    // Store session token
+                    sessionStorage.setItem('token', response.token);
+                    // Show API section
+                    $('#login-form').hide();
+                    $('#api-section').show();
+                },
+                error: function(err) {
+                    alert("Login failed: " + err.responseJSON.message);
+                }
+            });
+        }
+	
+	function register() {
+            const username = $('#username').val();
+            const password = $('#password').val();
+
+            $.ajax({
+                type: "POST",
+                url: "/register",
+                data: { username, password },
+                success: function(response) {
+                    alert("Register successful");
+                    // Store session token
+                    sessionStorage.setItem('token', response.token);
+                    // Show API section
+                    $('#login-form').hide();
+                    $('#api-section').show();
+                },
+                error: function(err) {
+                    alert("Register failed: " + err.responseJSON.message);
+                }
+            });
+        }
+
+        function postAPIREAD() {
+            const token = sessionStorage.getItem('token'); // Get token
+
+            $.ajax({
+                type: "POST",
+                url: "/",
+                headers: { "Authorization": `Bearer ${token}` }, // Send token in headers
+                data: { "action1": "READ" },
+                success: function(r) {
+                    $("#read").html(r);  // Update the Read API key
+                },
+                error: function(err) {
+                    alert("Unauthorized. Please log in.");
+                }
+            });
+        }
+
+        function postAPIWRITE() {
+            const token = sessionStorage.getItem('token');
+
+            $.ajax({
+                type: "POST",
+                url: "/",
+                headers: { "Authorization": `Bearer ${token}` },
+                data: { "action2": "WRITE" },
+                success: function(r) {
+                    $("#write").html(r);  // Update the Write API key
+                },
+                error: function(err) {
+                    alert("Unauthorized. Please log in.");
+                }
+            });
+        }
+        function logout() {
+            // Clear the token and reset the UI
+            sessionStorage.removeItem('token');
+            $('#api-section').hide();
+            $('#login-form').show();
+            alert("Logged out successfully.");
+        }
+    </script>
+</body>
+</html>
